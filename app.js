@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '8 · 21 november 2026';
+const APP_VERSION = '9 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -269,7 +269,12 @@ async function renderDetail(id) {
 
         <h3>Bereiding</h3>
         <ol class="steps">
-          ${steps.map((l, i) => `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${i + 1}</span><p>${esc(l)}</p></li>`).join('')}
+          ${(() => {
+            let n = 0; // nummering loopt door over de kopjes heen
+            return steps.map((l, i) => l.startsWith('#')
+              ? `<li class="sub">${esc(l.replace(/^#+\s*/, ''))}</li>`
+              : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${++n}</span><p>${esc(l)}</p></li>`).join('');
+          })()}
         </ol>
 
         ${r.notes ? `<h3>Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
@@ -347,7 +352,10 @@ function recipeAsText(r, servings, factor) {
     `\nIngrediënten (${servings} ${servings === 1 ? 'portie' : 'porties'}):`,
     ...ingr,
     '\nBereiding:',
-    ...lines(r.steps).map((s, i) => `${i + 1}. ${s}`),
+    ...(() => {
+      let n = 0;
+      return lines(r.steps).map(s => s.startsWith('#') ? '\n' + s.replace(/^#+\s*/, '') + ':' : `${++n}. ${s}`);
+    })(),
     r.notes ? `\nNotities:\n${r.notes}` : '',
   ].filter(Boolean).join('\n');
 }
@@ -404,8 +412,8 @@ async function renderEdit(id) {
       <label>Ingrediënten <small>één per regel · begin met # voor een kopje</small>
         <textarea name="ingredients" rows="8" placeholder="250 g bloem&#10;2 eieren&#10;# Voor de saus&#10;1/2 l melk">${esc(r.ingredients)}</textarea>
       </label>
-      <label>Bereiding <small>één stap per regel</small>
-        <textarea name="steps" rows="8" placeholder="Verwarm de oven voor op 180 °C.&#10;Meng de bloem met de eieren.">${esc(r.steps)}</textarea>
+      <label>Bereiding <small>één stap per regel · begin met # voor een kopje</small>
+        <textarea name="steps" rows="8" placeholder="Verwarm de oven voor op 180 °C.&#10;Meng de bloem met de eieren.&#10;# Voor de saus&#10;Smelt de boter in een pan.">${esc(r.steps)}</textarea>
       </label>
       <label>Tags <small>gescheiden door komma's</small><input name="tags" value="${esc((r.tags || []).join(', '))}" placeholder="vegetarisch, snel"></label>
       <label>Notities<textarea name="notes" rows="3" placeholder="Tips, variaties, bron…">${esc(r.notes)}</textarea></label>

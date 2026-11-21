@@ -19,7 +19,7 @@ Recepten worden alleen op je eigen toestel opgeslagen (IndexedDB). Er is geen se
 
 - Zet bij ingrediënten één ingrediënt per regel, met de hoeveelheid vooraan: `250 g bloem`.
 - Begin een regel met `#` voor een tussenkopje, bijvoorbeeld `# Voor de saus`.
-- Zet bij de bereiding één stap per regel.
+- Zet bij de bereiding één stap per regel. Ook hier maak je een tussenkopje met `#`.
 
 ## Online zetten (GitHub Pages)
 
