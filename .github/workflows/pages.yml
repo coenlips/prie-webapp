@@ -15,16 +15,23 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  deploy:
+  # Stap 1: bestanden inpakken en uploaden
+  build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: .
+
+  # Stap 2: het pakket publiceren (in een aparte job, zoals GitHub aanraadt)
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
       - id: deployment
         uses: actions/deploy-pages@v4
