@@ -9,7 +9,7 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - **Porties omrekenen**: hoeveelheden schalen automatisch mee (ook `1/2`, `½`, `1,5`, `2-3`)
 - Ingrediënten en stappen afvinken tijdens het koken
 - **Kookmodus**: grotere tekst, en het scherm blijft aan
-- **Kookwekker**: tik op een tijd in de bereiding (bijv. "10 minuten") of zet zelf een wekker; meerdere tegelijk, met pauze en +1 minuut. Geluid klinkt alleen als de app open is; het scherm blijft aan zolang er een wekker loopt.
+- **Kookwekker**: tik op een tijd in de bereiding (bijv. "10 minuten") of zet zelf een wekker; meerdere tegelijk, met pauze en +1 minuut. Geluid klinkt alleen als de app open is; het scherm blijft aan zolang er een wekker loopt. In de instellingen kun je kiezen om de wekker in de Klok-app te zetten, via een opdracht `Receptenwekker` in de app Opdrachten (uitleg staat in de app).
 - Recept delen via berichten of mail
 - Back-up exporteren en importeren (JSON), bijvoorbeeld naar iCloud Drive
 - Recepten importeren uit PDF's van de app Receptenmaker (meerdere tegelijk, inclusief foto)

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '10 · 21 november 2026';
+const APP_VERSION = '11 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -500,6 +500,30 @@ function renderSettings() {
         </ol>
       </div>`}
 
+      <div class="card-box" id="timerSettings">
+        <h3>Kookwekker</h3>
+        <p>Waar moet een wekker afgaan als je op een tijd of een snelkeuze tikt?</p>
+        <div class="choice">
+          <label><input type="radio" name="tmode" value="app" ${Timers.getMode() === 'app' ? 'checked' : ''}>
+            <span><strong>In deze app</strong><small>Meerdere wekkers tegelijk. Alleen geluid als de app open is.</small></span></label>
+          <label><input type="radio" name="tmode" value="klok" ${Timers.getMode() === 'klok' ? 'checked' : ''}>
+            <span><strong>In de Klok-app</strong><small>Gaat ook af met scherm op slot. Eén wekker tegelijk. Werkt via de app Opdrachten.</small></span></label>
+        </div>
+        <details class="howto-box" ${Timers.getMode() === 'klok' ? 'open' : ''}>
+          <summary>Eenmalig instellen voor de Klok-app</summary>
+          <ol class="howto">
+            <li>Open de app <strong>Opdrachten</strong> en tik rechtsboven op <strong>+</strong>.</li>
+            <li>Tik bovenaan op de naam en noem de opdracht precies <strong>${Timers.SHORTCUT}</strong>.</li>
+            <li>Tik op <strong>Zoek naar taken</strong>, typ <strong>timer</strong> en kies <strong>Start timer</strong>.</li>
+            <li>Tik in die taak op het getal (<em>30</em>) en kies in de balk boven het toetsenbord <strong>Invoer opdracht</strong>. Laat de eenheid op <strong>minuten</strong> staan.</li>
+            <li>Staat er bovenaan iets als <em>Ontvang … invoer van Nergens</em>? Tik dan op <em>Nergens</em> en zet <strong>Opdrachtenbalk</strong> of <strong>Deelpaneel</strong> aan.</li>
+            <li>Tik op <strong>Gereed</strong>. Kom terug hier en tik op <strong>Test</strong>.</li>
+          </ol>
+          <button class="btn ghost" id="testClock">Test: wekker van 1 minuut in de Klok-app</button>
+          <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p>
+        </details>
+      </div>
+
       <div class="card-box">
         <h3>Importeren uit Receptenmaker</h3>
         <p>Kies een of meer PDF's die je in Receptenmaker hebt gemaakt. Recepten met een naam die al bestaat worden overgeslagen.</p>
@@ -525,6 +549,11 @@ function renderSettings() {
   $('#exportBtn').addEventListener('click', exportBackup);
   $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
   $('#rmInput').addEventListener('change', e => importReceptenmaker([...e.target.files], e.target));
+  view.querySelectorAll('[name=tmode]').forEach(r => r.addEventListener('change', () => {
+    Timers.setMode(r.value);
+    if (r.value === 'klok') view.querySelector('.howto-box').open = true;
+  }));
+  $('#testClock').addEventListener('click', () => Timers.startClock(1));
 }
 
 async function importReceptenmaker(files, input) {

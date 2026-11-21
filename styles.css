@@ -336,3 +336,18 @@ body.has-timers { padding-bottom: calc(110px + var(--tray-h, 0px) + var(--safe-b
 }
 .sheet input:focus { border-color: var(--accent); }
 .sheet-label { display: grid; gap: 6px; margin-top: 12px; font-weight: 600; font-size: 15px; }
+
+.sheet-mode { margin: 14px 0 0; font-size: 15px; color: var(--muted); }
+.sheet-mode .link { font-size: 15px; }
+.choice { display: grid; gap: 8px; margin-bottom: 12px; }
+.choice label {
+  display: flex; gap: 12px; align-items: flex-start; padding: 12px;
+  border: 1px solid var(--line); border-radius: 12px; cursor: pointer;
+}
+.choice label:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.choice input { accent-color: var(--accent); width: 20px; height: 20px; margin: 2px 0 0; flex: none; }
+.choice small { display: block; color: var(--muted); font-size: 14px; }
+.howto-box summary { color: var(--accent); font-weight: 600; cursor: pointer; padding: 4px 0; }
+.howto-box .howto { margin: 10px 0 14px; }
+.howto-box .howto li { margin: 6px 0; }
+.small-note { font-size: 14px; margin: 10px 0 0 !important; }

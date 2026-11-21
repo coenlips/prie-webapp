@@ -4,6 +4,8 @@
 // als je de app even verlaat. Geluid kan alleen klinken als de app open is.
 const Timers = (() => {
   const KEY = 'recepten-timers';
+  const MODE_KEY = 'recepten-timer-mode';
+  const SHORTCUT = 'Receptenwekker';
   let timers = load();
   let audio = null;
   let alarmLoop = null;
@@ -74,6 +76,26 @@ const Timers = (() => {
     if (!(ms > 0)) return;
     timers.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 5), label: label || 'Wekker', endAt: now() + ms, total: ms });
     changed();
+  }
+
+  /* ---------- Klok-app via Opdrachten ---------- */
+
+  function getMode() {
+    try { return localStorage.getItem(MODE_KEY) === 'klok' ? 'klok' : 'app'; } catch { return 'app'; }
+  }
+  function setMode(mode) {
+    try { localStorage.setItem(MODE_KEY, mode); } catch { /* geen opslag */ }
+  }
+
+  // Start de opdracht "Receptenwekker" in de app Opdrachten, die een wekker in de Klok-app zet.
+  function startClock(minutes) {
+    const m = Math.max(1, Math.round(minutes));
+    api.openUrl(`shortcuts://run-shortcut?name=${encodeURIComponent(SHORTCUT)}&input=text&text=${m}`);
+  }
+
+  function go(minutes, label) {
+    if (getMode() === 'klok') startClock(minutes);
+    else start(minutes, label);
   }
 
   function stop(id) { timers = timers.filter(t => t.id !== id); changed(); }
@@ -174,25 +196,29 @@ const Timers = (() => {
           ${presets.map(m => `<button class="preset" data-min="${m}">${m < 60 ? m + ' min' : '1 uur'}</button>`).join('')}
         </div>
         <form class="sheet-custom" autocomplete="off">
-          <input type="number" inputmode="decimal" min="0" step="any" name="min" placeholder="Minuten" aria-label="Aantal minuten">
+          <input type="text" inputmode="decimal" name="min" placeholder="Minuten" aria-label="Aantal minuten">
           <button class="btn" type="submit">Start</button>
         </form>
-        <label class="sheet-label">Naam <input name="label" value="${esc(defaultLabel)}" placeholder="Bijv. Pasta"></label>
+        ${getMode() === 'klok'
+          ? `<p class="sheet-mode">De wekker wordt gezet in de <strong>Klok-app</strong>. <button class="link" data-settings>Wijzigen</button></p>`
+          : `<label class="sheet-label">Naam <input name="label" value="${esc(defaultLabel)}" placeholder="Bijv. Pasta"></label>
+             <p class="sheet-mode">Liever een wekker in de Klok-app? <button class="link" data-settings>Instellen</button></p>`}
       </div>`;
     document.body.appendChild(wrap);
     requestAnimationFrame(() => wrap.classList.add('open'));
 
     const close = () => { wrap.classList.remove('open'); setTimeout(() => wrap.remove(), 200); };
-    const label = () => wrap.querySelector('[name=label]').value.trim() || 'Wekker';
+    const label = () => wrap.querySelector('[name=label]')?.value.trim() || 'Wekker';
     wrap.addEventListener('click', e => {
       if (e.target === wrap || e.target.closest('[data-close]')) close();
       const p = e.target.closest('.preset');
-      if (p) { start(+p.dataset.min, label()); close(); }
+      if (p) { go(+p.dataset.min, label()); close(); }
+      if (e.target.closest('[data-settings]')) { close(); location.hash = '#/settings'; }
     });
     wrap.querySelector('form').addEventListener('submit', e => {
       e.preventDefault();
       const m = parseFloat(String(e.target.min.value).replace(',', '.'));
-      if (m > 0) { start(m, label()); close(); }
+      if (m > 0) { go(m, label()); close(); }
     });
   }
 
@@ -216,14 +242,16 @@ const Timers = (() => {
     const chip = e.target.closest('.time-chip');
     if (!chip) return;
     e.stopPropagation();
-    start(+chip.dataset.min, chip.dataset.label);
+    go(+chip.dataset.min, chip.dataset.label);
   }, true);
 
   render();
   updateAlarm();
 
-  return {
-    start, openSheet, linkify,
+  const api = {
+    openUrl: url => { location.href = url; }, // apart zodat het te testen is
+    start, openSheet, linkify, getMode, setMode, startClock, SHORTCUT,
     active: () => timers.some(t => !isDone(t) && t.pausedLeft == null) || timers.some(isDone),
   };
+  return api;
 })();
