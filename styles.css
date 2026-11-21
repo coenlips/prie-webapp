@@ -376,3 +376,23 @@ body.has-timers { padding-bottom: calc(110px + var(--tray-h, 0px) + var(--safe-b
 /* Categorie kiezen in het formulier */
 .cat-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -4px; }
 .cat-choices .chip { font-size: 15px; padding: 6px 12px; }
+
+/* Online back-up */
+.sync-form { display: grid; gap: 10px; }
+.sync-form input {
+  font: inherit; font-size: 17px; color: var(--text); background: var(--bg);
+  border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%; outline: none;
+}
+.sync-form input:focus { border-color: var(--accent); }
+.sync-form .btn:disabled { opacity: .5; }
+.sync-msg { margin: 0 !important; color: var(--text) !important; font-size: 15px; }
+.sync-state { font-weight: 600; margin-bottom: 6px !important; }
+.sync-state.good { color: #2e7d4f !important; }
+.sync-state.bad { color: #d23b3b !important; }
+@media (prefers-color-scheme: dark) { .sync-state.good { color: #6cc495 !important; } }
+#signOutBtn { margin-top: 10px; display: block; }
+.settings-btn { position: relative; }
+body.sync-problem .settings-btn::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px;
+  border-radius: 50%; background: #d23b3b; border: 2px solid var(--bg);
+}

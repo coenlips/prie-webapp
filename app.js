@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '14 · 21 november 2026';
+const APP_VERSION = '15 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -144,7 +144,7 @@ $('#addBtn').addEventListener('click', () => { location.hash = '#/new'; });
 /* ---------- Lijst ---------- */
 
 function renderList() {
-  setHeader({ actions: `<button class="icon-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  setHeader({ actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
 
   const cats = [...new Set(state.recipes.map(r => r.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nl'));
   const chips = [['all', 'Alles'], ['fav', '♥ Favorieten'], ...cats.map(c => [c, c])];
@@ -546,6 +546,8 @@ function renderSettings() {
         </ol>
       </div>`}
 
+      <div class="card-box" id="syncCard">${Sync.cardHtml()}</div>
+
       <div class="card-box" id="timerSettings">
         <h3>Kookwekker</h3>
         <p>Waar moet een wekker afgaan als je op een tijd of een snelkeuze tikt?</p>
@@ -592,6 +594,7 @@ function renderSettings() {
       <p class="version">Versie ${APP_VERSION}</p>
     </section>`;
 
+  Sync.bindCard($('#syncCard'));
   $('#exportBtn').addEventListener('click', exportBackup);
   $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
   $('#rmInput').addEventListener('change', e => importReceptenmaker([...e.target.files], e.target));
@@ -748,6 +751,13 @@ document.addEventListener('click', e => {
 });
 
 window.addEventListener('hashchange', () => { state.navigated = true; route(); });
+
+// Als er recepten van een ander toestel binnenkomen: lijst bijwerken
+Sync.onRemoteChange = async () => {
+  await loadRecipes();
+  const page = (location.hash || '#/').split('/')[1];
+  if (!page) renderList();
+};
 
 (async () => {
   await loadRecipes();
