@@ -14,21 +14,11 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - Back-up exporteren en importeren (JSON), bijvoorbeeld naar iCloud Drive
 - Recepten importeren uit PDF's van de app Receptenmaker (meerdere tegelijk, inclusief foto)
 
-Recepten worden op je toestel opgeslagen (IndexedDB), zodat de app ook offline werkt. Met de **online back-up** (Supabase) worden ze daarnaast automatisch online bewaard en komen ze terug op een nieuwe iPhone.
+Recepten worden op je toestel opgeslagen (IndexedDB), zodat de app ook offline werkt. Met de **online back-up** worden ze daarnaast automatisch bewaard in een MySQL-database op je eigen website, en komen ze terug op een nieuwe iPhone.
 
-## Online back-up instellen (Supabase)
+## Online back-up instellen (eigen MySQL-database)
 
-1. Maak een gratis project op [supabase.com](https://supabase.com).
-2. Voer `supabase/schema.sql` uit in de **SQL Editor**.
-3. Vul in `config.js` de **Project URL** en de **anon/publishable key** in (nooit de service_role/secret key).
-4. Maak in de app via Instellingen → Online back-up een account aan.
-5. Zet daarna in Supabase bij Authentication het aanmaken van nieuwe accounts uit, zodat alleen jij kunt inloggen.
-
-### Tips voor het invoeren
-
-- Zet bij ingrediënten één ingrediënt per regel, met de hoeveelheid vooraan: `250 g bloem`.
-- Begin een regel met `#` voor een tussenkopje, bijvoorbeeld `# Voor de saus`.
-- Zet bij de bereiding één stap per regel. Ook hier maak je een tussenkopje met `#`.
+Zie [`server/LEESMIJ.md`](server/LEESMIJ.md). Kort: upload `server/api.php` met een ingevulde `config.php` naar je website, zet het adres in `config.js` en log in de app in met het wachtwoord uit `config.php`.
 
 ## Online zetten (GitHub Pages)
 
@@ -57,8 +47,8 @@ Open daarna http://localhost:8000.
 | `app.js` | Schermen, omrekenen van porties, back-up |
 | `db.js` | Opslag in IndexedDB |
 | `timer.js` | Kookwekker |
-| `sync.js`, `config.js` | Online back-up via Supabase |
-| `supabase/schema.sql` | Databasetabel voor de back-up |
+| `sync.js`, `config.js` | Online back-up (app-kant) |
+| `server/` | Back-upserver in PHP voor je eigen website (MySQL) |
 | `receptenmaker.js` | Inlezen van Receptenmaker-PDF's |
 | `vendor/pdfjs/` | PDF-lezer [pdf.js](https://mozilla.github.io/pdf.js/) 4.10.38 (Apache-2.0) |
 | `styles.css` | Opmaak (licht en donker) |

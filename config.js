@@ -1,8 +1,5 @@
-// Gegevens van je Supabase-project voor de online back-up.
-// Deze sleutel is bedoeld om openbaar te zijn: de database laat elke gebruiker
-// alleen zijn eigen recepten zien (Row Level Security). Zet hier NOOIT de
-// "service_role"- of "secret"-sleutel neer.
+// Adres van de back-upserver (server/api.php op je eigen website).
+// Laat leeg zolang die er nog niet staat; de app werkt dan gewoon zonder online back-up.
 const SYNC_CONFIG = {
-  url: '',  // bijv. 'https://abcdefgh.supabase.co'
-  key: '',  // de "anon public"- of "publishable"-sleutel
+  api: '',  // bijv. 'https://coenlips.nl/recepten-api/api.php'
 };

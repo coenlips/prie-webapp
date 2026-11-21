@@ -1,6 +1,6 @@
 'use strict';
 
-// Automatische online back-up via Supabase.
+// Automatische online back-up naar een eigen MySQL-database (via server/api.php).
 // De recepten blijven ook lokaal staan (de app werkt offline). Na elke wijziging
 // en bij het openen van de app worden lokale en online recepten samengevoegd:
 // per recept wint de versie die het laatst is gewijzigd.
@@ -16,94 +16,47 @@ const Sync = (() => {
 
   // Testomgevingen kunnen de configuratie overschrijven.
   const cfg = read('recepten-sync-config-override', null) || (typeof SYNC_CONFIG !== 'undefined' ? SYNC_CONFIG : {});
-  const configured = () => !!(cfg.url && cfg.key);
-  const base = () => cfg.url.replace(/\/+$/, '');
+  const configured = () => !!cfg.api;
 
-  let session = read(LS.session, null);
+  let session = read(LS.session, null); // { token }
   let running = null, again = false, timer = null;
   const listeners = new Set();
   const notify = () => [...listeners].forEach(fn => { try { fn(); } catch { /* */ } });
 
-  /* ---------- Inloggen ---------- */
+  /* ---------- Verbinding met de server ---------- */
 
-  async function authCall(path, body) {
-    const res = await fetch(`${base()}/auth/v1/${path}`, {
-      method: 'POST',
-      headers: { apikey: cfg.key, 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(authMessage(data));
+  async function api(action, body, { auth = true } = {}) {
+    const headers = { 'Content-Type': 'application/json' };
+    if (auth) headers['X-Token'] = session.token;
+    let res;
+    try {
+      res = await fetch(`${cfg.api}?action=${action}`, {
+        method: body ? 'POST' : 'GET', headers, body: body && JSON.stringify(body), cache: 'no-store',
+      });
+    } catch {
+      throw new Error(navigator.onLine === false ? 'Geen internet; de back-up volgt later.' : 'Geen verbinding met de server.');
+    }
+    const data = await res.json().catch(() => null);
+    if (res.status === 401 && auth) { signOut(); throw new Error('Je bent uitgelogd. Log opnieuw in.'); }
+    if (!res.ok || !data) throw new Error((data && data.error) || `Serverfout ${res.status}`);
     return data;
   }
 
-  function authMessage(d) {
-    const m = (d.error_description || d.msg || d.message || d.error || '').toLowerCase();
-    if (m.includes('invalid login')) return 'E-mailadres of wachtwoord klopt niet.';
-    if (m.includes('already registered') || m.includes('already exists')) return 'Er bestaat al een account met dit e-mailadres. Log in.';
-    if (m.includes('not confirmed')) return 'Bevestig eerst je e-mailadres via de link in de mail.';
-    if (m.includes('password')) return 'Kies een wachtwoord van minimaal 6 tekens.';
-    if (m.includes('signups not allowed') || m.includes('signup')) return 'Nieuwe accounts zijn uitgeschakeld voor dit project.';
-    return d.error_description || d.msg || d.message || 'Er ging iets mis.';
-  }
-
-  function keepSession(d) {
-    session = {
-      access_token: d.access_token,
-      refresh_token: d.refresh_token,
-      expires_at: d.expires_at ? d.expires_at * 1000 : Date.now() + (d.expires_in || 3600) * 1000,
-      user: { id: d.user.id, email: d.user.email },
-    };
+  async function signIn(password) {
+    const d = await api('login', { password }, { auth: false });
+    session = { token: d.token };
     write(LS.session, session);
-  }
-
-  async function signIn(email, password) {
-    keepSession(await authCall('token?grant_type=password', { email, password }));
     await syncNow();
   }
 
-  async function signUp(email, password) {
-    const d = await authCall('signup', { email, password });
-    if (d.access_token) { keepSession(d); await syncNow(); return 'ok'; }
-    return 'confirm'; // e-mailbevestiging staat aan
-  }
-
   function signOut() {
+    if (session) api('logout', {}, { auth: true }).catch(() => {});
     session = null;
     [LS.session, LS.deletes, LS.last, LS.error].forEach(k => write(k, null));
     notify();
   }
 
-  async function token() {
-    if (session.expires_at - Date.now() < 60_000) {
-      try {
-        keepSession(await authCall('token?grant_type=refresh_token', { refresh_token: session.refresh_token }));
-      } catch (e) {
-        if (navigator.onLine) { signOut(); throw new Error('Je bent uitgelogd. Log opnieuw in.'); }
-        throw e;
-      }
-    }
-    return session.access_token;
-  }
-
-  /* ---------- Database ---------- */
-
-  async function rest(path, { method = 'GET', body, prefer } = {}) {
-    const headers = { apikey: cfg.key, Authorization: `Bearer ${await token()}` };
-    if (body) headers['Content-Type'] = 'application/json';
-    if (prefer) headers.Prefer = prefer;
-    const res = await fetch(`${base()}/rest/v1/${path}`, { method, headers, body: body && JSON.stringify(body) });
-    if (!res.ok) {
-      const d = await res.json().catch(() => ({}));
-      if (res.status === 404 || d.code === '42P01' || d.code === 'PGRST205') throw new Error('De tabel "recipes" bestaat nog niet in Supabase.');
-      throw new Error(d.message || `Serverfout ${res.status}`);
-    }
-    return res.status === 204 || method !== 'GET' ? null : res.json();
-  }
-
-  const upsert = rows => rest('recipes?on_conflict=user_id,id', {
-    method: 'POST', body: rows, prefer: 'resolution=merge-duplicates,return=minimal',
-  });
+  const upsert = rows => api('put', { rows });
 
   function chunks(arr, size) {
     const out = [];
@@ -114,19 +67,18 @@ const Sync = (() => {
   /* ---------- Samenvoegen ---------- */
 
   async function run() {
-    const uid = session.user.id;
     let deletes = read(LS.deletes, []);
     let changedLocally = false;
 
     // 1. Verwijderingen online doorvoeren
     for (const part of chunks(deletes, 20)) {
-      await upsert(part.map(id => ({ user_id: uid, id, data: null, deleted: true, updated_at: Date.now() })));
+      await upsert(part.map(id => ({ id, data: null, deleted: true, updated_at: Date.now() })));
       deletes = deletes.filter(id => !part.includes(id));
       write(LS.deletes, deletes);
     }
 
     // 2. Wat staat er online? (alleen id's en tijden, dus licht)
-    const remote = await rest('recipes?select=id,updated_at,deleted');
+    const remote = await api('list');
     const local = new Map((await DB.all()).map(r => [r.id, r]));
     const remoteMap = new Map(remote.map(r => [r.id, r]));
 
@@ -146,7 +98,7 @@ const Sync = (() => {
 
     // 3. Ophalen wat online nieuwer is
     for (const part of chunks(download, 10)) {
-      const rows = await rest(`recipes?select=id,data,updated_at&id=in.(${part.map(encodeURIComponent).join(',')})`);
+      const rows = await api('get', { ids: part });
       for (const row of rows) {
         if (!row.data) continue;
         await DB.rawPut({ ...row.data, id: row.id, updatedAt: row.updated_at });
@@ -160,7 +112,7 @@ const Sync = (() => {
 
     // 4. Online zetten wat hier nieuwer is (in kleine stukjes, foto's zijn groot)
     for (const part of chunks(upload, 5)) {
-      await upsert(part.map(r => ({ user_id: uid, id: r.id, data: r, deleted: false, updated_at: r.updatedAt || Date.now() })));
+      await upsert(part.map(r => ({ id: r.id, data: r, deleted: false, updated_at: r.updatedAt || Date.now() })));
     }
 
     write(LS.last, Date.now());
@@ -176,7 +128,7 @@ const Sync = (() => {
         const changed = await run();
         if (changed && typeof Sync.onRemoteChange === 'function') await Sync.onRemoteChange();
       } catch (e) {
-        write(LS.error, navigator.onLine === false ? 'Geen internet; de back-up volgt later.' : e.message);
+        if (session) write(LS.error, e.message);
       } finally {
         running = null;
         notify();
@@ -214,7 +166,7 @@ const Sync = (() => {
   function status() {
     if (!configured()) return { state: 'off' };
     if (!session) return { state: 'loggedout' };
-    return { state: 'on', email: session.user.email, last: read(LS.last, null), error: read(LS.error, null), busy: !!running };
+    return { state: 'on', last: read(LS.last, null), error: read(LS.error, null), busy: !!running };
   }
 
   function when(ts) {
@@ -229,15 +181,14 @@ const Sync = (() => {
     const s = status();
     if (s.state === 'off') return `
       <h3>Online back-up</h3>
-      <p>Nog niet ingesteld. Hiervoor is een Supabase-project nodig.</p>`;
+      <p>Nog niet ingesteld. Hiervoor is de back-upserver op je eigen website nodig.</p>`;
     if (s.state === 'loggedout') return `
       <h3>Online back-up</h3>
-      <p>Log in om je recepten automatisch online te bewaren. Op een nieuwe iPhone log je met hetzelfde account in en komen al je recepten terug.</p>
+      <p>Log in om je recepten automatisch online te bewaren. Op een nieuwe iPhone log je met hetzelfde wachtwoord in en komen al je recepten terug.</p>
       <form class="sync-form" id="syncForm" autocomplete="on">
-        <input type="email" name="email" placeholder="E-mailadres" autocomplete="username" required>
-        <input type="password" name="password" placeholder="Wachtwoord (min. 6 tekens)" autocomplete="current-password" minlength="6" required>
-        <button class="btn" type="submit" data-act="in">Inloggen</button>
-        <button class="btn ghost" type="button" data-act="up">Nieuw account maken</button>
+        <input type="text" name="username" value="recepten" autocomplete="username" hidden>
+        <input type="password" name="password" placeholder="Wachtwoord" autocomplete="current-password" required>
+        <button class="btn" type="submit">Inloggen</button>
         <p class="sync-msg" id="syncMsg" hidden></p>
       </form>`;
     return `
@@ -245,7 +196,7 @@ const Sync = (() => {
       <p class="sync-state ${s.error ? 'bad' : 'good'}">
         ${s.busy ? 'Bezig met back-up…' : s.error ? `⚠️ ${esc(s.error)}` : `✓ Automatische back-up staat aan`}
       </p>
-      <p>Laatste back-up: ${when(s.last)}<br>Account: ${esc(s.email)}</p>
+      <p>Laatste back-up: ${when(s.last)}</p>
       <button class="btn ghost" id="syncNowBtn">Nu back-up maken</button>
       <button class="link" id="signOutBtn">Uitloggen</button>`;
   }
@@ -265,26 +216,21 @@ const Sync = (() => {
     const form = el.querySelector('#syncForm');
     if (form) {
       const msg = el.querySelector('#syncMsg');
-      const go = async mode => {
-        const email = form.email.value.trim(), password = form.password.value;
-        if (!email || password.length < 6) { msg.hidden = false; msg.textContent = 'Vul je e-mailadres en een wachtwoord van minimaal 6 tekens in.'; return; }
-        form.querySelectorAll('button').forEach(b => { b.disabled = true; });
-        msg.hidden = false; msg.textContent = mode === 'up' ? 'Account maken…' : 'Inloggen…';
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const password = form.password.value;
+        if (!password) return;
+        const btn = form.querySelector('button');
+        btn.disabled = true;
+        msg.hidden = false; msg.textContent = 'Inloggen…';
         try {
-          if (mode === 'up' && (await signUp(email, password)) === 'confirm') {
-            msg.textContent = 'Je account is gemaakt. Open de bevestigingsmail en tik op de link; kom daarna terug en log in.';
-            form.querySelectorAll('button').forEach(b => { b.disabled = false; });
-            return;
-          }
-          if (mode === 'in') await signIn(email, password);
+          await signIn(password);
           render();
-        } catch (e) {
-          msg.textContent = e.message === 'Failed to fetch' ? 'Geen verbinding met de server.' : e.message;
-          form.querySelectorAll('button').forEach(b => { b.disabled = false; });
+        } catch (err) {
+          msg.textContent = err.message;
+          btn.disabled = false;
         }
-      };
-      form.addEventListener('submit', e => { e.preventDefault(); go('in'); });
-      form.querySelector('[data-act=up]').addEventListener('click', () => go('up'));
+      });
     }
     el.querySelector('#syncNowBtn')?.addEventListener('click', () => syncNow());
     el.querySelector('#signOutBtn')?.addEventListener('click', () => {
