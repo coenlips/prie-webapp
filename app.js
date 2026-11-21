@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '13 · 21 november 2026';
+const APP_VERSION = '14 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -421,7 +421,10 @@ async function renderEdit(id) {
     actions: `<button class="text-btn" id="saveBtn">Bewaar</button>`,
   });
 
-  const allCats = [...new Set([...CATEGORIES, ...state.recipes.map(x => x.category).filter(Boolean)])];
+  // Je eigen categorieën; zolang je er nog geen hebt, een paar standaardsuggesties.
+  const used = [...new Set(state.recipes.map(x => (x.category || '').trim()).filter(Boolean))]
+    .sort((a, b) => a.localeCompare(b, 'nl'));
+  const catChoices = used.length ? used : CATEGORIES;
 
   view.innerHTML = `
     <form class="form" id="form" autocomplete="off">
@@ -435,10 +438,12 @@ async function renderEdit(id) {
       <label>Korte omschrijving<input name="description" value="${esc(r.description)}" placeholder="Optioneel"></label>
 
       <div class="row">
-        <label>Categorie<input name="category" list="cats" value="${esc(r.category)}" placeholder="Kies of typ"></label>
+        <label>Categorie<input name="category" value="${esc(r.category)}" placeholder="Kies of typ"></label>
         <label>Porties<input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
       </div>
-      <datalist id="cats">${allCats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+      <div class="cat-choices" id="catChoices">
+        ${catChoices.map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+      </div>
 
       <div class="row">
         <label>Voorbereiden (min)<input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}"></label>
@@ -456,6 +461,17 @@ async function renderEdit(id) {
 
       ${id ? `<button type="button" class="btn danger" id="deleteBtn">Recept verwijderen</button>` : ''}
     </form>`;
+
+  // Categorie kiezen met knopjes (de keuzelijst van iOS werkt niet betrouwbaar)
+  const catInput = view.querySelector('[name=category]');
+  const markCat = () => view.querySelectorAll('[data-cat]').forEach(b =>
+    b.classList.toggle('on', b.dataset.cat.toLowerCase() === catInput.value.trim().toLowerCase()));
+  view.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => {
+    catInput.value = b.classList.contains('on') ? '' : b.dataset.cat;
+    markCat();
+  }));
+  catInput.addEventListener('input', markCat);
+  markCat();
 
   const preview = $('#photoPreview');
   const drawPhoto = () => {

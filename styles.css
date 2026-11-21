@@ -372,3 +372,7 @@ body.has-timers { padding-bottom: calc(110px + var(--tray-h, 0px) + var(--safe-b
 .howto-box .howto { margin: 10px 0 14px; }
 .howto-box .howto li { margin: 6px 0; }
 .small-note { font-size: 14px; margin: 10px 0 0 !important; }
+
+/* Categorie kiezen in het formulier */
+.cat-choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: -4px; }
+.cat-choices .chip { font-size: 15px; padding: 6px 12px; }
