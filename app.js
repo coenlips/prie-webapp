@@ -1,5 +1,8 @@
 'use strict';
 
+// Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
+const APP_VERSION = '5 · 21 november 2026';
+
 /* ---------- Hulpfuncties ---------- */
 
 const $ = sel => document.querySelector(sel);
@@ -501,6 +504,8 @@ function renderSettings() {
           <input type="file" accept="application/json,.json" id="importInput" hidden>
         </label>
       </div>
+
+      <p class="version">Versie ${APP_VERSION}</p>
     </section>`;
 
   $('#exportBtn').addEventListener('click', exportBackup);
