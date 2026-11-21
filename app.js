@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '7 · 21 november 2026';
+const APP_VERSION = '8 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -638,6 +638,25 @@ async function route() {
 ['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
 document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
+// Updates: zoek naar een nieuwe versie bij elke keer openen en laad die dan meteen.
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  const hadController = !!navigator.serviceWorker.controller;
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
+  }).catch(() => {});
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // Alleen herladen bij een update, niet bij de allereerste installatie,
+    // en niet midden in het bewerken van een recept.
+    if (!hadController || reloaded || location.hash.startsWith('#/edit') || location.hash === '#/new') return;
+    reloaded = true;
+    location.reload();
+  });
+}
+
 document.addEventListener('click', e => {
   const go = e.target.closest('[data-go]');
   if (go) location.hash = go.dataset.go;
@@ -648,6 +667,6 @@ window.addEventListener('hashchange', () => { state.navigated = true; route(); }
 (async () => {
   await loadRecipes();
   route();
-  if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+  registerServiceWorker();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();

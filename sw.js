@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js.
-const VERSION = 'v7';
+const VERSION = 'v8';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -18,7 +18,7 @@ const FILES = [
 ];
 
 self.addEventListener('install', e => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', e => {
@@ -30,10 +30,12 @@ self.addEventListener('activate', e => {
 });
 
 // Eerst netwerk (zodat updates direct binnenkomen), cache als terugval bij offline.
+// 'no-cache' dwingt de browser om bij de server te controleren of er een nieuwere
+// versie is, in plaats van een tot 10 minuten oude kopie te gebruiken.
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET' || new URL(e.request.url).origin !== location.origin) return;
   e.respondWith(
-    fetch(e.request)
+    fetch(e.request, { cache: 'no-cache' })
       .then(res => {
         const copy = res.clone();
         caches.open(CACHE).then(c => c.put(e.request, copy));
