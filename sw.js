@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging zodat telefoons de nieuwe versie ophalen.
-const VERSION = 'v3';
+const VERSION = 'v4';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -8,6 +8,9 @@ const FILES = [
   'styles.css',
   'app.js',
   'db.js',
+  'receptenmaker.js',
+  'vendor/pdfjs/pdf.min.mjs',
+  'vendor/pdfjs/pdf.worker.min.mjs',
   'manifest.webmanifest',
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',

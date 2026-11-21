@@ -241,7 +241,7 @@ async function renderDetail(id) {
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
         <div class="meta">
           ${r.category ? `<span class="pill">${esc(r.category)}</span>` : ''}
-          ${r.prepTime ? `<span>${ICONS.clock} Voorbereiden ${formatTime(r.prepTime)}</span>` : ''}
+          ${r.prepTime ? `<span>${ICONS.clock} ${r.cookTime ? 'Voorbereiden' : 'Bereidingstijd'} ${formatTime(r.prepTime)}</span>` : ''}
           ${r.cookTime ? `<span>${ICONS.clock} Koken ${formatTime(r.cookTime)}</span>` : ''}
           ${(r.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('')}
         </div>
@@ -484,6 +484,15 @@ function renderSettings() {
       </div>`}
 
       <div class="card-box">
+        <h3>Importeren uit Receptenmaker</h3>
+        <p>Kies een of meer PDF's die je in Receptenmaker hebt gemaakt. Recepten met een naam die al bestaat worden overgeslagen.</p>
+        <label class="btn file-btn">PDF's kiezen
+          <input type="file" accept="application/pdf,.pdf" multiple id="rmInput" hidden>
+        </label>
+        <div class="import-status" id="rmStatus" hidden></div>
+      </div>
+
+      <div class="card-box">
         <h3>Back-up</h3>
         <p>Je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept staat' : 'recepten staan'} alleen op dit toestel.
            Maak af en toe een back-up, bijvoorbeeld naar iCloud Drive.</p>
@@ -496,6 +505,54 @@ function renderSettings() {
 
   $('#exportBtn').addEventListener('click', exportBackup);
   $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
+  $('#rmInput').addEventListener('change', e => importReceptenmaker([...e.target.files], e.target));
+}
+
+async function importReceptenmaker(files, input) {
+  if (!files.length) return;
+  const status = $('#rmStatus');
+  const label = input.closest('label');
+  status.hidden = false;
+  label.classList.add('busy');
+  status.textContent = 'Bezig met laden…';
+
+  let mod;
+  try {
+    mod = await import('./receptenmaker.js');
+  } catch {
+    status.textContent = 'De PDF-lezer kon niet geladen worden. Probeer het opnieuw met internet.';
+    label.classList.remove('busy');
+    return;
+  }
+
+  const existing = new Set(state.recipes.map(r => r.title.trim().toLowerCase()));
+  const added = [], skipped = [], failed = [];
+  let guessed = 0;
+  for (const [i, file] of files.entries()) {
+    status.textContent = `Bezig met ${i + 1} van ${files.length}…`;
+    try {
+      const r = await mod.parsePdf(file);
+      const key = r.title.trim().toLowerCase();
+      if (existing.has(key)) { skipped.push(r.title); continue; }
+      const { servingsGuessed, ...data } = r;
+      await DB.put({ ...data, id: uid(), favorite: false, createdAt: Date.now(), updatedAt: Date.now() });
+      existing.add(key);
+      added.push(r.title);
+      if (servingsGuessed) guessed++;
+    } catch (err) {
+      failed.push(`${file.name} (${err.message || 'onleesbaar'})`);
+    }
+  }
+  await loadRecipes();
+  input.value = '';
+  label.classList.remove('busy');
+
+  const list = arr => `<ul>${arr.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
+  status.innerHTML = `
+    <p><strong>${added.length} ${added.length === 1 ? 'recept' : 'recepten'} toegevoegd.</strong>
+       ${guessed ? 'Het aantal porties staat niet in de PDF en is op 4 gezet; pas dat zo nodig aan.' : ''}</p>
+    ${skipped.length ? `<p>Overgeslagen (bestond al):</p>${list(skipped)}` : ''}
+    ${failed.length ? `<p>Niet gelukt:</p>${list(failed)}` : ''}`;
 }
 
 async function exportBackup() {

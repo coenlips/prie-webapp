@@ -11,6 +11,7 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - **Kookmodus**: grotere tekst, en het scherm blijft aan
 - Recept delen via berichten of mail
 - Back-up exporteren en importeren (JSON), bijvoorbeeld naar iCloud Drive
+- Recepten importeren uit PDF's van de app Receptenmaker (meerdere tegelijk, inclusief foto)
 
 Recepten worden alleen op je eigen toestel opgeslagen (IndexedDB). Er is geen server of account nodig.
 
@@ -46,6 +47,8 @@ Open daarna http://localhost:8000.
 | `index.html` | Basispagina |
 | `app.js` | Schermen, omrekenen van porties, back-up |
 | `db.js` | Opslag in IndexedDB |
+| `receptenmaker.js` | Inlezen van Receptenmaker-PDF's |
+| `vendor/pdfjs/` | PDF-lezer [pdf.js](https://mozilla.github.io/pdf.js/) 4.10.38 (Apache-2.0) |
 | `styles.css` | Opmaak (licht en donker) |
 | `sw.js` | Service worker voor offline gebruik |
 | `manifest.webmanifest`, `icons/` | App-naam en iconen |

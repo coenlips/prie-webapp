@@ -251,3 +251,8 @@ body.cook .steps li { padding: 14px 0; }
   transition: .25s; max-width: calc(100% - 32px); text-align: center;
 }
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+.import-status { margin-top: 14px; font-size: 15px; }
+.import-status p { margin: 8px 0 4px; color: var(--text); }
+.import-status ul { margin: 0; padding-left: 20px; color: var(--muted); }
+.file-btn.busy { opacity: .5; pointer-events: none; }
