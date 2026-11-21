@@ -15,6 +15,8 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+  copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+  check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
   people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
@@ -251,6 +253,7 @@ async function renderDetail(id) {
 
         <div class="section-head">
           <h3>Ingrediënten</h3>
+          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Geselecteerde ingrediënten kopiëren">${ICONS.copy}</button>
           <div class="stepper" aria-label="Aantal porties">
             <button id="minus" aria-label="Minder porties">−</button>
             <span>${ICONS.people} ${servings}</span>
@@ -290,6 +293,7 @@ async function renderDetail(id) {
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
     };
     $('#shareBtn').onclick = () => shareRecipe(r, servings, factor);
+    $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor);
   }
 
   draw();
@@ -300,6 +304,31 @@ async function renderDetail(id) {
     $('#favBtn').classList.toggle('active', r.favorite);
     toast(r.favorite ? 'Toegevoegd aan favorieten' : 'Verwijderd uit favorieten');
   };
+}
+
+// Kopieert de afgevinkte ingrediënten (of alles als er niets is afgevinkt).
+async function copyIngredients(ingr, done, factor) {
+  const tmp = document.createElement('div');
+  const items = ingr
+    .map((l, i) => ({ l, i }))
+    .filter(({ l }) => !l.startsWith('#'));
+  const picked = items.filter(({ i }) => done.has('i' + i));
+  const text = (picked.length ? picked : items)
+    .map(({ l }) => { tmp.innerHTML = scaleLine(l, factor); return tmp.textContent; })
+    .join('\n');
+  const btn = $('#copyBtn');
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    return;
+  }
+  btn.innerHTML = ICONS.check;
+  btn.classList.add('copied');
+  clearTimeout(copyIngredients._t);
+  copyIngredients._t = setTimeout(() => {
+    btn.innerHTML = ICONS.copy;
+    btn.classList.remove('copied');
+  }, 1200);
 }
 
 function recipeAsText(r, servings, factor) {
