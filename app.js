@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '6 · 21 november 2026';
+const APP_VERSION = '7 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -19,6 +19,7 @@ const ICONS = {
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
+  cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -249,11 +250,6 @@ async function renderDetail(id) {
           ${(r.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('')}
         </div>
 
-        <label class="cook-toggle">
-          <input type="checkbox" id="cook" ${state.cookMode ? 'checked' : ''}>
-          <span>Kookmodus <small>scherm blijft aan, grotere tekst</small></span>
-        </label>
-
         <div class="section-head">
           <h3>Ingrediënten</h3>
           <button class="icon-btn copy-btn" id="copyBtn" aria-label="Geselecteerde ingrediënten kopiëren">${ICONS.copy}</button>
@@ -262,6 +258,8 @@ async function renderDetail(id) {
             <span>${ICONS.people} ${servings}</span>
             <button id="plus" aria-label="Meer porties">+</button>
           </div>
+          <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" id="cook" aria-pressed="${!!state.cookMode}"
+            aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
         </div>
         <ul class="ingredients">
           ${ingr.map((l, i) => l.startsWith('#')
@@ -289,8 +287,10 @@ async function renderDetail(id) {
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
-    $('#cook').onchange = async e => {
-      state.cookMode = e.target.checked;
+    $('#cook').onclick = async e => {
+      state.cookMode = !state.cookMode;
+      e.currentTarget.classList.toggle('on', state.cookMode);
+      e.currentTarget.setAttribute('aria-pressed', state.cookMode);
       document.body.classList.toggle('cook', state.cookMode);
       const ok = await setWakeLock(state.cookMode);
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
