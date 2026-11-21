@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js.
-const VERSION = 'v9';
+const VERSION = 'v10';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -8,6 +8,7 @@ const FILES = [
   'styles.css',
   'app.js',
   'db.js',
+  'timer.js',
   'receptenmaker.js',
   'vendor/pdfjs/pdf.min.mjs',
   'vendor/pdfjs/pdf.worker.min.mjs',

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '9 · 21 november 2026';
+const APP_VERSION = '10 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -20,6 +20,7 @@ const ICONS = {
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
   cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  timer: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4M12 2.5V6M18.5 6.5l1.5-1.5"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
@@ -123,10 +124,12 @@ async function loadRecipes() {
 
 /* ---------- Kopbalk ---------- */
 
-function setHeader({ title = 'Recepten', back = false, actions = '' } = {}) {
+function setHeader({ title = 'Recepten', back = false, actions = '', timer = true, timerLabel = '' } = {}) {
   $('#title').textContent = title;
   $('#backBtn').hidden = !back;
-  $('#topActions').innerHTML = actions;
+  $('#topActions').innerHTML = (timer ? `<button class="icon-btn" id="timerBtn" aria-label="Kookwekker">${ICONS.timer}</button>` : '') + actions;
+  if (timer) $('#timerBtn').onclick = () => Timers.openSheet(timerLabel);
+  document.body.classList.toggle('no-fab', !!back);
   $('#addBtn').hidden = !!back;
   document.title = title === 'Recepten' ? 'Recepten' : `${title} · Recepten`;
 }
@@ -208,14 +211,17 @@ function renderCards() {
 
 let wakeLock = null;
 async function setWakeLock(on) {
+  on = on || (typeof Timers !== 'undefined' && Timers.active());
   try {
-    if (on && 'wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen');
+    if (on && 'wakeLock' in navigator) {
+      if (!wakeLock || wakeLock.released) wakeLock = await navigator.wakeLock.request('screen');
+    }
     else if (!on && wakeLock) { await wakeLock.release(); wakeLock = null; }
     return true;
   } catch { return false; }
 }
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && state.cookMode) setWakeLock(true);
+  if (document.visibilityState === 'visible') setWakeLock(!!state.cookMode);
 });
 
 async function renderDetail(id) {
@@ -227,7 +233,7 @@ async function renderDetail(id) {
   const done = new Set();
 
   setHeader({
-    title: r.title, back: true,
+    title: r.title, back: true, timerLabel: r.title,
     actions: `
       <button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
       <button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken">${ICONS.edit}</button>`,
@@ -273,7 +279,7 @@ async function renderDetail(id) {
             let n = 0; // nummering loopt door over de kopjes heen
             return steps.map((l, i) => l.startsWith('#')
               ? `<li class="sub">${esc(l.replace(/^#+\s*/, ''))}</li>`
-              : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${++n}</span><p>${esc(l)}</p></li>`).join('');
+              : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${++n}</span><p>${Timers.linkify(esc(l), esc(`${r.title} · stap ${n}`))}</p></li>`).join('');
           })()}
         </ol>
 
@@ -381,7 +387,7 @@ async function renderEdit(id) {
   let photo = r.photo || '';
 
   setHeader({
-    title: id ? 'Bewerken' : 'Nieuw recept', back: true,
+    title: id ? 'Bewerken' : 'Nieuw recept', back: true, timer: false,
     actions: `<button class="text-btn" id="saveBtn">Bewaar</button>`,
   });
 

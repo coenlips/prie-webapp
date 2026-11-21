@@ -267,3 +267,72 @@ input, textarea, select { font-size: max(16px, 1em); }
   .section-head h3 { font-size: 18px; }
   .stepper svg { display: none; }
 }
+
+/* Kookwekker */
+.time-chip {
+  display: inline; padding: 1px 8px; margin: 0 1px; border-radius: 999px;
+  background: var(--accent-soft); color: var(--accent); font-weight: 600; white-space: nowrap;
+}
+.time-chip:active { filter: brightness(.95); }
+.steps li.done .time-chip { background: none; color: inherit; }
+
+.timer-tray {
+  position: fixed; z-index: 20; left: 16px; right: 92px;
+  bottom: calc(18px + var(--safe-bottom));
+  display: grid; gap: 8px; pointer-events: none;
+}
+body.no-fab .timer-tray { right: 16px; }
+@media (min-width: 752px) { .timer-tray { left: calc(50% - 344px); right: auto; width: 420px; } }
+body.has-timers { padding-bottom: calc(110px + var(--tray-h, 0px) + var(--safe-bottom)); }
+
+.timer {
+  pointer-events: auto; position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 4px; padding: 4px 4px 4px 0;
+  background: var(--text); color: var(--bg); border-radius: 16px;
+  box-shadow: 0 6px 20px rgb(0 0 0 / .2);
+}
+.timer::before {
+  content: ''; position: absolute; inset: auto 0 0 0; height: 3px;
+  width: var(--pct, 0%); background: var(--accent); transition: width .25s linear;
+}
+.timer-main { flex: 1; min-width: 0; text-align: left; padding: 6px 4px 6px 14px; color: inherit; }
+.timer-label { display: block; font-size: 13px; opacity: .75; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.timer-time { display: block; font-size: 22px; font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+.timer.paused .timer-time { opacity: .6; }
+.timer-btn {
+  flex: none; min-width: 44px; height: 40px; padding: 0 10px; border-radius: 12px;
+  background: rgb(255 255 255 / .12); color: inherit; font-weight: 700; font-size: 17px;
+}
+.timer.done { background: var(--accent); color: #fff; animation: timer-pulse 1s ease-in-out infinite; }
+.timer.done::before { display: none; }
+.timer.done .timer-btn { background: #fff; color: var(--accent); padding: 0 18px; }
+@keyframes timer-pulse { 50% { transform: scale(1.02); } }
+@media (prefers-color-scheme: dark) { .timer-btn { background: rgb(0 0 0 / .1); } }
+
+.sheet-backdrop {
+  position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 0);
+  display: flex; align-items: flex-end; justify-content: center; transition: background .2s;
+}
+.sheet-backdrop.open { background: rgb(0 0 0 / .35); }
+.sheet {
+  width: 100%; max-width: 520px; background: var(--bg); border-radius: 20px 20px 0 0;
+  padding: 8px 16px calc(20px + var(--safe-bottom));
+  transform: translateY(100%); transition: transform .2s ease-out;
+}
+.sheet-backdrop.open .sheet { transform: none; }
+.sheet-head { display: flex; align-items: center; justify-content: space-between; }
+.sheet-head h3 { margin: 10px 0; }
+.preset-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.preset {
+  padding: 14px 0; border-radius: 12px; font-weight: 600;
+  background: var(--surface); border: 1px solid var(--line); color: var(--text);
+}
+.preset:active { background: var(--accent-soft); }
+.sheet-custom { display: flex; gap: 8px; margin-top: 12px; }
+.sheet-custom .btn { width: auto; padding: 0 22px; }
+.sheet input {
+  font: inherit; font-size: 17px; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; width: 100%; min-width: 0; outline: none;
+}
+.sheet input:focus { border-color: var(--accent); }
+.sheet-label { display: grid; gap: 6px; margin-top: 12px; font-weight: 600; font-size: 15px; }
