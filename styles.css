@@ -209,6 +209,13 @@ h3 { font-size: 20px; margin: 26px 0 10px; }
 body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 21px; }
 body.cook .steps li { padding: 14px 0; }
 
+/* Kookmodus: alleen naam, ingrediënten en bereiding (plus de kookmodusknop) */
+body.cook .hero, body.cook .lead, body.cook .meta,
+body.cook #copyBtn, body.cook .stepper,
+body.cook .notes-head, body.cook .notes, body.cook .detail-actions,
+body.cook #topActions { display: none; }
+body.cook .detail-title { margin-top: 8px; }
+
 /* Formulier */
 .form { display: grid; gap: 14px; }
 .form label { display: grid; gap: 6px; font-weight: 600; font-size: 15px; }

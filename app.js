@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '11 · 21 november 2026';
+const APP_VERSION = '12 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -283,7 +283,7 @@ async function renderDetail(id) {
           })()}
         </ol>
 
-        ${r.notes ? `<h3>Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
+        ${r.notes ? `<h3 class="notes-head">Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
 
         <div class="detail-actions">
           <button class="btn ghost" id="shareBtn">${ICONS.share} Delen</button>
