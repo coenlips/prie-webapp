@@ -39,6 +39,7 @@ body {
   min-height: 100vh;
   padding-bottom: calc(96px + var(--safe-bottom));
   -webkit-text-size-adjust: 100%;
+  touch-action: manipulation;
 }
 
 svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
@@ -214,7 +215,7 @@ body.cook .steps li { padding: 14px 0; }
 .form label { display: grid; gap: 6px; font-weight: 600; font-size: 15px; }
 .form label small { font-weight: 400; color: var(--muted); }
 .form input:not([type=file]), .form textarea {
-  font: inherit; font-weight: 400; color: var(--text);
+  font: inherit; font-size: 17px; font-weight: 400; color: var(--text);
   background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
   padding: 11px 12px; width: 100%; outline: none; -webkit-appearance: none; appearance: none;
 }
@@ -258,3 +259,6 @@ body.cook .steps li { padding: 14px 0; }
 .file-btn.busy { opacity: .5; pointer-events: none; }
 
 .version { text-align: center; color: var(--muted); font-size: 13px; margin: 4px 0 0; }
+
+/* iPhone zoomt in op velden met tekst kleiner dan 16px */
+input, textarea, select { font-size: max(16px, 1em); }

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '5 · 21 november 2026';
+const APP_VERSION = '6 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -633,6 +633,10 @@ async function route() {
   if (page === 'settings') return renderSettings();
   return renderList();
 }
+
+// Inzoomen met twee vingers blokkeren (iOS negeert user-scalable=no soms).
+['gesturestart', 'gesturechange'].forEach(t => document.addEventListener(t, e => e.preventDefault(), { passive: false }));
+document.addEventListener('touchmove', e => { if (e.touches.length > 1) e.preventDefault(); }, { passive: false });
 
 document.addEventListener('click', e => {
   const go = e.target.closest('[data-go]');
