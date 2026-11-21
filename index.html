@@ -22,6 +22,13 @@
     </button>
     <h1 id="title">Recepten</h1>
     <div class="topbar-actions" id="topActions"></div>
+    <nav class="cook-tabs" id="cookTabs" hidden aria-label="Kookstand">
+      <div class="segmented" role="tablist">
+        <button role="tab" data-tab="ingr">Ingrediënten</button>
+        <button role="tab" data-tab="steps">Bereiding</button>
+      </div>
+      <button class="icon-btn cook-btn on" id="cookOff" aria-label="Kookstand uit" title="Kookstand uit"></button>
+    </nav>
   </header>
 
   <main id="view"></main>

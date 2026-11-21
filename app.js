@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '12 · 21 november 2026';
+const APP_VERSION = '13 · 21 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -224,6 +224,34 @@ document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') setWakeLock(!!state.cookMode);
 });
 
+/* ---------- Kookstand met twee schermen ---------- */
+
+function setCookMode(on) {
+  state.cookMode = on;
+  if (on) state.cookTab = 'ingr';
+  document.body.classList.toggle('cook', on);
+  $('#cookTabs').hidden = !on;
+  const btn = $('#cook');
+  if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on); }
+  showCookTab(state.cookTab || 'ingr');
+  if (!on) setWakeLock(false);
+}
+
+function showCookTab(tab) {
+  state.cookTab = tab;
+  document.body.classList.toggle('cook-tab-steps', tab === 'steps');
+  document.querySelectorAll('#cookTabs [data-tab]').forEach(b => {
+    b.classList.toggle('on', b.dataset.tab === tab);
+    b.setAttribute('aria-selected', b.dataset.tab === tab);
+  });
+}
+
+$('#cookOff').innerHTML = ICONS.cook;
+$('#cookOff').addEventListener('click', () => setCookMode(false));
+document.querySelectorAll('#cookTabs [data-tab]').forEach(b => b.addEventListener('click', () => {
+  if (state.cookTab !== b.dataset.tab) { showCookTab(b.dataset.tab); window.scrollTo(0, 0); }
+}));
+
 async function renderDetail(id) {
   const r = await DB.get(id);
   if (!r) { location.hash = '#/'; return; }
@@ -256,6 +284,7 @@ async function renderDetail(id) {
           ${(r.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('')}
         </div>
 
+        <div class="part-ingr">
         <div class="section-head">
           <h3>Ingrediënten</h3>
           <button class="icon-btn copy-btn" id="copyBtn" aria-label="Geselecteerde ingrediënten kopiëren">${ICONS.copy}</button>
@@ -273,6 +302,9 @@ async function renderDetail(id) {
             : `<li data-i="${i}" class="${done.has('i' + i) ? 'done' : ''}"><span class="check"></span><span>${scaleLine(l, factor)}</span></li>`).join('')}
         </ul>
 
+        </div>
+
+        <div class="part-steps">
         <h3>Bereiding</h3>
         <ol class="steps">
           ${(() => {
@@ -282,6 +314,7 @@ async function renderDetail(id) {
               : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${++n}</span><p>${Timers.linkify(esc(l), esc(`${r.title} · stap ${n}`))}</p></li>`).join('');
           })()}
         </ol>
+        </div>
 
         ${r.notes ? `<h3 class="notes-head">Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
 
@@ -298,11 +331,8 @@ async function renderDetail(id) {
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
-    $('#cook').onclick = async e => {
-      state.cookMode = !state.cookMode;
-      e.currentTarget.classList.toggle('on', state.cookMode);
-      e.currentTarget.setAttribute('aria-pressed', state.cookMode);
-      document.body.classList.toggle('cook', state.cookMode);
+    $('#cook').onclick = async () => {
+      setCookMode(!state.cookMode);
       const ok = await setWakeLock(state.cookMode);
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
     };
@@ -664,11 +694,7 @@ async function route() {
   const [, page, id] = hash.split('/');
   window.scrollTo(0, 0);
 
-  if (page !== 'r' && state.cookMode) {
-    state.cookMode = false;
-    document.body.classList.remove('cook');
-    setWakeLock(false);
-  }
+  if (page !== 'r' && state.cookMode) setCookMode(false);
 
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
