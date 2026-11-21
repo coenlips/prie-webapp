@@ -315,7 +315,7 @@ async function copyIngredients(ingr, done, factor) {
   const picked = items.filter(({ i }) => done.has('i' + i));
   const text = (picked.length ? picked : items)
     .map(({ l }) => { tmp.innerHTML = scaleLine(l, factor); return tmp.textContent; })
-    .join('\n');
+    .join('\n') + '\n';
   const btn = $('#copyBtn');
   try {
     await navigator.clipboard.writeText(text);
