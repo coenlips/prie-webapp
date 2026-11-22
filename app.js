@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '32 · 22 november 2026';
+const APP_VERSION = '33 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -46,21 +46,45 @@ const splitCats = text => {
 // Websitenaam uit een adres, zonder te crashen op een vreemd adres
 const siteOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 
-// Gang: een vaste, aparte indeling naast de vrije categorieën
-const COURSES = ['Voorgerecht', 'Tussengerecht', 'Hoofdgerecht', 'Nagerecht', 'Patisserie'];
-const coursesOf = r => COURSES.filter(c => (r.courses || []).includes(c));
+// Gang: een aparte indeling naast de vrije categorieën. De lijst met gangen is in te
+// stellen en wordt als record '__settings' bewaard, zodat hij meegaat met de back-up.
+const DEFAULT_COURSES = ['Ontbijt', 'Lunch', 'Voorgerecht', 'Tussengerecht', 'Hoofdgerecht', 'Nagerecht', 'Patisserie'];
+const AppSettings = {
+  data: { id: '__settings', courses: DEFAULT_COURSES.slice(), migrated: 0 },
+  async load() {
+    const r = await DB.get('__settings');
+    if (r && Array.isArray(r.courses)) this.data = r;
+    return this.data;
+  },
+  save() { return DB.put(this.data); },
+};
+const courseList = () => AppSettings.data.courses;
+const coursesOf = r => courseList().filter(c => (r.courses || []).includes(c));
+const usesCategory = (r, name) => catsOf(r).some(x => x.toLowerCase() === name.toLowerCase());
 
-// Bestaande categorieën die precies een gang zijn, worden eenmalig naar 'Gang' verplaatst
-async function migrateCourses() {
+// Categorieën die precies een gang zijn, naar de gang verplaatsen. Geeft het aantal recepten terug.
+async function migrateCourses(names) {
+  let n = 0;
   for (const r of state.recipes) {
-    const cats = catsOf(r);
-    const found = COURSES.filter(c => cats.some(x => x.toLowerCase() === c.toLowerCase()));
+    const found = names.filter(c => usesCategory(r, c));
     if (!found.length) continue;
     r.courses = [...new Set([...(r.courses || []), ...found])];
-    r.categories = cats.filter(x => !COURSES.some(c => c.toLowerCase() === x.toLowerCase()));
+    r.categories = catsOf(r).filter(x => !found.some(c => c.toLowerCase() === x.toLowerCase()));
     delete r.category;
     await DB.put(r);
+    n++;
   }
+  return n;
+}
+
+// Eenmalig bij het bijwerken: bestaande categorieën als 'Lunch' of 'Hoofdgerecht' worden een gang
+async function migrateCoursesOnce() {
+  if (AppSettings.data.migrated >= 2) return;
+  const n = await migrateCourses(courseList());
+  AppSettings.data.migrated = 2;
+  // Alleen opslaan als er iets is omgezet: op een nieuw, leeg toestel zou een vers
+  // instellingenrecord anders je eigen gangen uit de back-up kunnen overschrijven.
+  if (n) await AppSettings.save();
 }
 
 const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Soep', 'Salade', 'Bijgerecht', 'Dessert', 'Gebak', 'Snack', 'Drinken'];
@@ -189,7 +213,7 @@ function renderList() {
   const cats = [...new Set(state.recipes.flatMap(catsOf))].sort((a, b) => a.localeCompare(b, 'nl'));
   const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
   if (!chips.some(([k]) => k === state.filter)) state.filter = 'all';
-  const usedCourses = COURSES.filter(c => state.recipes.some(r => coursesOf(r).includes(c)));
+  const usedCourses = courseList().filter(c => state.recipes.some(r => coursesOf(r).includes(c)));
   if (state.course && !usedCourses.includes(state.course)) state.course = null;
 
   view.innerHTML = `
@@ -519,7 +543,7 @@ async function renderEdit(id) {
       <div class="field">
         <span class="field-label">Gang <small>tik er één of meer aan</small></span>
         <div class="course-choices" id="courseChoices">
-          ${COURSES.map(c => `<button type="button" class="chip chip-course${coursesOf(r).includes(c) ? ' on' : ''}" data-course-pick="${esc(c)}">${esc(c)}</button>`).join('')}
+          ${courseList().map(c => `<button type="button" class="chip chip-course${coursesOf(r).includes(c) ? ' on' : ''}" data-course-pick="${esc(c)}">${esc(c)}</button>`).join('')}
         </div>
       </div>
 
@@ -596,7 +620,8 @@ async function renderEdit(id) {
       title: d.title.trim(),
       description: d.description.trim(),
       categories: splitCats(d.category),
-      courses: [...view.querySelectorAll('[data-course-pick].on')].map(b => b.dataset.coursePick),
+      courses: [...(r.courses || []).filter(c => !courseList().includes(c)),
+        ...[...view.querySelectorAll('[data-course-pick].on')].map(b => b.dataset.coursePick)],
       category: undefined, // oud veld, vervangen door 'categories'
       servings: Math.max(1, parseInt(d.servings, 10) || 1),
       prepTime: parseInt(d.prepTime, 10) || '',
@@ -671,6 +696,8 @@ function renderSettings() {
       ${fold('sync', 'Online back-up', `<div id="syncCard">${Sync.cardHtml()}</div>`,
         { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error })}
 
+      ${fold('courses', 'Gangen', `<div id="courseSettings"></div>`, { badge: `<span class="badge-muted">${courseList().length}</span>` })}
+
       ${fold('timer', 'Kookwekker', `
         <p>Waar moet een wekker afgaan als je op een tijd of een snelkeuze tikt?</p>
         <div class="choice">
@@ -733,6 +760,63 @@ function renderSettings() {
     if (r.value === 'klok') view.querySelector('.howto-box').open = true;
   }));
   $('#testClock').addEventListener('click', () => Timers.startClock(1));
+  renderCourseSettings();
+}
+
+// Instellingen → Gangen: toevoegen, volgorde aanpassen, verwijderen
+function renderCourseSettings() {
+  const el = $('#courseSettings');
+  if (!el) return;
+  const list = courseList();
+  const used = c => state.recipes.filter(r => (r.courses || []).includes(c)).length;
+  el.innerHTML = `
+    <p>De gangen waaruit je kiest bij een recept, in deze volgorde.</p>
+    <ul class="course-admin">
+      ${list.map((c, i) => `
+        <li data-i="${i}">
+          <span class="ca-name">${esc(c)}<small>${used(c) ? `${used(c)} recept${used(c) === 1 ? '' : 'en'}` : ''}</small></span>
+          <button class="ca-btn" data-act="up" aria-label="Omhoog" ${i === 0 ? 'disabled' : ''}>↑</button>
+          <button class="ca-btn" data-act="down" aria-label="Omlaag" ${i === list.length - 1 ? 'disabled' : ''}>↓</button>
+          <button class="ca-btn ca-del" data-act="del" aria-label="Verwijderen">×</button>
+        </li>`).join('')}
+    </ul>
+    <form class="shop-add" id="courseAdd" autocomplete="off">
+      <input name="course" placeholder="Nieuwe gang, bijv. Borrelhapje" autocapitalize="sentences" enterkeyhint="done">
+      <button class="btn small" aria-label="Toevoegen">+</button>
+    </form>`;
+  const changed = async () => {
+    await AppSettings.save();
+    renderCourseSettings();
+    const b = $('#badge-courses'); if (b) b.innerHTML = `<span class="badge-muted">${courseList().length}</span>`;
+  };
+  el.querySelectorAll('.course-admin li').forEach(li => li.querySelectorAll('[data-act]').forEach(btn => btn.onclick = async () => {
+    const i = +li.dataset.i, c = list[i];
+    if (btn.dataset.act === 'up') [list[i - 1], list[i]] = [list[i], list[i - 1]];
+    if (btn.dataset.act === 'down') [list[i + 1], list[i]] = [list[i], list[i + 1]];
+    if (btn.dataset.act === 'del') {
+      const n = used(c);
+      if (n && !confirm(`"${c}" wordt gebruikt bij ${n} recept${n === 1 ? '' : 'en'}. Verwijderen? Voeg je de gang later opnieuw toe, dan komt het label terug.`)) return;
+      list.splice(i, 1);
+    }
+    await changed();
+  }));
+  el.querySelector('#courseAdd').onsubmit = async e => {
+    e.preventDefault();
+    const raw = e.target.course.value.trim();
+    if (!raw) return;
+    const name = raw[0].toLocaleUpperCase('nl') + raw.slice(1);
+    if (list.some(c => c.toLowerCase() === name.toLowerCase())) { toast(`"${name}" staat er al`); return; }
+    list.push(name);
+    await changed();
+    // Recepten met een gelijknamige categorie kunnen meteen deze gang krijgen
+    const withCat = state.recipes.filter(r => usesCategory(r, name)).length;
+    if (withCat && confirm(`${withCat} recept${withCat === 1 ? ' heeft' : 'en hebben'} de categorie "${name}". Wil je die als gang "${name}" markeren?`)) {
+      await migrateCourses([name]);
+      await loadRecipes();
+      renderCourseSettings();
+    }
+    $('#courseSettings [name=course]').focus();
+  };
 }
 
 async function importReceptenmaker(files, input) {
@@ -819,7 +903,8 @@ async function addSample() {
     id: uid(),
     title: 'Pannenkoeken',
     description: 'Klassieke Hollandse pannenkoeken, lekker met stroop of spek.',
-    categories: ['Lunch'],
+    categories: [],
+    courses: ['Lunch'],
     tags: ['vegetarisch', 'klassieker'],
     servings: 4,
     prepTime: 10,
@@ -896,13 +981,16 @@ Sync.onRemoteChange = async () => {
   await loadRecipes();
   const page = (location.hash || '#/').split('/')[1];
   await Shopping.load();
+  await AppSettings.load();
   if (!page) renderList();
+  if (page === 'settings') renderCourseSettings();
   if (page === 'boodschappen') Shopping.render(view);
 };
 
 (async () => {
   await loadRecipes();
-  await migrateCourses();
+  await AppSettings.load();
+  await migrateCoursesOnce();
   await Shopping.load();
   route();
   registerServiceWorker();

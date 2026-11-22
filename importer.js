@@ -82,12 +82,15 @@ const Importer = (() => {
     if (!prep && !cook && total) prep = total;
     let cats = list(r.recipeCategory).flatMap(c => String(c).split(',')).map(c => capital(oneLine(c))).filter(Boolean);
     // Gang herkennen (hoofdgerecht, dessert…) uit categorie en trefwoorden, en uit de categorieën halen
-    const COURSE_WORDS = { voorgerecht: 'Voorgerecht', voorgerechten: 'Voorgerecht', starter: 'Voorgerecht',
-      tussengerecht: 'Tussengerecht', tussengerechten: 'Tussengerecht',
-      hoofdgerecht: 'Hoofdgerecht', hoofdgerechten: 'Hoofdgerecht', 'main course': 'Hoofdgerecht',
-      nagerecht: 'Nagerecht', nagerechten: 'Nagerecht', dessert: 'Nagerecht', desserts: 'Nagerecht',
-      patisserie: 'Patisserie' };
-    const courseOf = w => COURSE_WORDS[String(w).trim().toLowerCase()];
+    const COURSE_WORDS = { voorgerechten: 'Voorgerecht', starter: 'Voorgerecht', tussengerechten: 'Tussengerecht',
+      hoofdgerechten: 'Hoofdgerecht', 'main course': 'Hoofdgerecht', nagerechten: 'Nagerecht', dessert: 'Nagerecht',
+      desserts: 'Nagerecht', breakfast: 'Ontbijt', lunchgerecht: 'Lunch', brunch: 'Ontbijt' };
+    // eigen gangen uit de instellingen, plus een paar synoniemen
+    const courseOf = w => {
+      const t = String(w).trim().toLowerCase();
+      const name = courseList().find(c => c.toLowerCase() === t) || COURSE_WORDS[t];
+      return name && courseList().includes(name) ? name : null;
+    };
     const kw = list(r.keywords).flatMap(k => String(k).split(','));
     const courses = [...new Set([...cats, ...kw].map(courseOf).filter(Boolean))];
     cats = cats.filter(c => !courseOf(c));
