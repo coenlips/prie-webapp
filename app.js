@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '37 · 22 november 2026';
+const APP_VERSION = '38 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -19,6 +19,9 @@ const ICONS = {
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   basket: '<svg viewBox="0 0 24 24"><path d="M7.5 10V8.5a4.5 4.5 0 0 1 9 0V10"/><path d="M3 10h18l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 13.5v3.5M12 13.5v3.5M15 13.5v3.5"/></svg>',
+  cloud: '<svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.5 9.2 4.7 4.7 0 0 0 7 18.5z"/></svg>',
+  plate: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="5.5"/><circle cx="12" cy="12.5" r="2.6"/><path d="M3 4v4.5a1.5 1.5 0 0 0 3 0V4M4.5 9.5V20M21 4c-1.7 0-2.6 2.2-2.6 5.2 0 1.6.9 2.3 2.6 2.3M21 4v16"/></svg>',
+  phone: '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M12 8.5v6M9 11.5h6"/></svg>',
   chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
   cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
@@ -669,11 +672,12 @@ async function renderEdit(id) {
 // Inklapbare blokken in de instellingen; onthoudt welke open staan (alleen op dit toestel)
 const FOLD_KEY = 'recepten-settings-open';
 const openFolds = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || []; } catch { return []; } };
-function fold(id, title, body, { badge = '', open = false } = {}) {
+function fold(id, title, body, { badge = '', open = false, icon = '' } = {}) {
   const isOpen = open || openFolds().includes(id);
   return `
     <details class="card-box fold" data-fold="${id}" ${isOpen ? 'open' : ''}>
       <summary>
+        ${icon ? `<span class="fold-icon">${icon}</span>` : ''}
         <h3>${title}</h3>
         <span class="fold-badge" id="badge-${id}">${badge}</span>
         <span class="fold-chevron">${ICONS.chevron}</span>
@@ -702,12 +706,9 @@ function renderSettings() {
           <li>Open deze pagina in <strong>Safari</strong>.</li>
           <li>Tik op de deelknop ${ICONS.share}.</li>
           <li>Kies <strong>Zet op beginscherm</strong>.</li>
-        </ol>`, { open: true })}
+        </ol>`, { open: true, icon: ICONS.phone })}
 
-      ${fold('sync', 'Online back-up', `<div id="syncCard">${Sync.cardHtml()}</div>`,
-        { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error })}
-
-      ${fold('courses', 'Gangen', `<div id="courseSettings"></div>`, { badge: `<span class="badge-muted">${courseList().length}</span>` })}
+      ${fold('courses', 'Gangen', `<div id="courseSettings"></div>`, { badge: `<span class="badge-muted">${courseList().length}</span>`, icon: ICONS.plate })}
 
       ${fold('timer', 'Kookwekker', `
         <p>Waar moet een wekker afgaan als je op een tijd of een snelkeuze tikt?</p>
@@ -729,10 +730,10 @@ function renderSettings() {
           </ol>
           <button class="btn ghost" id="testClock">Test: wekker van 1 minuut in de Klok-app</button>
           <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p>
-        </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>` })}
+        </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>`, icon: ICONS.timer })}
 
-      ${fold('share', 'Delen vanuit Chrome of Safari', `
-        <p>Met een opdracht zet je een recept vanuit Chrome of Safari met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet ingelogd zijn bij de online back-up.</p>
+      ${fold('share', 'Delen', `
+        <p>Recepten vanuit Chrome of Safari importeren. Met een opdracht zet je een recept met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet ingelogd zijn bij de online back-up.</p>
         <ol class="howto">
           <li>Open de app <strong>Opdrachten</strong>, tik op <strong>+</strong> en noem de opdracht <strong>Ricetta importeren</strong>.</li>
           <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten <strong>URL's</strong> en <strong>Safari-webpagina's</strong>.</li>
@@ -754,21 +755,17 @@ function renderSettings() {
             <li>iPhone-instellingen → <strong>Apps → Opdrachten → Geavanceerd</strong> → <strong>Sta uitvoeren scripts toe</strong> aan.</li>
           </ol>
           <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
-        </details>`)}
+        </details>`, { icon: ICONS.share })}
 
-      ${fold('import', 'Importeren uit Receptenmaker', `
-        <p>Kies een of meer PDF's die je in Receptenmaker hebt gemaakt. Recepten met een naam die al bestaat worden overgeslagen.</p>
-        <label class="btn file-btn">PDF's kiezen
-          <input type="file" accept="application/pdf,.pdf" multiple id="rmInput" hidden>
-        </label>
-        <div class="import-status" id="rmStatus" hidden></div>`)}
-
-      ${fold('file', 'Back-up als bestand', `
+      ${fold('backup', 'Back-up', `
+        <h4 class="sub-head">Online back-up</h4>
+        <div id="syncCard">${Sync.cardHtml()}</div>
+        <h4 class="sub-head">Back-up als bestand</h4>
         <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Met de online back-up is dit niet nodig.</p>
         <button class="btn" id="exportBtn">Back-up exporteren</button>
         <label class="btn ghost file-btn">Back-up importeren
           <input type="file" accept="application/json,.json" id="importInput" hidden>
-        </label>`)}
+        </label>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.cloud })}
 
       <p class="version">Versie ${APP_VERSION}</p>
     </section>`;
@@ -781,7 +778,7 @@ function renderSettings() {
   }));
 
   Sync.bindCard($('#syncCard'));
-  const badge = $('#badge-sync');
+  const badge = $('#badge-backup');
   Sync.onChange(function update() {
     if (!badge.isConnected) return false; // kaart weg: ontvanger opruimen
     badge.innerHTML = syncBadge();
@@ -789,7 +786,6 @@ function renderSettings() {
 
   $('#exportBtn').addEventListener('click', exportBackup);
   $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
-  $('#rmInput').addEventListener('change', e => importReceptenmaker([...e.target.files], e.target));
   view.querySelectorAll('[name=tmode]').forEach(r => r.addEventListener('change', () => {
     Timers.setMode(r.value);
     $('#badge-timer').innerHTML = `<span class="badge-muted">${r.value === 'klok' ? 'Klok-app' : 'in de app'}</span>`;
@@ -858,53 +854,6 @@ function renderCourseSettings() {
     }
     $('#courseSettings [name=course]').focus();
   };
-}
-
-async function importReceptenmaker(files, input) {
-  if (!files.length) return;
-  const status = $('#rmStatus');
-  const label = input.closest('label');
-  status.hidden = false;
-  label.classList.add('busy');
-  status.textContent = 'Bezig met laden…';
-
-  let mod;
-  try {
-    mod = await import('./receptenmaker.js');
-  } catch {
-    status.textContent = 'De PDF-lezer kon niet geladen worden. Probeer het opnieuw met internet.';
-    label.classList.remove('busy');
-    return;
-  }
-
-  const existing = new Set(state.recipes.map(r => r.title.trim().toLowerCase()));
-  const added = [], skipped = [], failed = [];
-  let guessed = 0;
-  for (const [i, file] of files.entries()) {
-    status.textContent = `Bezig met ${i + 1} van ${files.length}…`;
-    try {
-      const r = await mod.parsePdf(file);
-      const key = r.title.trim().toLowerCase();
-      if (existing.has(key)) { skipped.push(r.title); continue; }
-      const { servingsGuessed, ...data } = r;
-      await DB.put({ ...data, id: uid(), favorite: false, createdAt: Date.now(), updatedAt: Date.now() });
-      existing.add(key);
-      added.push(r.title);
-      if (servingsGuessed) guessed++;
-    } catch (err) {
-      failed.push(`${file.name} (${err.message || 'onleesbaar'})`);
-    }
-  }
-  await loadRecipes();
-  input.value = '';
-  label.classList.remove('busy');
-
-  const list = arr => `<ul>${arr.map(t => `<li>${esc(t)}</li>`).join('')}</ul>`;
-  status.innerHTML = `
-    <p><strong>${added.length} ${added.length === 1 ? 'recept' : 'recepten'} toegevoegd.</strong>
-       ${guessed ? 'Het aantal porties staat niet in de PDF en is op 4 gezet; pas dat zo nodig aan.' : ''}</p>
-    ${skipped.length ? `<p>Overgeslagen (bestond al):</p>${list(skipped)}` : ''}
-    ${failed.length ? `<p>Niet gelukt:</p>${list(failed)}` : ''}`;
 }
 
 async function exportBackup() {

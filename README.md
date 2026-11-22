@@ -13,7 +13,6 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - **Kookwekker**: tik op een tijd in de bereiding (bijv. "10 minuten") of zet zelf een wekker; meerdere tegelijk, met pauze en +1 minuut. Geluid klinkt alleen als de app open is; het scherm blijft aan zolang er een wekker loopt. In de instellingen kun je kiezen om de wekker in de Klok-app te zetten, via een opdracht `Receptenwekker` in de app Opdrachten (uitleg staat in de app).
 - Recept delen via berichten of mail
 - Back-up exporteren en importeren (JSON), bijvoorbeeld naar iCloud Drive
-- Recepten importeren uit PDF's van de app Receptenmaker (meerdere tegelijk, inclusief foto)
 - **Delen vanuit Chrome of Safari**: met een opdracht (Deel → Ricetta importeren) haalt de iPhone de receptpagina zelf op en stuurt hem naar een postvak op de eigen server; de app toont het recept daarna om te bewaren. Werkt vaak ook bij sites die automatisch ophalen door de server blokkeren. Uitleg staat in de app bij Instellingen.
 - **Recepten van websites importeren** via de plusknop (bijv. Jumbo, Foodies en andere sites met schema.org-receptgegevens). De eigen server haalt de pagina op. Sites die automatisch ophalen blokkeren (zoals AH en delicious.) kunnen via *recepttekst plakken*.
 
@@ -52,10 +51,8 @@ Open daarna http://localhost:8000.
 | `timer.js` | Kookwekker |
 | `sync.js`, `config.js` | Online back-up (app-kant) |
 | `server/` | Back-upserver in PHP voor je eigen website (MySQL) |
-| `receptenmaker.js` | Inlezen van Receptenmaker-PDF's |
 | `shopping.js` | Boodschappenlijst |
 | `importer.js` | Recepten toevoegen via de plusknop: van een website, door tekst te plakken of handmatig |
-| `vendor/pdfjs/` | PDF-lezer [pdf.js](https://mozilla.github.io/pdf.js/) 4.10.38 (Apache-2.0) |
 | `styles.css` | Opmaak (licht en donker) |
 | `sw.js` | Service worker voor offline gebruik |
 | `manifest.webmanifest`, `icons/` | App-naam en iconen |
