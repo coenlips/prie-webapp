@@ -234,7 +234,7 @@ body.cook .steps li { padding: 14px 0; }
 /* Kookmodus: alleen naam, ingrediënten en bereiding (plus de kookmodusknop) */
 body.cook .hero, body.cook .lead, body.cook .meta,
 body.cook #copyBtn, body.cook .stepper,
-body.cook .notes-head, body.cook .notes, body.cook .detail-actions,
+body.cook .notes-head, body.cook .notes, body.cook .detail-actions, body.cook .source,
 body.cook #topActions { display: none; }
 
 /* Kookstand: twee schermen, te kiezen met de vaste balk bovenin */
@@ -546,3 +546,26 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
   font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
   text-transform: none; letter-spacing: normal;
 }
+
+/* Recept toevoegen (plusknop) */
+.add-sheet { max-height: 88vh; overflow-y: auto; }
+.add-part h4 { margin: 8px 0 8px; font: 500 15px var(--font-label); text-transform: uppercase; letter-spacing: .1em; color: var(--mustard); }
+.add-row { display: flex; gap: 8px; margin-bottom: 10px; }
+.add-row input { flex: 1; }
+.btn.small { width: auto; padding: 0 16px; }
+.add-msg { margin: 10px 0 0; font-size: 15px; line-height: 1.4; }
+.add-msg.warn { color: var(--text); background: var(--accent-soft); padding: 10px 12px; border-radius: 3px; }
+.add-msg.bad { color: #d23b3b; }
+.add-msg a { color: var(--accent); font-weight: 600; }
+.add-help { font-size: 14px; color: var(--muted); margin: 0 0 8px; }
+.add-part textarea {
+  width: 100%; font: 16px/1.4 -apple-system, system-ui, sans-serif; color: var(--text); background: var(--surface);
+  border: 1px solid var(--line); border-radius: 3px; padding: 10px 12px; margin-bottom: 10px; resize: vertical;
+}
+.add-part + .add-part { margin-top: 18px; padding-top: 14px; border-top: 1px dashed var(--line); }
+.add-or { display: flex; align-items: center; gap: 10px; margin: 18px 0 12px; color: var(--muted); font: 500 13px var(--font-label); text-transform: uppercase; letter-spacing: .14em; }
+.add-or::before, .add-or::after { content: ''; flex: 1; border-top: 1px solid var(--line); }
+.add-alt { display: grid; gap: 6px; justify-items: center; }
+.btn:disabled { opacity: .6; }
+.source { margin: 22px 0 0; font-size: 14px; color: var(--muted); }
+.source a { color: var(--accent); }

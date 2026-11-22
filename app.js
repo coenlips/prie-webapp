@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '27 · 22 november 2026';
+const APP_VERSION = '28 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -41,6 +41,9 @@ const splitCats = text => {
   String(text).split(',').map(c => c.trim()).filter(Boolean).forEach(c => { if (!seen.has(c.toLowerCase())) seen.set(c.toLowerCase(), c); });
   return [...seen.values()];
 };
+
+// Websitenaam uit een adres, zonder te crashen op een vreemd adres
+const siteOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
 
 const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Soep', 'Salade', 'Bijgerecht', 'Dessert', 'Gebak', 'Snack', 'Drinken'];
 
@@ -105,20 +108,22 @@ function scaleLine(line, factor) {
 
 /* ---------- Foto's verkleinen ---------- */
 
+// Verkleint een foto (bestand of data-URL) tot maximaal 1200 px en maakt er een JPEG van.
 function resizeImage(file, max = 1200) {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    const url = URL.createObjectURL(file);
+    const isUrl = typeof file === 'string';
+    const url = isUrl ? file : URL.createObjectURL(file);
     img.onload = () => {
       const scale = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement('canvas');
       c.width = Math.round(img.width * scale);
       c.height = Math.round(img.height * scale);
       c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-      URL.revokeObjectURL(url);
+      if (!isUrl) URL.revokeObjectURL(url);
       resolve(c.toDataURL('image/jpeg', 0.8));
     };
-    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('Foto kon niet geladen worden')); };
+    img.onerror = () => { if (!isUrl) URL.revokeObjectURL(url); reject(new Error('Foto kon niet geladen worden')); };
     img.src = url;
   });
 }
@@ -152,7 +157,7 @@ $('#backBtn').addEventListener('click', () => {
   if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
 });
-$('#addBtn').addEventListener('click', () => { location.hash = '#/new'; });
+$('#addBtn').addEventListener('click', () => Importer.openSheet());
 
 /* ---------- Lijst ---------- */
 
@@ -346,6 +351,8 @@ async function renderDetail(id) {
 
         ${r.notes ? `<h3 class="notes-head">Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
 
+        ${r.source ? `<p class="source">Bron: <a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(siteOf(r.source))}</a></p>` : ''}
+
         <div class="detail-actions">
           <button class="btn ghost" id="shareBtn">${ICONS.share} Delen</button>
         </div>
@@ -439,9 +446,12 @@ async function shareRecipe(r, servings, factor) {
 
 async function renderEdit(id) {
   const seq = routeSeq;
+  // Een geïmporteerd recept (state.draft) opent hier eerst, zodat je het kunt nakijken
+  const draft = !id && state.draft; state.draft = null;
   const r = id ? await DB.get(id) : {
     id: uid(), title: '', description: '', categories: [], tags: [], servings: 4,
     prepTime: '', cookTime: '', ingredients: '', steps: '', notes: '', photo: '', favorite: false,
+    ...(draft || {}),
   };
   if (isStale(seq)) return;
   if (!r) { location.hash = '#/'; return; }

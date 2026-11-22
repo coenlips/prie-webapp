@@ -251,5 +251,11 @@ const Sync = (() => {
     listeners.add(wrapped);
   }
 
-  return { syncNow, cardHtml, bindCard, status, onChange, onRemoteChange: null };
+  // Voor andere onderdelen (bijv. recepten importeren) die de server nodig hebben
+  function call(action, body) {
+    if (!configured() || !session) return Promise.reject(new Error('Log eerst in bij Online back-up (tandwiel) om recepten van websites te kunnen ophalen.'));
+    return api(action, body);
+  }
+
+  return { syncNow, cardHtml, bindCard, status, onChange, call, onRemoteChange: null };
 })();

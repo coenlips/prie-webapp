@@ -13,6 +13,7 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - Recept delen via berichten of mail
 - Back-up exporteren en importeren (JSON), bijvoorbeeld naar iCloud Drive
 - Recepten importeren uit PDF's van de app Receptenmaker (meerdere tegelijk, inclusief foto)
+- **Recepten van websites importeren** via de plusknop (bijv. Jumbo, Foodies en andere sites met schema.org-receptgegevens). De eigen server haalt de pagina op. Sites die automatisch ophalen blokkeren (zoals AH en delicious.) kunnen via *recepttekst plakken*.
 
 Recepten worden op je toestel opgeslagen (IndexedDB), zodat de app ook offline werkt. Met de **online back-up** worden ze daarnaast automatisch bewaard in een MySQL-database op je eigen website, en komen ze terug op een nieuwe iPhone.
 
@@ -50,6 +51,7 @@ Open daarna http://localhost:8000.
 | `sync.js`, `config.js` | Online back-up (app-kant) |
 | `server/` | Back-upserver in PHP voor je eigen website (MySQL) |
 | `receptenmaker.js` | Inlezen van Receptenmaker-PDF's |
+| `importer.js` | Recepten toevoegen via de plusknop: van een website, door tekst te plakken of handmatig |
 | `vendor/pdfjs/` | PDF-lezer [pdf.js](https://mozilla.github.io/pdf.js/) 4.10.38 (Apache-2.0) |
 | `styles.css` | Opmaak (licht en donker) |
 | `sw.js` | Service worker voor offline gebruik |

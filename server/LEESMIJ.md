@@ -13,3 +13,9 @@ Deze map gaat op je eigen website (bijv. `https://coenlips.nl/recepten-api/`).
 De tabellen `recepten` en `recepten_tokens` worden bij de eerste aanroep vanzelf aangemaakt.
 
 Geen `.htaccess` gebruiken: veel hostingpakketten staan de instelling `Options` daarin niet toe en geven dan een *Internal Server Error*.
+
+## Recepten van websites
+
+`api.php` kan ook receptpagina's en foto's ophalen voor de app (acties `fetch` en `image`, alleen na inloggen).
+Daarvoor moet PHP de extensie **curl** hebben (standaard bij de meeste hosters). De server haalt alleen openbare
+webadressen op (http/https), nooit adressen binnen het eigen netwerk, en maximaal 4 MB per pagina en 8 MB per foto.
