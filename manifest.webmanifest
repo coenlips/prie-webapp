@@ -1,6 +1,6 @@
 {
-  "name": "Recepten",
-  "short_name": "Recepten",
+  "name": "Ricetta",
+  "short_name": "Ricetta",
   "description": "Je eigen receptenboek, altijd bij de hand.",
   "lang": "nl",
   "start_url": "./",

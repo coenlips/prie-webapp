@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '25 · 22 november 2026';
+const APP_VERSION = '26 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -137,14 +137,14 @@ async function loadRecipes() {
 
 /* ---------- Kopbalk ---------- */
 
-function setHeader({ title = 'Recepten', back = false, actions = '', timer = true, timerLabel = '' } = {}) {
+function setHeader({ title = 'Ricetta', back = false, actions = '', timer = true, timerLabel = '' } = {}) {
   $('#title').textContent = title;
   $('#backBtn').hidden = !back;
   $('#topActions').innerHTML = (timer ? `<button class="icon-btn" id="timerBtn" aria-label="Kookwekker">${ICONS.timer}</button>` : '') + actions;
   if (timer) $('#timerBtn').onclick = () => Timers.openSheet(timerLabel);
   document.body.classList.toggle('no-fab', !!back);
   $('#addBtn').hidden = !!back;
-  document.title = title === 'Recepten' ? 'Recepten' : `${title} · Recepten`;
+  document.title = title === 'Ricetta' ? 'Ricetta' : `${title} · Ricetta`;
 }
 
 $('#backBtn').addEventListener('click', () => {
@@ -722,10 +722,10 @@ async function importReceptenmaker(files, input) {
 
 async function exportBackup() {
   const data = JSON.stringify({ app: 'recepten', version: 1, exportedAt: new Date().toISOString(), recipes: state.recipes });
-  const name = `recepten-${new Date().toISOString().slice(0, 10)}.json`;
+  const name = `ricetta-${new Date().toISOString().slice(0, 10)}.json`;
   const file = new File([data], name, { type: 'application/json' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try { await navigator.share({ files: [file], title: 'Recepten back-up' }); return; } catch { return; }
+    try { await navigator.share({ files: [file], title: 'Ricetta back-up' }); return; } catch { return; }
   }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(file);

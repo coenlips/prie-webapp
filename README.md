@@ -1,4 +1,4 @@
-# Recepten
+# Ricetta
 
 Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent hem in Safari, zet hem op je beginscherm en daarna werkt hij als een gewone app, ook zonder internet.
 
