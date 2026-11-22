@@ -19,3 +19,9 @@ Geen `.htaccess` gebruiken: veel hostingpakketten staan de instelling `Options` 
 `api.php` kan ook receptpagina's en foto's ophalen voor de app (acties `fetch` en `image`, alleen na inloggen).
 Daarvoor moet PHP de extensie **curl** hebben (standaard bij de meeste hosters). De server haalt alleen openbare
 webadressen op (http/https), nooit adressen binnen het eigen netwerk, en maximaal 4 MB per pagina en 8 MB per foto.
+
+## Postvak (delen vanuit Safari)
+
+De opdracht *Ricetta importeren* op de iPhone stuurt de receptgegevens van de pagina in Safari naar `api.php?action=inbox_add`
+(met het app-wachtwoord als `key`). De app haalt ze op met `inbox_list` en verwijdert ze na bewaren met `inbox_delete`.
+De tabel `recepten_inbox` wordt vanzelf aangemaakt. Het postvak houdt maximaal 50 recepten vast.

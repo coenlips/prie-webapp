@@ -68,6 +68,12 @@ function db(): PDO {
         created_at BIGINT NOT NULL,
         last_used BIGINT NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Postvak: recepten die vanuit Safari (via een opdracht) zijn gedeeld
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_inbox (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        created_at BIGINT NOT NULL,
+        data LONGTEXT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     return $pdo;
 }
 
@@ -257,6 +263,32 @@ switch ($action) {
         $type = strtolower(explode(';', $r['type'])[0]);
         if ($r['status'] !== 200 || !str_starts_with($type, 'image/')) fail(502, 'De foto kon niet worden opgehaald.');
         out(['data' => 'data:' . $type . ';base64,' . base64_encode($r['body'])]);
+    }
+
+    // Vanuit de opdracht in Safari: zonder inlogtoken, maar met het app-wachtwoord
+    case 'inbox_add': {
+        $b = body();
+        if (!hash_equals(APP_PASSWORD, (string) ($b['key'] ?? ''))) { sleep(2); fail(403, 'Wachtwoord klopt niet.'); }
+        $data = $b['data'] ?? null;
+        if (is_string($data)) $data = json_decode($data, true);
+        if (!is_array($data) || empty($data['url'])) fail(400, 'Geen receptgegevens ontvangen.');
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (strlen($json) > 3 * 1024 * 1024) fail(413, 'Pagina is te groot.');
+        $count = (int) db()->query('SELECT COUNT(*) FROM recepten_inbox')->fetchColumn();
+        if ($count >= 50) fail(429, 'Het postvak is vol. Open eerst Ricetta.');
+        db()->prepare('INSERT INTO recepten_inbox (created_at, data) VALUES (?, ?)')->execute([now_ms(), $json]);
+        out(['ok' => true, 'message' => 'Recept naar Ricetta gestuurd']);
+    }
+
+    case 'inbox_list':
+        require_token();
+        $rows = db()->query('SELECT id, created_at, data FROM recepten_inbox ORDER BY id')->fetchAll();
+        out(array_map(fn($r) => ['id' => (int) $r['id'], 'created_at' => (int) $r['created_at'], 'data' => json_decode($r['data'], true)], $rows));
+
+    case 'inbox_delete': {
+        require_token();
+        db()->prepare('DELETE FROM recepten_inbox WHERE id = ?')->execute([(int) (body()['id'] ?? 0)]);
+        out(['ok' => true]);
     }
 
     default:

@@ -263,5 +263,90 @@ const Importer = (() => {
     };
   }
 
-  return { openSheet, fromText, findRecipe, fromRecipe, minutes };
+  /* ---------- Postvak: recepten die vanuit Safari zijn gedeeld ---------- */
+
+  // Code voor de opdracht 'Ricetta importeren' (taak 'Voer JavaScript uit op webpagina').
+  // Leest het recept uit de pagina die al in Safari geladen is.
+  const SHARE_JS = `var d={url:location.href,title:document.title,jsonld:[],og:{},text:''};` +
+    `document.querySelectorAll('script[type="application/ld+json"]').forEach(function(s){d.jsonld.push(s.textContent)});` +
+    `['og:title','og:image','og:description'].forEach(function(k){var m=document.querySelector('meta[property="'+k+'"],meta[name="'+k+'"]');if(m)d.og[k]=m.content});` +
+    `d.text=(document.body.innerText||'').slice(0,30000);completion(JSON.stringify(d));`;
+
+  let inbox = [];
+
+  let lastCheck = 0;
+  async function checkInbox({ maxAge = 0 } = {}) {
+    if (Sync.status().state !== 'on') { inbox = []; renderBanner(); return inbox; }
+    if (maxAge && Date.now() - lastCheck < maxAge) { renderBanner(); return inbox; }
+    lastCheck = Date.now();
+    try { inbox = await Sync.call('inbox_list'); } catch { /* volgende keer opnieuw */ }
+    renderBanner();
+    return inbox;
+  }
+
+  // Melding bovenaan het overzicht
+  function renderBanner() {
+    const el = document.getElementById('inboxBanner');
+    if (!el) return;
+    el.hidden = !inbox.length;
+    if (!inbox.length) return;
+    const first = inbox[0].data || {};
+    el.innerHTML = `
+      <div class="inbox-text"><strong>${inbox.length} ${inbox.length === 1 ? 'recept' : 'recepten'} uit Safari</strong>
+        <small>${esc(oneLine(first.title || '').slice(0, 60))}</small></div>
+      <button class="btn small" id="inboxOpen">Bekijken</button>
+      <button class="inbox-del" id="inboxDel" aria-label="Weggooien">×</button>`;
+    el.querySelector('#inboxOpen').onclick = () => openInboxItem(inbox[0]);
+    el.querySelector('#inboxDel').onclick = async () => {
+      if (!confirm(`"${oneLine(first.title || 'Dit recept')}" uit het postvak weggooien?`)) return;
+      await Sync.call('inbox_delete', { id: inbox[0].id }).catch(() => {});
+      inbox.shift(); renderBanner();
+    };
+  }
+
+  async function openInboxItem(item) {
+    const page = item.data || {};
+    const btn = document.getElementById('inboxOpen');
+    if (btn) { btn.disabled = true; btn.textContent = 'Bezig…'; }
+    try {
+      const same = state.recipes.find(r => r.source && r.source.replace(/\/$/, '') === String(page.url).replace(/\/$/, ''));
+      if (same && !confirm(`"${same.title}" staat er al. Toch nog een keer toevoegen?`)) {
+        await Sync.call('inbox_delete', { id: item.id }).catch(() => {});
+        inbox = inbox.filter(x => x !== item); renderBanner();
+        return;
+      }
+      const recipe = findRecipe(page.jsonld || []);
+      let draft;
+      if (recipe) {
+        draft = fromRecipe(recipe, { og: page.og || {}, title: page.title || '' });
+      } else {
+        // Geen receptgegevens op de pagina: de tekst van de pagina proberen
+        draft = fromText(page.text || page.title || '') || { title: page.title || '' };
+        toast('Geen receptgegevens gevonden: controleer naam, ingrediënten en bereiding');
+        draft.imageUrl = (page.og || {})['og:image'] || '';
+      }
+      draft.source = page.url;
+      if (draft.imageUrl) {
+        try {
+          const img = await Sync.call('image', { url: new URL(draft.imageUrl, page.url).href });
+          draft.photo = await resizeImage(img.data);
+        } catch { /* zonder foto verder */ }
+      }
+      delete draft.imageUrl; delete draft.foundSections;
+      draft._inboxId = item.id;   // wordt na 'Bewaar' uit het postvak gehaald
+      state.draft = draft;
+      location.hash = '#/new';
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Bekijken'; }
+    }
+  }
+
+  async function doneInbox(id) {
+    await Sync.call('inbox_delete', { id }).catch(() => {});
+    inbox = inbox.filter(x => x.id !== id);
+  }
+
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkInbox(); });
+
+  return { openSheet, fromText, findRecipe, fromRecipe, minutes, checkInbox, renderBanner, doneInbox, SHARE_JS };
 })();

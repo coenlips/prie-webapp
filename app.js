@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '35 · 22 november 2026';
+const APP_VERSION = '36 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -234,6 +234,7 @@ function renderList() {
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
         : `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
+    <div class="inbox-banner" id="inboxBanner" hidden></div>
     <ul class="cards" id="cards"></ul>
   `;
 
@@ -260,6 +261,7 @@ function renderList() {
     chipBar.addEventListener('scroll', () => { state.chipScroll = chipBar.scrollLeft; }, { passive: true });
   }
   renderCards();
+  Importer.checkInbox({ maxAge: 20000 });   // toont meteen wat er al bekend is, en kijkt zo nu en dan op de server
 }
 
 function renderCards() {
@@ -640,7 +642,10 @@ async function renderEdit(id) {
       createdAt: r.createdAt || Date.now(),
       updatedAt: Date.now(),
     };
+    const inboxId = updated._inboxId;
+    delete updated._inboxId;
     await DB.put(updated);
+    if (inboxId) await Importer.doneInbox(inboxId);
     await loadRecipes();
     toast('Opgeslagen');
     if (id && state.navigated) history.back();
@@ -726,6 +731,21 @@ function renderSettings() {
           <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p>
         </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>` })}
 
+      ${fold('share', 'Delen vanuit Safari', `
+        <p>Met een opdracht zet je een recept vanuit Safari met <strong>Deel → Ricetta importeren</strong> klaar in de app. Werkt ook bij sites die automatisch ophalen blokkeren. Je moet ingelogd zijn bij de online back-up.</p>
+        <ol class="howto">
+          <li>Open de app <strong>Opdrachten</strong>, tik op <strong>+</strong> en noem de opdracht <strong>Ricetta importeren</strong>.</li>
+          <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten alleen <strong>Safari-webpagina's</strong>.</li>
+          <li>Voeg de taak <strong>Voer JavaScript uit op webpagina</strong> toe. Vervang de voorbeeldcode door de code van knop 1.</li>
+          <li>Voeg de taak <strong>Haal inhoud op van URL</strong> toe. Plak als URL het adres van knop 2. Tik op het pijltje: <strong>Methode POST</strong>, <strong>Verzoekhoofdtekst JSON</strong>. Voeg twee tekstvelden toe:
+            <code>key</code> = je app-wachtwoord, en <code>data</code> = de variabele <em>Resultaat JavaScript</em>.</li>
+          <li>Voeg de taak <strong>Toon melding</strong> toe, met de variabele <em>Inhoud van URL</em>.</li>
+          <li>Zet in de iPhone-instellingen bij <strong>Apps → Opdrachten → Geavanceerd</strong> de optie <strong>Sta uitvoeren scripts toe</strong> aan.</li>
+        </ol>
+        <button class="btn ghost" id="copyShareJs">1 · Kopieer de code</button>
+        <button class="btn ghost" id="copyShareUrl">2 · Kopieer het adres</button>
+        <p class="small-note">De eerste keer vraagt je iPhone of de opdracht de webpagina en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>`)}
+
       ${fold('import', 'Importeren uit Receptenmaker', `
         <p>Kies een of meer PDF's die je in Receptenmaker hebt gemaakt. Recepten met een naam die al bestaat worden overgeslagen.</p>
         <label class="btn file-btn">PDF's kiezen
@@ -767,6 +787,11 @@ function renderSettings() {
   }));
   $('#testClock').addEventListener('click', () => Timers.startClock(1));
   renderCourseSettings();
+  const copyBtn = (sel, text, label) => { const b = $(sel); if (b) b.onclick = async () => {
+    try { await navigator.clipboard.writeText(text); b.textContent = '✓ Gekopieerd'; setTimeout(() => { b.textContent = label; }, 1500); } catch { toast('Kopiëren lukte niet'); }
+  }; };
+  copyBtn('#copyShareJs', Importer.SHARE_JS, '1 · Kopieer de code');
+  copyBtn('#copyShareUrl', (typeof SYNC_CONFIG !== 'undefined' && SYNC_CONFIG.api ? SYNC_CONFIG.api : '') + '?action=inbox_add', '2 · Kopieer het adres');
 }
 
 // Instellingen → Gangen: toevoegen, volgorde aanpassen, verwijderen
@@ -990,6 +1015,7 @@ Sync.onRemoteChange = async () => {
   await AppSettings.load();
   if (!page) renderList();
   if (page === 'settings') renderCourseSettings();
+  Importer.checkInbox();
   if (page === 'boodschappen') Shopping.render(view);
 };
 
@@ -1000,5 +1026,6 @@ Sync.onRemoteChange = async () => {
   await Shopping.load();
   route();
   registerServiceWorker();
+  Importer.checkInbox();   // recepten die vanuit Safari zijn gedeeld
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();

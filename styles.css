@@ -624,3 +624,14 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
 .ca-btn:disabled { opacity: .25; }
 .ca-btn:active:not(:disabled) { background: var(--accent-soft); }
 .ca-del { color: var(--accent); font-size: 22px; }
+
+/* Postvak: recepten uit Safari */
+.inbox-banner {
+  display: flex; align-items: center; gap: 10px; margin: 12px 0 4px; padding: 10px 6px 10px 14px;
+  background: var(--accent-soft); border-left: 4px solid var(--accent); border-radius: 2px;
+}
+.inbox-text { flex: 1; min-width: 0; font-size: 15px; }
+.inbox-text small { display: block; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.inbox-banner .btn.small { padding: 8px 14px; font-size: 14px; }
+.inbox-del { width: 34px; height: 34px; color: var(--muted); font-size: 22px; flex: none; }
+.howto code { font: 600 14px ui-monospace, Menlo, monospace; background: var(--line); padding: 1px 5px; border-radius: 2px; }
