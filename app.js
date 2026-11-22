@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '33 · 22 november 2026';
+const APP_VERSION = '34 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -85,6 +85,13 @@ async function migrateCoursesOnce() {
   // Alleen opslaan als er iets is omgezet: op een nieuw, leeg toestel zou een vers
   // instellingenrecord anders je eigen gangen uit de back-up kunnen overschrijven.
   if (n) await AppSettings.save();
+}
+
+// Alle gebruikte categorieën, meest gebruikt eerst (bij gelijk aantal op alfabet)
+function catsByUse() {
+  const count = new Map();
+  state.recipes.forEach(r => catsOf(r).forEach(c => count.set(c, (count.get(c) || 0) + 1)));
+  return [...count.keys()].sort((a, b) => count.get(b) - count.get(a) || a.localeCompare(b, 'nl'));
 }
 
 const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Soep', 'Salade', 'Bijgerecht', 'Dessert', 'Gebak', 'Snack', 'Drinken'];
@@ -210,7 +217,7 @@ function renderList() {
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   Shopping.updateBadge();
 
-  const cats = [...new Set(state.recipes.flatMap(catsOf))].sort((a, b) => a.localeCompare(b, 'nl'));
+  const cats = catsByUse();
   const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
   if (!chips.some(([k]) => k === state.filter)) state.filter = 'all';
   const usedCourses = courseList().filter(c => state.recipes.some(r => coursesOf(r).includes(c)));
@@ -525,8 +532,7 @@ async function renderEdit(id) {
   });
 
   // Je eigen categorieën; zolang je er nog geen hebt, een paar standaardsuggesties.
-  const used = [...new Set(state.recipes.flatMap(catsOf))]
-    .sort((a, b) => a.localeCompare(b, 'nl'));
+  const used = catsByUse();
   const catChoices = used.length ? used : CATEGORIES;
 
   view.innerHTML = `
