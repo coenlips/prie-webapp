@@ -80,12 +80,23 @@ const Importer = (() => {
     let prep = minutes(r.prepTime), cook = minutes(r.cookTime);
     const total = minutes(r.totalTime);
     if (!prep && !cook && total) prep = total;
-    const cats = list(r.recipeCategory).flatMap(c => String(c).split(',')).map(c => capital(oneLine(c))).filter(Boolean);
+    let cats = list(r.recipeCategory).flatMap(c => String(c).split(',')).map(c => capital(oneLine(c))).filter(Boolean);
+    // Gang herkennen (hoofdgerecht, dessert…) uit categorie en trefwoorden, en uit de categorieën halen
+    const COURSE_WORDS = { voorgerecht: 'Voorgerecht', voorgerechten: 'Voorgerecht', starter: 'Voorgerecht',
+      tussengerecht: 'Tussengerecht', tussengerechten: 'Tussengerecht',
+      hoofdgerecht: 'Hoofdgerecht', hoofdgerechten: 'Hoofdgerecht', 'main course': 'Hoofdgerecht',
+      nagerecht: 'Nagerecht', nagerechten: 'Nagerecht', dessert: 'Nagerecht', desserts: 'Nagerecht',
+      patisserie: 'Patisserie' };
+    const courseOf = w => COURSE_WORDS[String(w).trim().toLowerCase()];
+    const kw = list(r.keywords).flatMap(k => String(k).split(','));
+    const courses = [...new Set([...cats, ...kw].map(courseOf).filter(Boolean))];
+    cats = cats.filter(c => !courseOf(c));
     const tags = list(r.keywords).flatMap(k => String(k).split(',')).map(k => oneLine(k).toLowerCase()).filter(Boolean).slice(0, 8);
     return {
       title: capital(oneLine(r.name) || oneLine(page.og['og:title']) || page.title),
       description: oneLine(r.description || page.og['og:description'] || ''),
       categories: [...new Set(cats)],
+      courses,
       tags,
       servings: servings || 4,
       prepTime: prep || '',

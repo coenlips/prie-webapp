@@ -603,3 +603,14 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
   .section-head .stepper { margin-left: auto; margin-top: 4px; }
   .section-head .cook-btn { margin-top: 4px; }
 }
+
+/* Gang (voor-, tussen-, hoofd-, nagerecht, patisserie) */
+.course-chips { margin-top: 10px; margin-bottom: -4px; }
+.chip-course { border-style: dashed; }
+.chip-course.on { background: var(--text); border-color: var(--text); border-style: solid; color: var(--bg); }
+.pill.pill-course { background: var(--text); color: var(--bg); }
+.field { display: grid; gap: 8px; }
+.field-label { font: 500 14px var(--font-label); text-transform: uppercase; letter-spacing: .06em; }
+.field-label small { text-transform: none; letter-spacing: 0; font: 400 13px -apple-system, system-ui, sans-serif; color: var(--muted); }
+.course-choices { display: flex; flex-wrap: wrap; gap: 8px; }
+.course-choices .chip { font-size: 15px; padding: 6px 12px; }

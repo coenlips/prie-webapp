@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '31 · 22 november 2026';
+const APP_VERSION = '32 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -45,6 +45,23 @@ const splitCats = text => {
 
 // Websitenaam uit een adres, zonder te crashen op een vreemd adres
 const siteOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return u; } };
+
+// Gang: een vaste, aparte indeling naast de vrije categorieën
+const COURSES = ['Voorgerecht', 'Tussengerecht', 'Hoofdgerecht', 'Nagerecht', 'Patisserie'];
+const coursesOf = r => COURSES.filter(c => (r.courses || []).includes(c));
+
+// Bestaande categorieën die precies een gang zijn, worden eenmalig naar 'Gang' verplaatst
+async function migrateCourses() {
+  for (const r of state.recipes) {
+    const cats = catsOf(r);
+    const found = COURSES.filter(c => cats.some(x => x.toLowerCase() === c.toLowerCase()));
+    if (!found.length) continue;
+    r.courses = [...new Set([...(r.courses || []), ...found])];
+    r.categories = cats.filter(x => !COURSES.some(c => c.toLowerCase() === x.toLowerCase()));
+    delete r.category;
+    await DB.put(r);
+  }
+}
 
 const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Soep', 'Salade', 'Bijgerecht', 'Dessert', 'Gebak', 'Snack', 'Drinken'];
 
@@ -172,13 +189,17 @@ function renderList() {
   const cats = [...new Set(state.recipes.flatMap(catsOf))].sort((a, b) => a.localeCompare(b, 'nl'));
   const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
   if (!chips.some(([k]) => k === state.filter)) state.filter = 'all';
+  const usedCourses = COURSES.filter(c => state.recipes.some(r => coursesOf(r).includes(c)));
+  if (state.course && !usedCourses.includes(state.course)) state.course = null;
 
   view.innerHTML = `
     <div class="search">
       ${ICONS.search}
       <input type="search" id="q" placeholder="Zoek recept of ingrediënt" value="${esc(state.query)}" autocomplete="off">
     </div>
-    ${state.recipes.length ? `<div class="chips">${chips.map(([k, l]) =>
+    ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
+      `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
+    ${state.recipes.length ? `<div class="chips" id="catBar">${chips.map(([k, l]) =>
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
         : `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
@@ -188,7 +209,13 @@ function renderList() {
   const q = $('#q');
   q.addEventListener('input', () => { state.query = q.value; renderCards(); });
   // Filter kiezen: alleen de knoppen en de lijst bijwerken, zodat de balk niet terugspringt
-  const chipBar = view.querySelector('.chips');
+  const chipBar = view.querySelector('#catBar');
+  // Gang kiezen; nogmaals tikken zet hem uit. Combineert met het categoriefilter.
+  view.querySelectorAll('[data-course]').forEach(b => b.addEventListener('click', () => {
+    state.course = state.course === b.dataset.course ? null : b.dataset.course;
+    view.querySelectorAll('[data-course]').forEach(x => x.classList.toggle('on', x.dataset.course === state.course));
+    renderCards();
+  }));
   view.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
     // Nogmaals tikken op het actieve filter zet het uit (terug naar Alles)
     const f = b.dataset.filter;
@@ -209,8 +236,9 @@ function renderCards() {
   const list = state.recipes.filter(r => {
     if (state.filter === 'fav' && !r.favorite) return false;
     if (state.filter !== 'all' && state.filter !== 'fav' && !catsOf(r).includes(state.filter)) return false;
+    if (state.course && !coursesOf(r).includes(state.course)) return false;
     if (!q) return true;
-    return [r.title, ...catsOf(r), r.ingredients, (r.tags || []).join(' ')].join(' ').toLowerCase().includes(q);
+    return [r.title, ...coursesOf(r), ...catsOf(r), r.ingredients, (r.tags || []).join(' ')].join(' ').toLowerCase().includes(q);
   });
 
   const el = $('#cards');
@@ -236,7 +264,7 @@ function renderCards() {
         <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body">
           <div class="card-title">${esc(r.title)}${r.favorite ? ' <span class="fav">♥</span>' : ''}</div>
-          <div class="card-meta">${[catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="card-meta">${[coursesOf(r).join(', '), catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
         </div>
         <span class="card-chevron">${ICONS.chevron}</span>
       </a></li>`;
@@ -318,6 +346,7 @@ async function renderDetail(id) {
         <h2 class="detail-title">${esc(r.title)}</h2>
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
         <div class="meta">
+          ${coursesOf(r).map(c => `<span class="pill pill-course">${esc(c)}</span>`).join('')}
           ${catsOf(r).map(c => `<span class="pill">${esc(c)}</span>`).join('')}
           ${r.prepTime ? `<span>${ICONS.clock} ${r.cookTime ? 'Voorbereiden' : 'Bereidingstijd'} ${formatTime(r.prepTime)}</span>` : ''}
           ${r.cookTime ? `<span>${ICONS.clock} Koken ${formatTime(r.cookTime)}</span>` : ''}
@@ -487,6 +516,13 @@ async function renderEdit(id) {
       <label>Naam<input name="title" required value="${esc(r.title)}" placeholder="Bijv. Oma's appeltaart"></label>
       <label>Korte omschrijving<input name="description" value="${esc(r.description)}" placeholder="Optioneel"></label>
 
+      <div class="field">
+        <span class="field-label">Gang <small>tik er één of meer aan</small></span>
+        <div class="course-choices" id="courseChoices">
+          ${COURSES.map(c => `<button type="button" class="chip chip-course${coursesOf(r).includes(c) ? ' on' : ''}" data-course-pick="${esc(c)}">${esc(c)}</button>`).join('')}
+        </div>
+      </div>
+
       <label>Categorieën <small>tik er één of meer aan, of typ nieuwe, gescheiden door komma's</small>
         <input name="category" value="${esc(catsOf(r).join(', '))}" placeholder="Bijv. Diner, Vegetarisch" autocapitalize="sentences">
       </label>
@@ -518,6 +554,8 @@ async function renderEdit(id) {
 
   // Categorie kiezen met knopjes (de keuzelijst van iOS werkt niet betrouwbaar)
   const catInput = view.querySelector('[name=category]');
+  view.querySelectorAll('[data-course-pick]').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+
   const markCat = () => {
     const chosen = splitCats(catInput.value).map(c => c.toLowerCase());
     view.querySelectorAll('[data-cat]').forEach(b => b.classList.toggle('on', chosen.includes(b.dataset.cat.toLowerCase())));
@@ -558,6 +596,7 @@ async function renderEdit(id) {
       title: d.title.trim(),
       description: d.description.trim(),
       categories: splitCats(d.category),
+      courses: [...view.querySelectorAll('[data-course-pick].on')].map(b => b.dataset.coursePick),
       category: undefined, // oud veld, vervangen door 'categories'
       servings: Math.max(1, parseInt(d.servings, 10) || 1),
       prepTime: parseInt(d.prepTime, 10) || '',
@@ -863,6 +902,7 @@ Sync.onRemoteChange = async () => {
 
 (async () => {
   await loadRecipes();
+  await migrateCourses();
   await Shopping.load();
   route();
   registerServiceWorker();
