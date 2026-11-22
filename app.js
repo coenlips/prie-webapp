@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '42 · 22 november 2026';
+const APP_VERSION = '43 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -382,8 +382,9 @@ async function renderDetail(id) {
 
   const ingr = lines(r.ingredients);
   const steps = lines(r.steps);
-  // laatste echte stap (geen #kopje): afstrepen toont 'Eet smakelijk!'
-  const lastStep = steps.map((l, i) => l.startsWith('#') ? -1 : i).filter(i => i >= 0).pop() ?? -1;
+  // echte stappen (geen #kopje); als ze allemaal zijn afgestreept: 'Eet smakelijk!'
+  const stepKeys = steps.map((l, i) => l.startsWith('#') ? null : 's' + i).filter(Boolean);
+  const allStepsDone = () => stepKeys.length > 0 && stepKeys.every(k => done.has(k));
 
   function draw() {
     const factor = servings / base;
@@ -430,9 +431,8 @@ async function renderDetail(id) {
               : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${++n}</span><p>${Timers.linkify(esc(l), esc(`${r.title} · stap ${n}`))}</p></li>`).join('');
           })()}
         </ol>
-        <div class="bon-appetit" id="bonApp" ${lastStep >= 0 && done.has('s' + lastStep) ? '' : 'hidden'} aria-live="polite">
-          <span class="ba-icon" aria-hidden="true">🎉</span>
-          <span class="ba-text">Eet smakelijk!</span>
+        <div class="bon-appetit" id="bonApp" ${allStepsDone() ? '' : 'hidden'} aria-live="polite">
+          <span class="ba-ribbon"><span class="ba-band">Eet smakelijk!</span></span>
         </div>
         </div>
 
@@ -452,10 +452,10 @@ async function renderDetail(id) {
     });
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
-      if (+li.dataset.s === lastStep) {
-        const ba = $('#bonApp');
-        ba.hidden = !done.has(k);
-        if (!ba.hidden) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+      const ba = $('#bonApp'), show = allStepsDone();
+      if (ba.hidden === show) {
+        ba.hidden = !show;
+        if (show) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
       }
     });
     $('#cook').onclick = async () => {
