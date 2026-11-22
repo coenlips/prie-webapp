@@ -698,3 +698,17 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
   100% { transform: none; }
 }
 @media (prefers-reduced-motion: reduce) { .ba-ribbon { animation: none; } }
+
+/* Kookstand bereiding: vorige stappen lichter, huidige stap uitgelicht en in het midden */
+body.cook .steps li:not(.sub) { transition: opacity .3s, background-color .3s; }
+body.cook .steps li.done p { text-decoration: none; color: var(--text); }
+body.cook .steps li.done { opacity: .35; }
+body.cook .steps li.done .num { color: var(--accent); }
+body.cook .steps li.current {
+  background: var(--surface); margin: 0 -12px; padding: 18px 12px 18px 9px;
+  border-left: 3px solid var(--accent); border-bottom-color: transparent;
+  box-shadow: 0 1px 0 var(--line), 0 -1px 0 var(--line);
+}
+body.cook .steps li.current p { font-weight: 600; }
+body.cook .steps li.current .num { font-size: 30px; }
+body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste stap in het midden kan */

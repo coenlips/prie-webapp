@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '43 · 22 november 2026';
+const APP_VERSION = '44 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -346,6 +346,17 @@ function setCookMode(on) {
   if (!on) setWakeLock(false);
 }
 
+// Zet een stap midden in het zichtbare deel (onder de vaste balk)
+function centerStep(li) {
+  if (!li) return;
+  requestAnimationFrame(() => {
+    const barBottom = document.querySelector('.topbar').getBoundingClientRect().bottom;
+    const r = li.getBoundingClientRect();
+    const target = scrollY + r.top + r.height / 2 - (barBottom + (innerHeight - barBottom) / 2);
+    window.scrollTo({ top: Math.max(0, target), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  });
+}
+
 function showCookTab(tab) {
   state.cookTab = tab;
   document.body.classList.toggle('cook-tab-steps', tab === 'steps');
@@ -370,6 +381,7 @@ async function renderDetail(id) {
   const base = Math.max(1, +r.servings || 1);
   let servings = base;
   const done = new Set();
+  let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
 
   setHeader({
     title: r.title, back: true, timerLabel: r.title,
@@ -428,7 +440,7 @@ async function renderDetail(id) {
             let n = 0; // nummering loopt door over de kopjes heen
             return steps.map((l, i) => l.startsWith('#')
               ? `<li class="sub">${esc(l.replace(/^#+\s*/, ''))}</li>`
-              : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}"><span class="num">${++n}</span><p>${Timers.linkify(esc(l), esc(`${r.title} · stap ${n}`))}</p></li>`).join('');
+              : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}${curStep === 's' + i ? ' current' : ''}"><span class="num">${++n}</span><p>${Timers.linkify(esc(l), esc(`${r.title} · stap ${n}`))}</p></li>`).join('');
           })()}
         </ol>
         <div class="bon-appetit" id="bonApp" ${allStepsDone() ? '' : 'hidden'} aria-live="polite">
@@ -451,7 +463,24 @@ async function renderDetail(id) {
       const k = 'i' + li.dataset.i; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
-      const k = 's' + li.dataset.s; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
+      const k = 's' + li.dataset.s;
+      if (state.cookMode) {
+        // Kookstand: aangetikte stap wordt de huidige, alles ervoor is klaar.
+        // Tik je de huidige stap nog eens aan, dan ga je door naar de volgende.
+        let p = stepKeys.indexOf(k);
+        if (curStep === k) p++;
+        curStep = stepKeys[p] || null;
+        stepKeys.forEach((s, j) => j < p ? done.add(s) : done.delete(s));
+        view.querySelectorAll('[data-s]').forEach(el => {
+          const s = 's' + el.dataset.s;
+          el.classList.toggle('done', done.has(s));
+          el.classList.toggle('current', s === curStep);
+        });
+        if (curStep) centerStep(view.querySelector(`[data-s="${curStep.slice(1)}"]`));
+      } else {
+        done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
+        curStep = null; view.querySelectorAll('.steps .current').forEach(el => el.classList.remove('current'));
+      }
       const ba = $('#bonApp'), show = allStepsDone();
       if (ba.hidden === show) {
         ba.hidden = !show;
