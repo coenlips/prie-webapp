@@ -1,5 +1,5 @@
 // Adres van de back-upserver (server/api.php op je eigen website).
 // Laat leeg zolang die er nog niet staat; de app werkt dan gewoon zonder online back-up.
 const SYNC_CONFIG = {
-  api: '',  // bijv. 'https://coenlips.nl/recepten-api/api.php'
+  api: 'https://coenlips.nl/recepten-api/api.php',
 };
