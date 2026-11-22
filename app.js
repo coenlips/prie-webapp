@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '26 · 22 november 2026';
+const APP_VERSION = '27 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -279,7 +279,9 @@ document.querySelectorAll('#cookTabs [data-tab]').forEach(b => b.addEventListene
 }));
 
 async function renderDetail(id) {
+  const seq = routeSeq;
   const r = await DB.get(id);
+  if (isStale(seq)) return;
   if (!r) { location.hash = '#/'; return; }
 
   const base = Math.max(1, +r.servings || 1);
@@ -436,10 +438,12 @@ async function shareRecipe(r, servings, factor) {
 /* ---------- Bewerken ---------- */
 
 async function renderEdit(id) {
+  const seq = routeSeq;
   const r = id ? await DB.get(id) : {
     id: uid(), title: '', description: '', categories: [], tags: [], servings: 4,
     prepTime: '', cookTime: '', ingredients: '', steps: '', notes: '', photo: '', favorite: false,
   };
+  if (isStale(seq)) return;
   if (!r) { location.hash = '#/'; return; }
   let photo = r.photo || '';
 
@@ -776,7 +780,12 @@ async function addSample() {
 
 /* ---------- Router ---------- */
 
+// Elk schermwissel krijgt een nummer; trage schermen tekenen niet meer als er al een nieuwer is.
+let routeSeq = 0;
+const isStale = seq => seq !== routeSeq;
+
 async function route() {
+  routeSeq++;
   const hash = location.hash || '#/';
   const [, page, id] = hash.split('/');
   window.scrollTo(0, 0);

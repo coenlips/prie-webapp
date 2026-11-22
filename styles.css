@@ -1,13 +1,19 @@
 :root {
-  --bg: #f7f3ee;
-  --surface: #ffffff;
-  --text: #2a2522;
-  --muted: #857b73;
-  --line: #e8e1d9;
-  --accent: #c8553d;
-  --accent-soft: #f6e2dc;
-  --done: #b4aaa2;
-  --radius: 14px;
+  /* Huisstijl Ricetta: trattoria met invloeden uit een Napolitaans pizzaboek */
+  --bg: #f7f2e8;          /* papier */
+  --surface: #fffdf8;
+  --text: #2b1d14;        /* espresso */
+  --muted: #8a7666;
+  --line: #e4d9c6;
+  --accent: #c62d1f;      /* pomodoro */
+  --accent-dark: #8e1a12;
+  --accent-soft: #f2ddd6;
+  --teal: #5fa3a0;        /* kaderlijn */
+  --mustard: #a8821f;     /* gespatieerde hoofdletters */
+  --done: #b0a291;
+  --radius: 4px;
+  --font-title: 'Bebas Neue', 'Oswald', Impact, sans-serif;
+  --font-label: 'Oswald', 'Arial Narrow', sans-serif;
   --safe-top: env(safe-area-inset-top);
   --safe-bottom: env(safe-area-inset-bottom);
   color-scheme: light dark;
@@ -15,16 +21,23 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #1c1a18;
-    --surface: #282522;
-    --text: #f1ebe5;
-    --muted: #a59a90;
-    --line: #3a3531;
-    --accent: #e0765d;
-    --accent-soft: #432a23;
-    --done: #6e665f;
+    --bg: #1d1611;
+    --surface: #2a211b;
+    --text: #f4ecdd;
+    --muted: #b3a493;
+    --line: #42352b;
+    --accent: #e04a38;
+    --accent-dark: #a8261a;
+    --accent-soft: #4a2620;
+    --teal: #6fb7b3;
+    --mustard: #d6b25a;
+    --done: #76695c;
   }
 }
+
+@font-face { font-family: 'Bebas Neue'; font-weight: 400; font-display: swap; src: url(fonts/bebas-neue-400.woff2) format('woff2'); }
+@font-face { font-family: 'Oswald'; font-weight: 500; font-display: swap; src: url(fonts/oswald-500.woff2) format('woff2'); }
+@font-face { font-family: 'Oswald'; font-weight: 600; font-display: swap; src: url(fonts/oswald-600.woff2) format('woff2'); }
 
 [hidden] { display: none !important; }
 
@@ -429,3 +442,107 @@ details.fold[open] > summary .fold-chevron { transform: rotate(180deg); }
 .chip-fav svg { width: 20px; height: 20px; }
 .chip-fav.on { color: #fff; }
 .chip-fav.on svg { fill: #fff; }
+
+/* ================= Huisstijl Ricetta ================= */
+
+/* Zachte papierstructuur */
+body {
+  background-color: var(--bg);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.75' numOctaves='3'/%3E%3CfeColorMatrix values='0 0 0 0 .5 0 0 0 0 .4 0 0 0 0 .28 0 0 0 .05 0'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23p)'/%3E%3C/svg%3E");
+}
+
+/* Kop: markies, glanzende titel, dubbele kaderlijn */
+.topbar {
+  padding-top: calc(var(--safe-top) + 14px + 6px);
+  background-color: color-mix(in srgb, var(--bg) 94%, transparent);
+  border-bottom: 4px double var(--teal);
+}
+.topbar::before {
+  content: ''; position: absolute; left: 0; right: 0; top: var(--safe-top); height: 14px;
+  background: repeating-linear-gradient(90deg, var(--accent) 0 18px, transparent 18px 36px);
+}
+.topbar h1 {
+  font: 400 26px/1.1 var(--font-label); text-transform: uppercase; letter-spacing: .03em;
+}
+body:not(.no-fab) .topbar h1 {
+  font: 400 40px/1 var(--font-title); letter-spacing: .05em;
+  background: linear-gradient(100deg, var(--accent-dark) 0%, var(--accent) 32%, #f0624f 46%, var(--accent) 60%, var(--accent-dark) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.icon-btn:active { background: var(--accent-soft); }
+
+/* Zoeken en filters */
+.search { border: 1.5px solid var(--text); border-radius: 2px; background: var(--surface); }
+.chip {
+  font: 500 14px var(--font-label); text-transform: uppercase; letter-spacing: .06em;
+  border: 1.5px solid var(--text); border-radius: 3px; background: transparent; color: var(--text);
+}
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chip-fav { color: var(--accent); }
+
+/* Receptenlijst: rechte foto's zonder rand */
+.cards > li { border-bottom-color: var(--line); }
+.thumb { border-radius: 0; background: #ecdfca; color: var(--accent); font: 400 44px var(--font-title); }
+@media (prefers-color-scheme: dark) { .thumb { background: #3a2d23; } }
+.card-title { font: 500 18px/1.22 var(--font-label); text-transform: uppercase; letter-spacing: .01em; }
+.card-meta { font: 500 12px var(--font-label); text-transform: uppercase; letter-spacing: .14em; color: var(--mustard); margin-top: 5px; }
+.card-chevron { color: var(--muted); opacity: .5; }
+
+/* Knoppen */
+.fab { border-radius: 6px; box-shadow: none; }
+.btn { border-radius: 3px; font: 500 16px var(--font-label); text-transform: uppercase; letter-spacing: .06em; }
+.btn.ghost { background: transparent; color: var(--accent); border: 1.5px solid var(--accent); }
+.text-btn { font-family: var(--font-label); text-transform: uppercase; letter-spacing: .06em; font-weight: 500; }
+
+/* Recept */
+.hero { border-radius: 0 !important; }
+@media (min-width: 752px) { .hero { width: calc(100% + 32px); margin: -12px -16px 0; } }
+.detail-title { font: 400 40px/1 var(--font-title); letter-spacing: .02em; margin: 18px 0 8px; }
+.lead { font-style: italic; }
+.pill { background: var(--accent); color: #fff; border-radius: 2px; font: 500 12px var(--font-label); text-transform: uppercase; letter-spacing: .12em; padding: 3px 8px; }
+.meta { font: 500 12px var(--font-label); text-transform: uppercase; letter-spacing: .12em; color: var(--mustard); }
+.meta svg { width: 14px; height: 14px; }
+.tag { color: var(--muted); text-transform: none; letter-spacing: 0; font: 400 14px -apple-system, system-ui, sans-serif; }
+
+/* Kopjes als strak rood lint */
+.detail h3, .detail-ribbon {
+  display: inline-block; background: var(--accent); color: #fffdf8;
+  font: 400 22px/1 var(--font-title); letter-spacing: .12em; padding: 7px 14px 5px; margin: 26px 0 10px;
+}
+.section-head h3 { margin-bottom: 10px; }
+.stepper { border: 1.5px solid var(--text); border-radius: 3px; background: var(--surface); }
+.stepper span { font-family: var(--font-label); font-weight: 500; }
+.stepper button { color: var(--text); }
+.cook-btn { border-radius: 4px; }
+.check { border-radius: 2px; border: 1.5px solid var(--text); }
+.ingredients li, .steps li { border-bottom: 1px dashed var(--line); }
+.ingredients li.sub, .steps li.sub { font: 500 13px var(--font-label); letter-spacing: .14em; color: var(--mustard); border: 0; }
+.num { border-radius: 2px; background: transparent; color: var(--accent); font: 400 24px/1 var(--font-title); width: 26px; place-items: start center; }
+.steps li.done .num { background: transparent; color: var(--done); }
+.notes { border-radius: 2px; border-color: var(--line); }
+.time-chip { border-radius: 3px; }
+
+/* Kookstand-balk */
+.segmented { border-radius: 4px; background: var(--line); }
+.segmented button { font: 500 15px var(--font-label); text-transform: uppercase; letter-spacing: .06em; border-radius: 3px; }
+.segmented button.on { box-shadow: none; }
+
+/* Formulier en instellingen */
+.form input:not([type=file]), .form textarea, .sheet input, .sync-form input { border-radius: 3px; }
+.form label { font-family: var(--font-label); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; }
+.form label small { text-transform: none; letter-spacing: 0; font-family: -apple-system, system-ui, sans-serif; }
+.photo-preview { border-radius: 0; }
+.card-box { border-radius: 4px; }
+details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: uppercase; letter-spacing: .06em; }
+.choice label { border-radius: 4px; }
+.preset { border-radius: 3px; font-family: var(--font-label); }
+.sheet { border-radius: 8px 8px 0 0; }
+.sheet-head h3 { font: 400 26px var(--font-title); letter-spacing: .06em; }
+.timer { border-radius: 6px; }
+.timer-time { font-family: var(--font-label); font-weight: 600; }
+.empty h2 { font: 400 34px var(--font-title); letter-spacing: .04em; }
+/* Invulvelden houden de gewone, goed leesbare letter */
+.form input:not([type=file]), .form textarea, .sheet input, .sync-form input, .search input {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  text-transform: none; letter-spacing: normal;
+}

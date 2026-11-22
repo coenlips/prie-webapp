@@ -54,3 +54,4 @@ Open daarna http://localhost:8000.
 | `styles.css` | Opmaak (licht en donker) |
 | `sw.js` | Service worker voor offline gebruik |
 | `manifest.webmanifest`, `icons/` | App-naam en iconen |
+| `fonts/` | Lettertypes Bebas Neue en Oswald (SIL Open Font License, zie de licentiebestanden) |

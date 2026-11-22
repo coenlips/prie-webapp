@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js.
-const VERSION = 'v26';
+const VERSION = 'v27';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -18,6 +18,9 @@ const FILES = [
   'icons/apple-touch-icon.png',
   'icons/icon-192.png',
   'icons/icon-512.png',
+  'fonts/bebas-neue-400.woff2',
+  'fonts/oswald-500.woff2',
+  'fonts/oswald-600.woff2',
 ];
 
 self.addEventListener('install', e => {
