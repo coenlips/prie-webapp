@@ -180,10 +180,8 @@ const Sync = (() => {
   function cardHtml() {
     const s = status();
     if (s.state === 'off') return `
-      <h3>Online back-up</h3>
       <p>Nog niet ingesteld. Hiervoor is de back-upserver op je eigen website nodig.</p>`;
     if (s.state === 'loggedout') return `
-      <h3>Online back-up</h3>
       <p>Log in om je recepten automatisch online te bewaren. Op een nieuwe iPhone log je met hetzelfde wachtwoord in en komen al je recepten terug.</p>
       <form class="sync-form" id="syncForm" autocomplete="on">
         <input type="text" name="username" value="recepten" autocomplete="username" hidden>
@@ -192,7 +190,6 @@ const Sync = (() => {
         <p class="sync-msg" id="syncMsg" hidden></p>
       </form>`;
     return `
-      <h3>Online back-up</h3>
       <p class="sync-state ${s.error ? 'bad' : 'good'}">
         ${s.busy ? 'Bezig met back-up…' : s.error ? `⚠️ ${esc(s.error)}` : `✓ Automatische back-up staat aan`}
       </p>
@@ -248,5 +245,11 @@ const Sync = (() => {
   if (configured() && session) schedule(500);
   document.body.classList.toggle('sync-problem', !!(session && read(LS.error, null)));
 
-  return { syncNow, cardHtml, bindCard, status, onRemoteChange: null };
+  // Ontvanger die false teruggeeft wordt weer verwijderd
+  function onChange(fn) {
+    const wrapped = () => { if (fn() === false) listeners.delete(wrapped); };
+    listeners.add(wrapped);
+  }
+
+  return { syncNow, cardHtml, bindCard, status, onChange, onRemoteChange: null };
 })();

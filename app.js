@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '19 · 22 november 2026';
+const APP_VERSION = '20 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -17,7 +17,8 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
-  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M4.2 4.2l2.1 2.1M17.7 17.7l2.1 2.1M2 12h3M19 12h3M4.2 19.8l2.1-2.1M17.7 6.3l2.1-2.1"/></svg>',
+  gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
   cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
   timer: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4M12 2.5V6M18.5 6.5l1.5-1.5"/></svg>',
@@ -530,26 +531,48 @@ async function renderEdit(id) {
 
 /* ---------- Instellingen / back-up ---------- */
 
+// Inklapbare blokken in de instellingen; onthoudt welke open staan (alleen op dit toestel)
+const FOLD_KEY = 'recepten-settings-open';
+const openFolds = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || []; } catch { return []; } };
+function fold(id, title, body, { badge = '', open = false } = {}) {
+  const isOpen = open || openFolds().includes(id);
+  return `
+    <details class="card-box fold" data-fold="${id}" ${isOpen ? 'open' : ''}>
+      <summary>
+        <h3>${title}</h3>
+        <span class="fold-badge" id="badge-${id}">${badge}</span>
+        <span class="fold-chevron">${ICONS.chevron}</span>
+      </summary>
+      <div class="fold-body">${body}</div>
+    </details>`;
+}
+
+function syncBadge() {
+  const s = Sync.status();
+  if (s.state === 'off') return '<span class="badge-muted">uit</span>';
+  if (s.state === 'loggedout') return '<span class="badge-muted">niet ingelogd</span>';
+  if (s.error) return '<span class="badge-bad">⚠️ probleem</span>';
+  return '<span class="badge-good">✓ aan</span>';
+}
+
 function renderSettings() {
   setHeader({ title: 'Instellingen', back: true });
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
+  const sync = Sync.status();
 
   view.innerHTML = `
     <section class="settings">
-      ${standalone ? '' : `
-      <div class="card-box">
-        <h3>Op je beginscherm zetten</h3>
+      ${standalone ? '' : fold('install', 'Op je beginscherm zetten', `
         <ol class="howto">
           <li>Open deze pagina in <strong>Safari</strong>.</li>
           <li>Tik op de deelknop ${ICONS.share}.</li>
           <li>Kies <strong>Zet op beginscherm</strong>.</li>
-        </ol>
-      </div>`}
+        </ol>`, { open: true })}
 
-      <div class="card-box" id="syncCard">${Sync.cardHtml()}</div>
+      ${fold('sync', 'Online back-up', `<div id="syncCard">${Sync.cardHtml()}</div>`,
+        { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error })}
 
-      <div class="card-box" id="timerSettings">
-        <h3>Kookwekker</h3>
+      ${fold('timer', 'Kookwekker', `
         <p>Waar moet een wekker afgaan als je op een tijd of een snelkeuze tikt?</p>
         <div class="choice">
           <label><input type="radio" name="tmode" value="app" ${Timers.getMode() === 'app' ? 'checked' : ''}>
@@ -557,7 +580,7 @@ function renderSettings() {
           <label><input type="radio" name="tmode" value="klok" ${Timers.getMode() === 'klok' ? 'checked' : ''}>
             <span><strong>In de Klok-app</strong><small>Gaat ook af met scherm op slot. Eén wekker tegelijk. Werkt via de app Opdrachten.</small></span></label>
         </div>
-        <details class="howto-box" ${Timers.getMode() === 'klok' ? 'open' : ''}>
+        <details class="howto-box">
           <summary>Eenmalig instellen voor de Klok-app</summary>
           <ol class="howto">
             <li>Open de app <strong>Opdrachten</strong> en tik rechtsboven op <strong>+</strong>.</li>
@@ -569,37 +592,45 @@ function renderSettings() {
           </ol>
           <button class="btn ghost" id="testClock">Test: wekker van 1 minuut in de Klok-app</button>
           <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p>
-        </details>
-      </div>
+        </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>` })}
 
-      <div class="card-box">
-        <h3>Importeren uit Receptenmaker</h3>
+      ${fold('import', 'Importeren uit Receptenmaker', `
         <p>Kies een of meer PDF's die je in Receptenmaker hebt gemaakt. Recepten met een naam die al bestaat worden overgeslagen.</p>
         <label class="btn file-btn">PDF's kiezen
           <input type="file" accept="application/pdf,.pdf" multiple id="rmInput" hidden>
         </label>
-        <div class="import-status" id="rmStatus" hidden></div>
-      </div>
+        <div class="import-status" id="rmStatus" hidden></div>`)}
 
-      <div class="card-box">
-        <h3>Back-up</h3>
-        <p>Je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept staat' : 'recepten staan'} alleen op dit toestel.
-           Maak af en toe een back-up, bijvoorbeeld naar iCloud Drive.</p>
+      ${fold('file', 'Back-up als bestand', `
+        <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Met de online back-up is dit niet nodig.</p>
         <button class="btn" id="exportBtn">Back-up exporteren</button>
         <label class="btn ghost file-btn">Back-up importeren
           <input type="file" accept="application/json,.json" id="importInput" hidden>
-        </label>
-      </div>
+        </label>`)}
 
       <p class="version">Versie ${APP_VERSION}</p>
     </section>`;
 
+  // Open/dicht onthouden
+  view.querySelectorAll('details.fold').forEach(d => d.addEventListener('toggle', () => {
+    const set = new Set(openFolds());
+    d.open ? set.add(d.dataset.fold) : set.delete(d.dataset.fold);
+    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...set])); } catch { /* geen opslag */ }
+  }));
+
   Sync.bindCard($('#syncCard'));
+  const badge = $('#badge-sync');
+  Sync.onChange(function update() {
+    if (!badge.isConnected) return false; // kaart weg: ontvanger opruimen
+    badge.innerHTML = syncBadge();
+  });
+
   $('#exportBtn').addEventListener('click', exportBackup);
   $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
   $('#rmInput').addEventListener('change', e => importReceptenmaker([...e.target.files], e.target));
   view.querySelectorAll('[name=tmode]').forEach(r => r.addEventListener('change', () => {
     Timers.setMode(r.value);
+    $('#badge-timer').innerHTML = `<span class="badge-muted">${r.value === 'klok' ? 'Klok-app' : 'in de app'}</span>`;
     if (r.value === 'klok') view.querySelector('.howto-box').open = true;
   }));
   $('#testClock').addEventListener('click', () => Timers.startClock(1));

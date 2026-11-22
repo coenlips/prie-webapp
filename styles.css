@@ -396,3 +396,22 @@ body.sync-problem .settings-btn::after {
   content: ''; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px;
   border-radius: 50%; background: #d23b3b; border: 2px solid var(--bg);
 }
+
+/* Inklapbare blokken in de instellingen */
+details.fold { padding: 0; }
+details.fold > summary {
+  display: flex; align-items: center; gap: 10px; padding: 16px; cursor: pointer;
+  list-style: none; -webkit-user-select: none; user-select: none;
+}
+details.fold > summary::-webkit-details-marker { display: none; }
+details.fold > summary h3 { flex: 1; margin: 0; font-size: 18px; }
+.fold-badge { font-size: 14px; font-weight: 600; white-space: nowrap; }
+.badge-muted { color: var(--muted); font-weight: 500; }
+.badge-good { color: #2e7d4f; }
+.badge-bad { color: #d23b3b; }
+@media (prefers-color-scheme: dark) { .badge-good { color: #6cc495; } }
+.fold-chevron { color: var(--muted); display: grid; transition: transform .2s; }
+.fold-chevron svg { width: 20px; height: 20px; }
+details.fold[open] > summary .fold-chevron { transform: rotate(180deg); }
+.fold-body { padding: 0 16px 16px; }
+.settings { gap: 10px; }
