@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '34 · 22 november 2026';
+const APP_VERSION = '35 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -686,7 +686,7 @@ function syncBadge() {
 }
 
 function renderSettings() {
-  setHeader({ title: 'Instellingen', back: true });
+  setHeader({ title: 'Instellingen', back: true, timer: false });
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const sync = Sync.status();
 
@@ -946,7 +946,7 @@ async function route() {
   if (page === 'new') return renderEdit(null);
   if (page === 'settings') return renderSettings();
   if (page === 'boodschappen') {
-    setHeader({ title: 'Boodschappen', back: true });
+    setHeader({ title: 'Boodschappen', back: true, timer: false });
     return Shopping.render(view);
   }
   return renderList();
