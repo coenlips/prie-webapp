@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '23 · 22 november 2026';
+const APP_VERSION = '24 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -177,10 +177,18 @@ function renderList() {
 
   const q = $('#q');
   q.addEventListener('input', () => { state.query = q.value; renderCards(); });
+  // Filter kiezen: alleen de knoppen en de lijst bijwerken, zodat de balk niet terugspringt
+  const chipBar = view.querySelector('.chips');
   view.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
     state.filter = b.dataset.filter;
-    renderList();
+    view.querySelectorAll('[data-filter]').forEach(x => x.classList.toggle('on', x === b));
+    renderCards();
   }));
+  // Scrollpositie van de balk onthouden, ook na een recept openen en terugkomen
+  if (chipBar) {
+    chipBar.scrollLeft = state.chipScroll || 0;
+    chipBar.addEventListener('scroll', () => { state.chipScroll = chipBar.scrollLeft; }, { passive: true });
+  }
   renderCards();
 }
 
