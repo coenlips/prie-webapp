@@ -174,7 +174,7 @@ const Importer = (() => {
 
   /* ---------- Venster bij de plusknop ---------- */
 
-  function openSheet() {
+  function openSheet(opts = {}) {
     const wrap = document.createElement('div');
     wrap.className = 'sheet-backdrop';
     wrap.innerHTML = `
@@ -223,6 +223,8 @@ const Importer = (() => {
     };
 
     wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-close]')) close(); });
+    if (opts.url) $$('[name=url]').value = opts.url;
+    if (opts.message) { msg(opts.message, 'warn'); showText(); }
     $$('#manualBtn').onclick = () => { close(); location.hash = '#/new'; };
     $$('#showText').onclick = showText;
 
@@ -292,7 +294,7 @@ const Importer = (() => {
     if (!inbox.length) return;
     const first = inbox[0].data || {};
     el.innerHTML = `
-      <div class="inbox-text"><strong>${inbox.length} ${inbox.length === 1 ? 'recept' : 'recepten'} uit Safari</strong>
+      <div class="inbox-text"><strong>${inbox.length} ${inbox.length === 1 ? 'recept' : 'recepten'} gedeeld</strong>
         <small>${esc(oneLine(first.title || '').slice(0, 60))}</small></div>
       <button class="btn small" id="inboxOpen">Bekijken</button>
       <button class="inbox-del" id="inboxDel" aria-label="Weggooien">×</button>`;
@@ -314,6 +316,20 @@ const Importer = (() => {
         await Sync.call('inbox_delete', { id: item.id }).catch(() => {});
         inbox = inbox.filter(x => x !== item); renderBanner();
         return;
+      }
+      const site = hostOf(page.url);
+      // Alleen een adres, of een pagina die de iPhone niet mocht ophalen: via de server proberen
+      if (page.blocked || (!page.jsonld && !page.text)) {
+        let fetched = null;
+        try { fetched = await Sync.call('fetch', { url: page.url }); } catch { /* geen verbinding */ }
+        if (fetched && !fetched.blocked && fetched.status < 400 && findRecipe(fetched.jsonld || [])) {
+          Object.assign(page, { jsonld: fetched.jsonld, og: fetched.og, title: fetched.title, text: '' });
+        } else {
+          await Sync.call('inbox_delete', { id: item.id }).catch(() => {});
+          inbox = inbox.filter(x => x !== item); renderBanner();
+          openSheet({ url: page.url, message: `<strong>${esc(site)}</strong> laat automatisch ophalen niet toe. Open het recept, kopieer de tekst en plak hem hieronder.` });
+          return;
+        }
       }
       const recipe = findRecipe(page.jsonld || []);
       let draft;

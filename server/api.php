@@ -166,6 +166,16 @@ function resolve_url(string $base, string $rel): string {
     return $origin . $dir . $rel;
 }
 
+// Leesbare tekst van een pagina, met regeleinden, voor pagina's zonder receptgegevens
+function page_text(string $html): string {
+    $h = preg_replace('#<(script|style|noscript|svg|head)[^>]*>.*?</\1>#is', ' ', $html);
+    $h = preg_replace('#<(br|/p|/li|/h[1-6]|/div|/tr|/section|/article|/ul|/ol)[^>]*>#i', "\n", $h);
+    $t = html_entity_decode(strip_tags($h), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+    $t = preg_replace("/[ \t\x{00A0}]+/u", ' ', $t);
+    $t = preg_replace("/\s*\n\s*/", "\n", $t);
+    return mb_substr(trim($t), 0, 30000);
+}
+
 // Haalt de receptgegevens uit een pagina: alle JSON-LD-blokken en de Open Graph-gegevens.
 function extract_page(string $html): array {
     preg_match_all('#<script[^>]*type=["\']application/ld\+json["\'][^>]*>(.*?)</script>#is', $html, $m);
@@ -266,18 +276,38 @@ switch ($action) {
     }
 
     // Vanuit de opdracht in Safari: zonder inlogtoken, maar met het app-wachtwoord
+    // Vanuit een opdracht op de iPhone: zonder inlogtoken, maar met het app-wachtwoord.
+    // Twee vormen: JSON {key, data} (Safari-opdracht, recept al uit de pagina gelezen), of een
+    // formulier {key, url, html} waarin html de door de iPhone opgehaalde pagina is (Chrome-opdracht).
     case 'inbox_add': {
-        $b = body();
+        $b = $_POST ?: body();
         if (!hash_equals(APP_PASSWORD, (string) ($b['key'] ?? ''))) { sleep(2); fail(403, 'Wachtwoord klopt niet.'); }
         $data = $b['data'] ?? null;
         if (is_string($data)) $data = json_decode($data, true);
-        if (!is_array($data) || empty($data['url'])) fail(400, 'Geen receptgegevens ontvangen.');
-        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (!is_array($data)) {
+            $url = trim((string) ($b['url'] ?? ''));
+            if (!preg_match('#^https?://#i', $url)) fail(400, 'Geen receptadres ontvangen.');
+            $html = '';
+            if (!empty($_FILES['html']['tmp_name']) && is_uploaded_file($_FILES['html']['tmp_name'])) {
+                $html = (string) file_get_contents($_FILES['html']['tmp_name'], false, null, 0, 6 * 1024 * 1024);
+            } elseif (isset($b['html'])) {
+                $html = (string) $b['html'];
+            }
+            $data = ['url' => $url];
+            if ($html !== '') {
+                $page = extract_page($html);
+                $data += ['title' => $page['title'], 'jsonld' => $page['jsonld'], 'og' => $page['og'],
+                          'text' => page_text($html), 'blocked' => $page['blocked']];
+            }
+        }
+        if (empty($data['url'])) fail(400, 'Geen receptgegevens ontvangen.');
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
         if (strlen($json) > 3 * 1024 * 1024) fail(413, 'Pagina is te groot.');
         $count = (int) db()->query('SELECT COUNT(*) FROM recepten_inbox')->fetchColumn();
         if ($count >= 50) fail(429, 'Het postvak is vol. Open eerst Ricetta.');
         db()->prepare('INSERT INTO recepten_inbox (created_at, data) VALUES (?, ?)')->execute([now_ms(), $json]);
-        out(['ok' => true, 'message' => 'Recept naar Ricetta gestuurd']);
+        $msg = !empty($data['blocked']) ? 'Doorgestuurd, maar de website blokkeerde het ophalen. Open Ricetta om de tekst te plakken.' : 'Recept naar Ricetta gestuurd';
+        out(['ok' => true, 'message' => $msg]);
     }
 
     case 'inbox_list':

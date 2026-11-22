@@ -22,6 +22,7 @@ webadressen op (http/https), nooit adressen binnen het eigen netwerk, en maximaa
 
 ## Postvak (delen vanuit Safari)
 
-De opdracht *Ricetta importeren* op de iPhone stuurt de receptgegevens van de pagina in Safari naar `api.php?action=inbox_add`
-(met het app-wachtwoord als `key`). De app haalt ze op met `inbox_list` en verwijdert ze na bewaren met `inbox_delete`.
+De opdracht *Ricetta importeren* op de iPhone haalt de receptpagina op en stuurt die als formulier (`key`, `url`, en het
+bestand `html`) naar `api.php?action=inbox_add`; de server haalt er het recept en de tekst uit. Een Safari-variant stuurt
+de al uitgelezen gegevens als JSON (`key`, `data`). De app haalt ze op met `inbox_list` en verwijdert ze na bewaren met `inbox_delete`.
 De tabel `recepten_inbox` wordt vanzelf aangemaakt. Het postvak houdt maximaal 50 recepten vast.

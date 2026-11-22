@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '36 · 22 november 2026';
+const APP_VERSION = '37 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -731,20 +731,30 @@ function renderSettings() {
           <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p>
         </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>` })}
 
-      ${fold('share', 'Delen vanuit Safari', `
-        <p>Met een opdracht zet je een recept vanuit Safari met <strong>Deel → Ricetta importeren</strong> klaar in de app. Werkt ook bij sites die automatisch ophalen blokkeren. Je moet ingelogd zijn bij de online back-up.</p>
+      ${fold('share', 'Delen vanuit Chrome of Safari', `
+        <p>Met een opdracht zet je een recept vanuit Chrome of Safari met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet ingelogd zijn bij de online back-up.</p>
         <ol class="howto">
           <li>Open de app <strong>Opdrachten</strong>, tik op <strong>+</strong> en noem de opdracht <strong>Ricetta importeren</strong>.</li>
-          <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten alleen <strong>Safari-webpagina's</strong>.</li>
-          <li>Voeg de taak <strong>Voer JavaScript uit op webpagina</strong> toe. Vervang de voorbeeldcode door de code van knop 1.</li>
-          <li>Voeg de taak <strong>Haal inhoud op van URL</strong> toe. Plak als URL het adres van knop 2. Tik op het pijltje: <strong>Methode POST</strong>, <strong>Verzoekhoofdtekst JSON</strong>. Voeg twee tekstvelden toe:
-            <code>key</code> = je app-wachtwoord, en <code>data</code> = de variabele <em>Resultaat JavaScript</em>.</li>
-          <li>Voeg de taak <strong>Toon melding</strong> toe, met de variabele <em>Inhoud van URL</em>.</li>
-          <li>Zet in de iPhone-instellingen bij <strong>Apps → Opdrachten → Geavanceerd</strong> de optie <strong>Sta uitvoeren scripts toe</strong> aan.</li>
+          <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten <strong>URL's</strong> en <strong>Safari-webpagina's</strong>.</li>
+          <li>Voeg de taak <strong>Haal inhoud op van URL</strong> toe, met als URL de <em>Opdrachtinvoer</em>. Zo haalt je iPhone de receptpagina op.</li>
+          <li>Voeg nog een keer <strong>Haal inhoud op van URL</strong> toe. Plak als URL het adres van de knop hieronder. Tik op het pijltje: <strong>Methode POST</strong>, <strong>Verzoekhoofdtekst Formulier</strong>. Voeg drie velden toe:
+            <code>key</code> (tekst) = je app-wachtwoord, <code>url</code> (tekst) = <em>Opdrachtinvoer</em>, en <code>html</code> (<strong>bestand</strong>) = de <em>Inhoud van URL</em> van stap 3.</li>
+          <li>Voeg de taak <strong>Toon melding</strong> toe, met de variabele <em>Inhoud van URL</em> van stap 4.</li>
         </ol>
-        <button class="btn ghost" id="copyShareJs">1 · Kopieer de code</button>
-        <button class="btn ghost" id="copyShareUrl">2 · Kopieer het adres</button>
-        <p class="small-note">De eerste keer vraagt je iPhone of de opdracht de webpagina en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>`)}
+        <button class="btn ghost" id="copyShareUrl">Kopieer het adres</button>
+        <p class="small-note">In Chrome vind je <strong>Deel</strong> via het deelicoon of het menu <strong>⋯</strong>. De eerste keer vraagt je iPhone of de opdracht de website en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>
+        <details class="howto-box">
+          <summary>Alleen Safari: werkt ook bij delicious.</summary>
+          <p class="small-note">Sommige sites (zoals delicious.) laten ook je iPhone de pagina niet los ophalen. In Safari kan een opdracht het recept uit de al geladen pagina lezen. Maak dan een tweede opdracht:</p>
+          <ol class="howto">
+            <li>Nieuwe opdracht <strong>Ricetta (Safari)</strong>, <strong>Toon in deelpaneel</strong> aan, soort alleen <strong>Safari-webpagina's</strong>.</li>
+            <li>Taak <strong>Voer JavaScript uit op webpagina</strong> met de code van de knop hieronder.</li>
+            <li>Taak <strong>Haal inhoud op van URL</strong> met het adres hierboven: <strong>POST</strong>, <strong>JSON</strong>, velden <code>key</code> = je app-wachtwoord en <code>data</code> = <em>Resultaat JavaScript</em>.</li>
+            <li>Taak <strong>Toon melding</strong> met <em>Inhoud van URL</em>.</li>
+            <li>iPhone-instellingen → <strong>Apps → Opdrachten → Geavanceerd</strong> → <strong>Sta uitvoeren scripts toe</strong> aan.</li>
+          </ol>
+          <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
+        </details>`)}
 
       ${fold('import', 'Importeren uit Receptenmaker', `
         <p>Kies een of meer PDF's die je in Receptenmaker hebt gemaakt. Recepten met een naam die al bestaat worden overgeslagen.</p>
@@ -790,8 +800,8 @@ function renderSettings() {
   const copyBtn = (sel, text, label) => { const b = $(sel); if (b) b.onclick = async () => {
     try { await navigator.clipboard.writeText(text); b.textContent = '✓ Gekopieerd'; setTimeout(() => { b.textContent = label; }, 1500); } catch { toast('Kopiëren lukte niet'); }
   }; };
-  copyBtn('#copyShareJs', Importer.SHARE_JS, '1 · Kopieer de code');
-  copyBtn('#copyShareUrl', (typeof SYNC_CONFIG !== 'undefined' && SYNC_CONFIG.api ? SYNC_CONFIG.api : '') + '?action=inbox_add', '2 · Kopieer het adres');
+  copyBtn('#copyShareJs', Importer.SHARE_JS, 'Kopieer de code');
+  copyBtn('#copyShareUrl', (typeof SYNC_CONFIG !== 'undefined' && SYNC_CONFIG.api ? SYNC_CONFIG.api : '') + '?action=inbox_add', 'Kopieer het adres');
 }
 
 // Instellingen → Gangen: toevoegen, volgorde aanpassen, verwijderen

@@ -14,7 +14,7 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - Recept delen via berichten of mail
 - Back-up exporteren en importeren (JSON), bijvoorbeeld naar iCloud Drive
 - Recepten importeren uit PDF's van de app Receptenmaker (meerdere tegelijk, inclusief foto)
-- **Delen vanuit Safari**: met een opdracht (Deel → Ricetta importeren) gaat een recept via een postvak op de eigen server naar de app; werkt ook bij sites die automatisch ophalen blokkeren. Uitleg staat in de app bij Instellingen.
+- **Delen vanuit Chrome of Safari**: met een opdracht (Deel → Ricetta importeren) haalt de iPhone de receptpagina zelf op en stuurt hem naar een postvak op de eigen server; de app toont het recept daarna om te bewaren. Werkt vaak ook bij sites die automatisch ophalen door de server blokkeren. Uitleg staat in de app bij Instellingen.
 - **Recepten van websites importeren** via de plusknop (bijv. Jumbo, Foodies en andere sites met schema.org-receptgegevens). De eigen server haalt de pagina op. Sites die automatisch ophalen blokkeren (zoals AH en delicious.) kunnen via *recepttekst plakken*.
 
 Recepten worden op je toestel opgeslagen (IndexedDB), zodat de app ook offline werkt. Met de **online back-up** worden ze daarnaast automatisch bewaard in een MySQL-database op je eigen website, en komen ze terug op een nieuwe iPhone.
