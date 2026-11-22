@@ -227,7 +227,10 @@ const Sync = (() => {
           await signIn(password);
           render();
         } catch (err) {
-          msg.textContent = err.message;
+          // Bij een fout wachtwoord tonen hoeveel tekens er zijn ingevuld (helpt bij plakfouten)
+          msg.textContent = /klopt niet/.test(err.message)
+            ? `${err.message} Je hebt ${password.length} tekens ingevuld, beginnend met "${password.slice(0, 2)}".`
+            : err.message;
           btn.disabled = false;
         }
       });
