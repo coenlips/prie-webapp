@@ -638,3 +638,22 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
 .fold-icon svg { width: 22px; height: 22px; }
 .sub-head { margin: 4px 0 8px; font: 500 14px var(--font-label); text-transform: uppercase; letter-spacing: .1em; color: var(--mustard); }
 .sub-head ~ .sub-head { margin-top: 22px; padding-top: 16px; border-top: 1px dashed var(--line); }
+
+/* Gang hernoemen */
+.ca-edit svg { width: 17px; height: 17px; }
+.ca-rename { display: flex; align-items: center; gap: 4px; flex: 1; }
+.ca-rename input {
+  flex: 1; min-width: 0; font: 17px -apple-system, system-ui, sans-serif; color: var(--text);
+  background: var(--surface); border: 1.5px solid var(--text); border-radius: 2px; padding: 7px 10px; outline: none;
+}
+.ca-ok { color: var(--accent); font-size: 20px; font-weight: 700; }
+/* Gangenlijst past ook met vijf knopjes: smallere knopjes, lange naam inkorten */
+.course-admin li { gap: 2px; }
+.course-admin .ca-btn { width: 32px; flex: none; }
+.ca-name { overflow: hidden; }
+.ca-name, .ca-name small { white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+
+/* Instellingen: raster nooit breder dan het scherm */
+.settings { grid-template-columns: minmax(0, 1fr); }
+.ca-rename { min-width: 0; }
+.ca-rename input { width: 0; }

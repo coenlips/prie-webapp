@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '38 · 22 november 2026';
+const APP_VERSION = '39 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -812,6 +812,7 @@ function renderCourseSettings() {
       ${list.map((c, i) => `
         <li data-i="${i}">
           <span class="ca-name">${esc(c)}<small>${used(c) ? `${used(c)} recept${used(c) === 1 ? '' : 'en'}` : ''}</small></span>
+          <button class="ca-btn ca-edit" data-act="edit" aria-label="Naam aanpassen">${ICONS.edit}</button>
           <button class="ca-btn" data-act="up" aria-label="Omhoog" ${i === 0 ? 'disabled' : ''}>↑</button>
           <button class="ca-btn" data-act="down" aria-label="Omlaag" ${i === list.length - 1 ? 'disabled' : ''}>↓</button>
           <button class="ca-btn ca-del" data-act="del" aria-label="Verwijderen">×</button>
@@ -828,6 +829,7 @@ function renderCourseSettings() {
   };
   el.querySelectorAll('.course-admin li').forEach(li => li.querySelectorAll('[data-act]').forEach(btn => btn.onclick = async () => {
     const i = +li.dataset.i, c = list[i];
+    if (btn.dataset.act === 'edit') { editCourse(li, i); return; }
     if (btn.dataset.act === 'up') [list[i - 1], list[i]] = [list[i], list[i - 1]];
     if (btn.dataset.act === 'down') [list[i + 1], list[i]] = [list[i], list[i + 1]];
     if (btn.dataset.act === 'del') {
@@ -837,6 +839,40 @@ function renderCourseSettings() {
     }
     await changed();
   }));
+  // Naam van een gang aanpassen; recepten met die gang gaan mee
+  function editCourse(li, i) {
+    const old = list[i];
+    li.innerHTML = `
+      <form class="ca-rename" autocomplete="off">
+        <input name="name" value="${esc(old)}" aria-label="Nieuwe naam" autocapitalize="sentences" enterkeyhint="done">
+        <button class="ca-btn ca-ok" aria-label="Opslaan">✓</button>
+        <button type="button" class="ca-btn" data-cancel aria-label="Annuleren">×</button>
+      </form>`;
+    const form = li.querySelector('form'), input = form.name;
+    input.focus(); input.select();
+    li.querySelector('[data-cancel]').onclick = () => renderCourseSettings();
+    input.addEventListener('keydown', e => { if (e.key === 'Escape') renderCourseSettings(); });
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const raw = input.value.trim();
+      if (!raw) { input.focus(); return; }
+      const name = raw[0].toLocaleUpperCase('nl') + raw.slice(1);
+      if (name === old) { renderCourseSettings(); return; }
+      if (list.some((c, j) => j !== i && c.toLowerCase() === name.toLowerCase())) { toast(`"${name}" bestaat al`); input.focus(); return; }
+      list[i] = name;
+      for (const r of state.recipes) {
+        if (!(r.courses || []).includes(old)) continue;
+        r.courses = [...new Set(r.courses.map(c => c === old ? name : c))];
+        await DB.put(r);
+      }
+      if (state.course === old) state.course = name;
+      await AppSettings.save();
+      await loadRecipes();
+      renderCourseSettings();
+      toast(`"${old}" heet nu "${name}"`);
+    };
+  }
+
   el.querySelector('#courseAdd').onsubmit = async e => {
     e.preventDefault();
     const raw = e.target.course.value.trim();
