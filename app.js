@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '22 · 22 november 2026';
+const APP_VERSION = '23 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -28,6 +28,18 @@ const ICONS = {
   people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+};
+
+// Een recept kan meerdere categorieën hebben. Oudere recepten hebben nog één 'category'.
+const catsOf = r => {
+  const list = Array.isArray(r.categories) ? r.categories : (r.category ? [r.category] : []);
+  return [...new Set(list.map(c => String(c).trim()).filter(Boolean))];
+};
+// Komma-gescheiden tekst naar een lijst; bij dubbele (hoofdletterongevoelig) telt de eerste schrijfwijze
+const splitCats = text => {
+  const seen = new Map();
+  String(text).split(',').map(c => c.trim()).filter(Boolean).forEach(c => { if (!seen.has(c.toLowerCase())) seen.set(c.toLowerCase(), c); });
+  return [...seen.values()];
 };
 
 const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Soep', 'Salade', 'Bijgerecht', 'Dessert', 'Gebak', 'Snack', 'Drinken'];
@@ -147,7 +159,7 @@ $('#addBtn').addEventListener('click', () => { location.hash = '#/new'; });
 function renderList() {
   setHeader({ actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
 
-  const cats = [...new Set(state.recipes.map(r => r.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nl'));
+  const cats = [...new Set(state.recipes.flatMap(catsOf))].sort((a, b) => a.localeCompare(b, 'nl'));
   const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
   if (!chips.some(([k]) => k === state.filter)) state.filter = 'all';
 
@@ -176,9 +188,9 @@ function renderCards() {
   const q = state.query.trim().toLowerCase();
   const list = state.recipes.filter(r => {
     if (state.filter === 'fav' && !r.favorite) return false;
-    if (state.filter !== 'all' && state.filter !== 'fav' && r.category !== state.filter) return false;
+    if (state.filter !== 'all' && state.filter !== 'fav' && !catsOf(r).includes(state.filter)) return false;
     if (!q) return true;
-    return [r.title, r.category, r.ingredients, (r.tags || []).join(' ')].join(' ').toLowerCase().includes(q);
+    return [r.title, ...catsOf(r), r.ingredients, (r.tags || []).join(' ')].join(' ').toLowerCase().includes(q);
   });
 
   const el = $('#cards');
@@ -204,7 +216,7 @@ function renderCards() {
         <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body">
           <div class="card-title">${esc(r.title)}${r.favorite ? ' <span class="fav">♥</span>' : ''}</div>
-          <div class="card-meta">${[r.category, time].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="card-meta">${[catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
         </div>
         <span class="card-chevron">${ICONS.chevron}</span>
       </a></li>`;
@@ -282,7 +294,7 @@ async function renderDetail(id) {
         <h2 class="detail-title">${esc(r.title)}</h2>
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
         <div class="meta">
-          ${r.category ? `<span class="pill">${esc(r.category)}</span>` : ''}
+          ${catsOf(r).map(c => `<span class="pill">${esc(c)}</span>`).join('')}
           ${r.prepTime ? `<span>${ICONS.clock} ${r.cookTime ? 'Voorbereiden' : 'Bereidingstijd'} ${formatTime(r.prepTime)}</span>` : ''}
           ${r.cookTime ? `<span>${ICONS.clock} Koken ${formatTime(r.cookTime)}</span>` : ''}
           ${(r.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('')}
@@ -415,7 +427,7 @@ async function shareRecipe(r, servings, factor) {
 
 async function renderEdit(id) {
   const r = id ? await DB.get(id) : {
-    id: uid(), title: '', description: '', category: '', tags: [], servings: 4,
+    id: uid(), title: '', description: '', categories: [], tags: [], servings: 4,
     prepTime: '', cookTime: '', ingredients: '', steps: '', notes: '', photo: '', favorite: false,
   };
   if (!r) { location.hash = '#/'; return; }
@@ -427,7 +439,7 @@ async function renderEdit(id) {
   });
 
   // Je eigen categorieën; zolang je er nog geen hebt, een paar standaardsuggesties.
-  const used = [...new Set(state.recipes.map(x => (x.category || '').trim()).filter(Boolean))]
+  const used = [...new Set(state.recipes.flatMap(catsOf))]
     .sort((a, b) => a.localeCompare(b, 'nl'));
   const catChoices = used.length ? used : CATEGORIES;
 
@@ -442,12 +454,16 @@ async function renderEdit(id) {
       <label>Naam<input name="title" required value="${esc(r.title)}" placeholder="Bijv. Oma's appeltaart"></label>
       <label>Korte omschrijving<input name="description" value="${esc(r.description)}" placeholder="Optioneel"></label>
 
-      <div class="row">
-        <label>Categorie<input name="category" value="${esc(r.category)}" placeholder="Kies of typ"></label>
-        <label>Porties<input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
-      </div>
+      <label>Categorieën <small>tik er één of meer aan, of typ nieuwe, gescheiden door komma's</small>
+        <input name="category" value="${esc(catsOf(r).join(', '))}" placeholder="Bijv. Diner, Vegetarisch" autocapitalize="sentences">
+      </label>
       <div class="cat-choices" id="catChoices">
         ${catChoices.map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+      </div>
+
+      <div class="row">
+        <label>Porties<input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
+        <div></div>
       </div>
 
       <div class="row">
@@ -469,10 +485,16 @@ async function renderEdit(id) {
 
   // Categorie kiezen met knopjes (de keuzelijst van iOS werkt niet betrouwbaar)
   const catInput = view.querySelector('[name=category]');
-  const markCat = () => view.querySelectorAll('[data-cat]').forEach(b =>
-    b.classList.toggle('on', b.dataset.cat.toLowerCase() === catInput.value.trim().toLowerCase()));
+  const markCat = () => {
+    const chosen = splitCats(catInput.value).map(c => c.toLowerCase());
+    view.querySelectorAll('[data-cat]').forEach(b => b.classList.toggle('on', chosen.includes(b.dataset.cat.toLowerCase())));
+  };
   view.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => {
-    catInput.value = b.classList.contains('on') ? '' : b.dataset.cat;
+    const key = b.dataset.cat.toLowerCase();
+    const list = splitCats(catInput.value);
+    catInput.value = (b.classList.contains('on')
+      ? list.filter(c => c.toLowerCase() !== key)
+      : [...list, b.dataset.cat]).join(', ');
     markCat();
   }));
   catInput.addEventListener('input', markCat);
@@ -502,7 +524,8 @@ async function renderEdit(id) {
       ...r,
       title: d.title.trim(),
       description: d.description.trim(),
-      category: d.category.trim(),
+      categories: splitCats(d.category),
+      category: undefined, // oud veld, vervangen door 'categories'
       servings: Math.max(1, parseInt(d.servings, 10) || 1),
       prepTime: parseInt(d.prepTime, 10) || '',
       cookTime: parseInt(d.cookTime, 10) || '',
@@ -724,7 +747,7 @@ async function addSample() {
     id: uid(),
     title: 'Pannenkoeken',
     description: 'Klassieke Hollandse pannenkoeken, lekker met stroop of spek.',
-    category: 'Lunch',
+    categories: ['Lunch'],
     tags: ['vegetarisch', 'klassieker'],
     servings: 4,
     prepTime: 10,

@@ -180,6 +180,6 @@ export async function parsePdf(file) {
     notes: joinWrapped(sections.notes, rightMargin).join('\n'),
     photo,
     tags: [],
-    category: '',
+    categories: [],
   };
 }

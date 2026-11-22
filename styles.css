@@ -160,7 +160,7 @@ main { max-width: 720px; margin: 0 auto; padding: 12px 16px; }
 @media (min-width: 752px) { .hero { width: 100%; margin: 0; border-radius: var(--radius); } }
 .detail-title { font-size: 28px; line-height: 1.15; margin: 16px 0 6px; }
 .lead { color: var(--muted); margin: 0 0 12px; }
-.meta { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; color: var(--muted); font-size: 14px; }
+.meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; color: var(--muted); font-size: 14px; }
 .meta span { display: inline-flex; align-items: center; gap: 4px; }
 .meta svg { width: 16px; height: 16px; }
 .pill { background: var(--accent-soft); color: var(--accent); padding: 2px 10px; border-radius: 999px; font-weight: 600; }
