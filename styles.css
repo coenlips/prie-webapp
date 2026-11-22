@@ -423,3 +423,9 @@ details.fold > summary h3 { flex: 1; margin: 0; font-size: 18px; }
 details.fold[open] > summary .fold-chevron { transform: rotate(180deg); }
 .fold-body { padding: 0 16px 16px; }
 .settings { gap: 10px; }
+
+/* Favorietenfilter: alleen een hartje */
+.chip-fav { display: grid; place-items: center; padding: 6px 12px; color: var(--accent); }
+.chip-fav svg { width: 20px; height: 20px; }
+.chip-fav.on { color: #fff; }
+.chip-fav.on svg { fill: #fff; }

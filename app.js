@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '21 · 22 november 2026';
+const APP_VERSION = '22 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -148,7 +148,7 @@ function renderList() {
   setHeader({ actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
 
   const cats = [...new Set(state.recipes.map(r => r.category).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'nl'));
-  const chips = [['all', 'Alles'], ['fav', '♥ Favorieten'], ...cats.map(c => [c, c])];
+  const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
   if (!chips.some(([k]) => k === state.filter)) state.filter = 'all';
 
   view.innerHTML = `
@@ -157,7 +157,9 @@ function renderList() {
       <input type="search" id="q" placeholder="Zoek recept of ingrediënt" value="${esc(state.query)}" autocomplete="off">
     </div>
     ${state.recipes.length ? `<div class="chips">${chips.map(([k, l]) =>
-      `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
+      k === 'fav'
+        ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
+        : `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
     <ul class="cards" id="cards"></ul>
   `;
 
@@ -343,11 +345,12 @@ async function renderDetail(id) {
   }
 
   draw();
-  $('#favBtn').onclick = async () => {
+  const favBtn = $('#favBtn');
+  favBtn.onclick = async () => {
     r.favorite = !r.favorite;
     await DB.put(r);
     await loadRecipes();
-    $('#favBtn').classList.toggle('active', r.favorite);
+    favBtn.classList.toggle('active', r.favorite);
     toast(r.favorite ? 'Toegevoegd aan favorieten' : 'Verwijderd uit favorieten');
   };
 }
