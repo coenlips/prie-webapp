@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '24 · 22 november 2026';
+const APP_VERSION = '25 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -180,8 +180,10 @@ function renderList() {
   // Filter kiezen: alleen de knoppen en de lijst bijwerken, zodat de balk niet terugspringt
   const chipBar = view.querySelector('.chips');
   view.querySelectorAll('[data-filter]').forEach(b => b.addEventListener('click', () => {
-    state.filter = b.dataset.filter;
-    view.querySelectorAll('[data-filter]').forEach(x => x.classList.toggle('on', x === b));
+    // Nogmaals tikken op het actieve filter zet het uit (terug naar Alles)
+    const f = b.dataset.filter;
+    state.filter = (f === state.filter && f !== 'all') ? 'all' : f;
+    view.querySelectorAll('[data-filter]').forEach(x => x.classList.toggle('on', x.dataset.filter === state.filter));
     renderCards();
   }));
   // Scrollpositie van de balk onthouden, ook na een recept openen en terugkomen
