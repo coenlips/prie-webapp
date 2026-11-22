@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '30 · 22 november 2026';
+const APP_VERSION = '31 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -18,7 +18,7 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
-  cart: '<svg viewBox="0 0 24 24"><path d="M3 4h2.2l2.1 11h10.4l2-8H6.4"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>',
+  basket: '<svg viewBox="0 0 24 24"><path d="M7.5 10V8.5a4.5 4.5 0 0 1 9 0V10"/><path d="M3 10h18l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 13.5v3.5M12 13.5v3.5M15 13.5v3.5"/></svg>',
   chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
   cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
@@ -165,7 +165,7 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 
 function renderList() {
   setHeader({ actions: `
-    <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.cart}<span class="cart-badge" hidden></span></button>
+    <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   Shopping.updateBadge();
 
@@ -301,9 +301,11 @@ async function renderDetail(id) {
   setHeader({
     title: r.title, back: true, timerLabel: r.title,
     actions: `
+      <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
       <button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
       <button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken">${ICONS.edit}</button>`,
   });
+  Shopping.updateBadge();
 
   const ingr = lines(r.ingredients);
   const steps = lines(r.steps);
@@ -325,7 +327,7 @@ async function renderDetail(id) {
         <div class="part-ingr">
         <div class="section-head">
           <h3>Ingrediënten</h3>
-          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op boodschappenlijst zetten en kopiëren">${ICONS.copy}</button>
+          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op boodschappenlijst zetten en kopiëren">${ICONS.basket}</button>
           <div class="stepper" aria-label="Aantal porties">
             <button id="minus" aria-label="Minder porties">−</button>
             <span>${ICONS.people} ${servings}</span>
@@ -413,7 +415,7 @@ async function copyIngredients(ingr, done, factor, title) {
   btn.classList.add('copied');
   clearTimeout(copyIngredients._t);
   copyIngredients._t = setTimeout(() => {
-    btn.innerHTML = ICONS.copy;
+    btn.innerHTML = ICONS.basket;
     btn.classList.remove('copied');
   }, 1200);
 }

@@ -58,15 +58,16 @@ const Shopping = (() => {
     return formatNum(q);
   }
   // 1250 ml wordt 1,25 l en 1500 g wordt 1,5 kg
-  function label(i) {
+  function amount(i) {
     let q = i.qty, u = i.unit;
     if (q != null && u === 'g' && q >= 1000) { q /= 1000; u = 'kg'; }
     else if (q != null && u === 'ml' && q >= 1000) { q /= 1000; u = 'l'; }
     // per stuk (eieren, blikken, pakken…) naar boven afronden: 4½ ei wordt 5 eieren
     if (q != null && !['g', 'ml', 'kg', 'l', 'el', 'tl'].includes(u)) q = Math.max(1, Math.ceil(q - 0.01));
     const qs = q == null ? '' : (['kg', 'l'].includes(u) ? String(Math.round(q * 100) / 100).replace('.', ',') : fmtQty(q, u));
-    return [qs, u, i.name].filter(Boolean).join(' ');
+    return [qs, u].filter(Boolean).join(' ');
   }
+  const label = i => [amount(i), i.name].filter(Boolean).join(' ');
 
   // Voegt toe of telt op bij een bestaande, nog niet afgevinkte boodschap
   function addOne(line, factor = 1, from = '') {
@@ -108,7 +109,7 @@ const Shopping = (() => {
       const row = i => `
         <li class="shop-item${i.checked ? ' done' : ''}" data-id="${esc(i.id)}">
           <span class="check"></span>
-          <span class="shop-text">${esc(label(i))}${i.from.length ? `<small>${esc(i.from.join(' · '))}</small>` : ''}</span>
+          <span class="shop-text">${amount(i) ? `<b>${esc(amount(i))}</b> ` : ''}<span class="shop-name">${esc(i.name)}</span>${i.from.length ? `<small>voor ${esc(i.from.join(', '))}</small>` : ''}</span>
           <button class="shop-del" aria-label="Verwijderen">×</button>
         </li>`;
       view.innerHTML = `
