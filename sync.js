@@ -218,7 +218,7 @@ const Sync = (() => {
       const msg = el.querySelector('#syncMsg');
       form.addEventListener('submit', async e => {
         e.preventDefault();
-        const password = form.password.value;
+        const password = form.password.value.trim(); // geplakte spaties of enters negeren
         if (!password) return;
         const btn = form.querySelector('button');
         btn.disabled = true;
