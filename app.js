@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '40 · 22 november 2026';
+const APP_VERSION = '41 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -230,7 +230,7 @@ function renderList() {
     <div class="search">
       ${ICONS.search}
       <input type="search" id="q" placeholder="Zoek recept of ingrediënt" value="${esc(state.query)}" autocomplete="off">
-      <button class="search-clear" id="qClear" aria-label="Zoekveld leegmaken" ${state.query ? '' : 'hidden'}>×</button>
+      <button class="search-clear" id="qClear" aria-label="Zoekveld leegmaken" ${state.query ? '' : 'hidden'}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
     ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
       `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -286,6 +286,7 @@ function renderCards() {
   });
 
   const el = $('#cards');
+  if (!el) return;
   if (!state.recipes.length) {
     el.outerHTML = `
       <div class="empty">

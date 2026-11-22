@@ -660,9 +660,11 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
 
 /* Kruisje in het zoekveld */
 .search-clear {
-  flex: none; width: 26px; height: 26px; margin-right: -4px; border-radius: 50%;
-  display: grid; place-items: center; background: var(--muted); color: var(--surface);
-  font: 700 18px/1 -apple-system, system-ui, sans-serif;
+  flex: none; align-self: stretch; width: 36px; margin-right: -8px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: none; border: 0; color: var(--muted);
 }
-.search-clear:active { background: var(--text); }
+.search-clear[hidden] { display: none; }
+.search-clear svg { display: block; width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+.search-clear:active { color: var(--text); }
 .search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
