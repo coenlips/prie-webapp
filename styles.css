@@ -234,7 +234,7 @@ body.cook .steps li { padding: 14px 0; }
 /* Kookmodus: alleen naam, ingrediënten en bereiding (plus de kookmodusknop) */
 body.cook .hero, body.cook .lead, body.cook .meta,
 body.cook #copyBtn, body.cook .stepper,
-body.cook .notes-head, body.cook .notes, body.cook .detail-actions, body.cook .source, body.cook .shop-btn,
+body.cook .notes-head, body.cook .notes, body.cook .detail-actions, body.cook .source,
 body.cook #topActions { display: none; }
 
 /* Kookstand: twee schermen, te kiezen met de vaste balk bovenin */
@@ -576,8 +576,6 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
   position: absolute; top: 2px; right: 0; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px;
   background: var(--accent); color: #fff; font: 600 11px/18px var(--font-label); text-align: center;
 }
-.shop-btn { margin-top: 14px; gap: 8px; }
-.shop-btn svg { width: 20px; height: 20px; }
 .shop-add { display: flex; gap: 8px; margin: 4px 0 8px; }
 .shop-add input {
   flex: 1; min-width: 0; font: 17px -apple-system, system-ui, sans-serif; color: var(--text);

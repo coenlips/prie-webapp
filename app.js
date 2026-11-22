@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '29 · 22 november 2026';
+const APP_VERSION = '30 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -325,7 +325,7 @@ async function renderDetail(id) {
         <div class="part-ingr">
         <div class="section-head">
           <h3>Ingrediënten</h3>
-          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Geselecteerde ingrediënten kopiëren">${ICONS.copy}</button>
+          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op boodschappenlijst zetten en kopiëren">${ICONS.copy}</button>
           <div class="stepper" aria-label="Aantal porties">
             <button id="minus" aria-label="Minder porties">−</button>
             <span>${ICONS.people} ${servings}</span>
@@ -339,7 +339,6 @@ async function renderDetail(id) {
             ? `<li class="sub">${esc(l.replace(/^#+\s*/, ''))}</li>`
             : `<li data-i="${i}" class="${done.has('i' + i) ? 'done' : ''}"><span class="check"></span><span>${scaleLine(l, factor)}</span></li>`).join('')}
         </ul>
-        ${ingr.some(l => !l.startsWith('#')) ? `<button class="btn ghost shop-btn" id="shopBtn">${ICONS.cart}<span></span></button>` : ''}
 
         </div>
 
@@ -366,24 +365,9 @@ async function renderDetail(id) {
 
     $('#minus').onclick = () => { if (servings > 1) { servings--; draw(); } };
     $('#plus').onclick = () => { servings++; draw(); };
-    // Knop 'Op boodschappenlijst': afgevinkte ingrediënten, of alle als er niets is afgevinkt
-    const picked = () => ingr.map((l, i) => ({ l, i })).filter(({ l, i }) => !l.startsWith('#') && done.has('i' + i));
-    const shopLabel = () => {
-      const s = $('#shopBtn span'); if (!s) return;
-      const n = picked().length;
-      s.textContent = n ? `${n} ${n === 1 ? 'ingrediënt' : 'ingrediënten'} op boodschappenlijst` : 'Alles op boodschappenlijst';
-    };
-    shopLabel();
     view.querySelectorAll('[data-i]').forEach(li => li.onclick = () => {
       const k = 'i' + li.dataset.i; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
-      shopLabel();
     });
-    if ($('#shopBtn')) $('#shopBtn').onclick = async () => {
-      const sel = picked();
-      const lines = (sel.length ? sel.map(x => x.l) : ingr.filter(l => !l.startsWith('#')));
-      await Shopping.addFromRecipe(lines, factor, r.title);
-      toast(`${lines.length} op de boodschappenlijst`);
-    };
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
@@ -393,7 +377,7 @@ async function renderDetail(id) {
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
     };
     $('#shareBtn').onclick = () => shareRecipe(r, servings, factor);
-    $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor);
+    $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor, r.title);
   }
 
   draw();
@@ -408,21 +392,23 @@ async function renderDetail(id) {
 }
 
 // Kopieert de afgevinkte ingrediënten (of alles als er niets is afgevinkt).
-async function copyIngredients(ingr, done, factor) {
+// Kopieert de afgevinkte ingrediënten (of alle) naar het klembord én zet ze op de boodschappenlijst.
+async function copyIngredients(ingr, done, factor, title) {
   const tmp = document.createElement('div');
   const items = ingr
     .map((l, i) => ({ l, i }))
     .filter(({ l }) => !l.startsWith('#'));
   const picked = items.filter(({ i }) => done.has('i' + i));
-  const text = (picked.length ? picked : items)
+  const chosen = picked.length ? picked : items;
+  const text = chosen
     .map(({ l }) => { tmp.innerHTML = scaleLine(l, factor); return tmp.textContent; })
     .join('\n') + '\n';
   const btn = $('#copyBtn');
-  try {
-    await navigator.clipboard.writeText(text);
-  } catch {
-    return;
-  }
+  // Eerst het klembord: iOS staat dat alleen direct na een tik toe
+  let copied = true;
+  try { await navigator.clipboard.writeText(text); } catch { copied = false; }
+  await Shopping.addFromRecipe(chosen.map(({ l }) => l), factor, title);
+  if (!copied) toast('Op de boodschappenlijst gezet (kopiëren lukte niet)');
   btn.innerHTML = ICONS.check;
   btn.classList.add('copied');
   clearTimeout(copyIngredients._t);

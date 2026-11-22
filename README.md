@@ -8,7 +8,7 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - Zoeken op naam, ingrediënt, categorie of tag, en filteren op categorie of favorieten
 - **Porties omrekenen**: hoeveelheden schalen automatisch mee (ook `1/2`, `½`, `1,5`, `2-3`)
 - Ingrediënten en stappen afvinken tijdens het koken
-- **Boodschappenlijst**: ingrediënten (alle of de afgevinkte, omgerekend naar het aantal porties) met één tik op de lijst; gelijke ingrediënten worden opgeteld. Zelf boodschappen toevoegen, afvinken, delen. Gaat mee met de online back-up.
+- **Boodschappenlijst**: het knopje naast "Ingrediënten" zet de ingrediënten (alle of de afgevinkte, omgerekend naar het aantal porties) op de lijst én kopieert ze naar het klembord; gelijke ingrediënten worden opgeteld. Zelf boodschappen toevoegen, afvinken, delen. Gaat mee met de online back-up.
 - **Kookmodus**: grotere tekst, en het scherm blijft aan
 - **Kookwekker**: tik op een tijd in de bereiding (bijv. "10 minuten") of zet zelf een wekker; meerdere tegelijk, met pauze en +1 minuut. Geluid klinkt alleen als de app open is; het scherm blijft aan zolang er een wekker loopt. In de instellingen kun je kiezen om de wekker in de Klok-app te zetten, via een opdracht `Receptenwekker` in de app Opdrachten (uitleg staat in de app).
 - Recept delen via berichten of mail
