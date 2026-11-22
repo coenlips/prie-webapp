@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '28 · 22 november 2026';
+const APP_VERSION = '29 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -18,6 +18,7 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  cart: '<svg viewBox="0 0 24 24"><path d="M3 4h2.2l2.1 11h10.4l2-8H6.4"/><circle cx="9" cy="19.5" r="1.4"/><circle cx="17" cy="19.5" r="1.4"/></svg>',
   chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
   cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
@@ -137,7 +138,8 @@ const state = {
 };
 
 async function loadRecipes() {
-  state.recipes = (await DB.all()).sort((a, b) => a.title.localeCompare(b.title, 'nl'));
+  // Records die met '__' beginnen (zoals de boodschappenlijst) zijn geen recepten
+  state.recipes = (await DB.all()).filter(r => !String(r.id).startsWith('__')).sort((a, b) => a.title.localeCompare(b.title, 'nl'));
 }
 
 /* ---------- Kopbalk ---------- */
@@ -162,7 +164,10 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 /* ---------- Lijst ---------- */
 
 function renderList() {
-  setHeader({ actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  setHeader({ actions: `
+    <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.cart}<span class="cart-badge" hidden></span></button>
+    <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  Shopping.updateBadge();
 
   const cats = [...new Set(state.recipes.flatMap(catsOf))].sort((a, b) => a.localeCompare(b, 'nl'));
   const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
@@ -334,6 +339,7 @@ async function renderDetail(id) {
             ? `<li class="sub">${esc(l.replace(/^#+\s*/, ''))}</li>`
             : `<li data-i="${i}" class="${done.has('i' + i) ? 'done' : ''}"><span class="check"></span><span>${scaleLine(l, factor)}</span></li>`).join('')}
         </ul>
+        ${ingr.some(l => !l.startsWith('#')) ? `<button class="btn ghost shop-btn" id="shopBtn">${ICONS.cart}<span></span></button>` : ''}
 
         </div>
 
@@ -360,9 +366,24 @@ async function renderDetail(id) {
 
     $('#minus').onclick = () => { if (servings > 1) { servings--; draw(); } };
     $('#plus').onclick = () => { servings++; draw(); };
+    // Knop 'Op boodschappenlijst': afgevinkte ingrediënten, of alle als er niets is afgevinkt
+    const picked = () => ingr.map((l, i) => ({ l, i })).filter(({ l, i }) => !l.startsWith('#') && done.has('i' + i));
+    const shopLabel = () => {
+      const s = $('#shopBtn span'); if (!s) return;
+      const n = picked().length;
+      s.textContent = n ? `${n} ${n === 1 ? 'ingrediënt' : 'ingrediënten'} op boodschappenlijst` : 'Alles op boodschappenlijst';
+    };
+    shopLabel();
     view.querySelectorAll('[data-i]').forEach(li => li.onclick = () => {
       const k = 'i' + li.dataset.i; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
+      shopLabel();
     });
+    if ($('#shopBtn')) $('#shopBtn').onclick = async () => {
+      const sel = picked();
+      const lines = (sel.length ? sel.map(x => x.l) : ingr.filter(l => !l.startsWith('#')));
+      await Shopping.addFromRecipe(lines, factor, r.title);
+      toast(`${lines.length} op de boodschappenlijst`);
+    };
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
@@ -806,6 +827,10 @@ async function route() {
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);
   if (page === 'settings') return renderSettings();
+  if (page === 'boodschappen') {
+    setHeader({ title: 'Boodschappen', back: true });
+    return Shopping.render(view);
+  }
   return renderList();
 }
 
@@ -843,11 +868,14 @@ window.addEventListener('hashchange', () => { state.navigated = true; route(); }
 Sync.onRemoteChange = async () => {
   await loadRecipes();
   const page = (location.hash || '#/').split('/')[1];
+  await Shopping.load();
   if (!page) renderList();
+  if (page === 'boodschappen') Shopping.render(view);
 };
 
 (async () => {
   await loadRecipes();
+  await Shopping.load();
   route();
   registerServiceWorker();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});

@@ -8,6 +8,7 @@ Een eenvoudige receptenapp voor op je iPhone. Het is een web-app (PWA): je opent
 - Zoeken op naam, ingrediënt, categorie of tag, en filteren op categorie of favorieten
 - **Porties omrekenen**: hoeveelheden schalen automatisch mee (ook `1/2`, `½`, `1,5`, `2-3`)
 - Ingrediënten en stappen afvinken tijdens het koken
+- **Boodschappenlijst**: ingrediënten (alle of de afgevinkte, omgerekend naar het aantal porties) met één tik op de lijst; gelijke ingrediënten worden opgeteld. Zelf boodschappen toevoegen, afvinken, delen. Gaat mee met de online back-up.
 - **Kookmodus**: grotere tekst, en het scherm blijft aan
 - **Kookwekker**: tik op een tijd in de bereiding (bijv. "10 minuten") of zet zelf een wekker; meerdere tegelijk, met pauze en +1 minuut. Geluid klinkt alleen als de app open is; het scherm blijft aan zolang er een wekker loopt. In de instellingen kun je kiezen om de wekker in de Klok-app te zetten, via een opdracht `Receptenwekker` in de app Opdrachten (uitleg staat in de app).
 - Recept delen via berichten of mail
@@ -51,6 +52,7 @@ Open daarna http://localhost:8000.
 | `sync.js`, `config.js` | Online back-up (app-kant) |
 | `server/` | Back-upserver in PHP voor je eigen website (MySQL) |
 | `receptenmaker.js` | Inlezen van Receptenmaker-PDF's |
+| `shopping.js` | Boodschappenlijst |
 | `importer.js` | Recepten toevoegen via de plusknop: van een website, door tekst te plakken of handmatig |
 | `vendor/pdfjs/` | PDF-lezer [pdf.js](https://mozilla.github.io/pdf.js/) 4.10.38 (Apache-2.0) |
 | `styles.css` | Opmaak (licht en donker) |
