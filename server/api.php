@@ -8,7 +8,14 @@ declare(strict_types=1);
 
 $config = __DIR__ . '/config.php';
 if (!is_file($config)) fail(500, 'config.php ontbreekt op de server.');
-require $config;
+try {
+    require $config;
+} catch (Throwable $e) {
+    fail(500, 'Fout in config.php op regel ' . $e->getLine() . '. Controleer de aanhalingstekens (gebruik \', geen ’).');
+}
+foreach (['DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASS', 'APP_PASSWORD', 'ALLOWED_ORIGINS'] as $c) {
+    if (!defined($c)) fail(500, "In config.php ontbreekt $c.");
+}
 
 /* ---------- CORS: alleen de app mag deze API aanroepen ---------- */
 
