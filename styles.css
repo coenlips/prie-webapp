@@ -657,3 +657,12 @@ details.fold > summary h3 { font: 500 17px var(--font-label); text-transform: up
 .settings { grid-template-columns: minmax(0, 1fr); }
 .ca-rename { min-width: 0; }
 .ca-rename input { width: 0; }
+
+/* Kruisje in het zoekveld */
+.search-clear {
+  flex: none; width: 26px; height: 26px; margin-right: -4px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--muted); color: var(--surface);
+  font: 700 18px/1 -apple-system, system-ui, sans-serif;
+}
+.search-clear:active { background: var(--text); }
+.search input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }

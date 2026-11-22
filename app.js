@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '39 · 22 november 2026';
+const APP_VERSION = '40 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -230,6 +230,7 @@ function renderList() {
     <div class="search">
       ${ICONS.search}
       <input type="search" id="q" placeholder="Zoek recept of ingrediënt" value="${esc(state.query)}" autocomplete="off">
+      <button class="search-clear" id="qClear" aria-label="Zoekveld leegmaken" ${state.query ? '' : 'hidden'}>×</button>
     </div>
     ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
       `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -242,7 +243,14 @@ function renderList() {
   `;
 
   const q = $('#q');
-  q.addEventListener('input', () => { state.query = q.value; renderCards(); });
+  const qClear = $('#qClear');
+  q.addEventListener('input', () => { state.query = q.value; qClear.hidden = !q.value; renderCards(); });
+  // Kruisje: veld in één keer leeg, toetsenbord blijft open
+  qClear.addEventListener('click', () => {
+    q.value = ''; state.query = ''; qClear.hidden = true;
+    renderCards();
+    q.focus();
+  });
   // Filter kiezen: alleen de knoppen en de lijst bijwerken, zodat de balk niet terugspringt
   const chipBar = view.querySelector('#catBar');
   // Gang kiezen; nogmaals tikken zet hem uit. Combineert met het categoriefilter.
