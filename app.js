@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '20 · 22 november 2026';
+const APP_VERSION = '21 · 22 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -204,6 +204,7 @@ function renderCards() {
           <div class="card-title">${esc(r.title)}${r.favorite ? ' <span class="fav">♥</span>' : ''}</div>
           <div class="card-meta">${[r.category, time].filter(Boolean).map(esc).join(' · ')}</div>
         </div>
+        <span class="card-chevron">${ICONS.chevron}</span>
       </a></li>`;
   }).join('');
 }
