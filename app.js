@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '65 · 23 november 2026';
+const APP_VERSION = '66 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -781,6 +781,7 @@ function setCookMode(on) {
   const btn = $('#cook');
   if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on); }
   showCookTab(state.cookTab || 'ingr');
+  if (on && detailWideMQ.matches) window.scrollTo(0, 0);   // iPad/laptop: beide kolommen scrollen zelf
   if (!on) setWakeLock(false);
 }
 
@@ -788,6 +789,14 @@ function setCookMode(on) {
 function centerStep(li) {
   if (!li) return;
   requestAnimationFrame(() => {
+    const smooth = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+    // iPad/laptop: de bereiding scrolt in een eigen kolom; centreer daarin
+    const box = li.closest('.part-steps');
+    if (box && getComputedStyle(box).overflowY === 'auto') {
+      const b = box.getBoundingClientRect(), r = li.getBoundingClientRect();
+      box.scrollTo({ top: Math.max(0, box.scrollTop + r.top - b.top + r.height / 2 - box.clientHeight / 2), behavior: smooth });
+      return;
+    }
     const barBottom = document.querySelector('.topbar').getBoundingClientRect().bottom;
     const r = li.getBoundingClientRect();
     const target = scrollY + r.top + r.height / 2 - (barBottom + (innerHeight - barBottom) / 2);
@@ -902,8 +911,9 @@ async function renderDetail(id) {
     // iPad/laptop: titel op de foto passend maken (lange namen kleiner, woorden heel)
     const col = view.querySelector('.photo-col'), title = view.querySelector('.detail-title');
     const fitPhotoTitle = () => {
-      if (detailWideMQ.matches && !state.cookMode) fitText(title, [{ lines: 2, min: 40 }, { lines: 3, min: 30 }, { lines: 4, min: 22 }]);
-      else title.style.fontSize = '';
+      if (!detailWideMQ.matches) title.style.fontSize = '';
+      else if (state.cookMode) fitText(title, [{ lines: 2, min: 30 }, { lines: 3, min: 22 }]);
+      else fitText(title, [{ lines: 2, min: 40 }, { lines: 3, min: 30 }, { lines: 4, min: 22 }]);
     };
     // en de uitsnede van de foto: eten zo goed mogelijk in beeld, boven de titel
     const img = col.querySelector('.hero');
