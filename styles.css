@@ -860,6 +860,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   /* balk over de volle breedte met dubbele turquoise lijn; inhoud blijft in het midden */
   body[data-page=list] { --gutter: max(32px, calc((100% - var(--page-w)) / 2 + 32px)); }
   body[data-page=list] main { max-width: none; padding-left: 0; padding-right: 0; }
+  body[data-page=list] .topbar { border-bottom: 0; background-color: var(--bg); }   /* lijn staat onder de filters; kop en filters één vlak */
   body[data-page=list] .list-head { padding-left: var(--gutter); padding-right: var(--gutter); border-bottom: 4px double var(--teal); }
   body[data-page=list] .cards, body[data-page=list] .inbox-banner, body[data-page=list] .empty { margin-left: var(--gutter); margin-right: var(--gutter); }
 }
