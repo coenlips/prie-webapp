@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '44 · 22 november 2026';
+const APP_VERSION = '45 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -20,6 +20,8 @@ const ICONS = {
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
   basket: '<svg viewBox="0 0 24 24"><path d="M7.5 10V8.5a4.5 4.5 0 0 1 9 0V10"/><path d="M3 10h18l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 13.5v3.5M12 13.5v3.5M15 13.5v3.5"/></svg>',
   cloud: '<svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.5 9.2 4.7 4.7 0 0 0 7 18.5z"/></svg>',
+  dice: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/></svg>',
+  plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
   plate: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="5.5"/><circle cx="12" cy="12.5" r="2.6"/><path d="M3 4v4.5a1.5 1.5 0 0 0 3 0V4M4.5 9.5V20M21 4c-1.7 0-2.6 2.2-2.6 5.2 0 1.6.9 2.3 2.6 2.3M21 4v16"/></svg>',
   phone: '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M12 8.5v6M9 11.5h6"/></svg>',
   chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
@@ -217,7 +219,9 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 function renderList() {
   setHeader({ actions: `
     <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
-    <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+    <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
+    <button class="add-top" id="addTop" aria-label="Nieuw recept">${ICONS.plus}</button>` });
+  $('#addTop').onclick = () => Importer.openSheet();
   Shopping.updateBadge();
 
   const cats = catsByUse();
@@ -227,10 +231,13 @@ function renderList() {
   if (state.course && !usedCourses.includes(state.course)) state.course = null;
 
   view.innerHTML = `
+    <div class="list-tools">
     <div class="search">
       ${ICONS.search}
       <input type="search" id="q" placeholder="Zoek recept of ingrediënt" value="${esc(state.query)}" autocomplete="off">
       <button class="search-clear" id="qClear" aria-label="Zoekveld leegmaken" ${state.query ? '' : 'hidden'}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+    </div>
+    <button class="surprise" id="surprise">${ICONS.dice}<span>Verras me</span></button>
     </div>
     ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
       `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -271,6 +278,11 @@ function renderList() {
     chipBar.scrollLeft = state.chipScroll || 0;
     chipBar.addEventListener('scroll', () => { state.chipScroll = chipBar.scrollLeft; }, { passive: true });
   }
+  $('#surprise').onclick = () => {
+    Mag.shuffle();
+    renderCards();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
   renderCards();
   Importer.checkInbox({ maxAge: 20000 });   // toont meteen wat er al bekend is, en kijkt zo nu en dan op de server
 }
@@ -298,10 +310,12 @@ function renderCards() {
     $('#sample').addEventListener('click', addSample);
     return;
   }
+  el.classList.toggle('mag', isWide());
   if (!list.length) {
     el.innerHTML = `<li class="none">Geen recepten gevonden.</li>`;
     return;
   }
+  if (isWide()) return Mag.render(el, list);
   el.innerHTML = list.map(r => {
     const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
     return `
@@ -315,6 +329,90 @@ function renderCards() {
       </a></li>`;
   }).join('');
 }
+
+/* ---------- Magazine (iPad en laptop) ---------- */
+
+// iPhone: snel opzoeken, alfabetisch. iPad en laptop: inspiratie, gehusseld als een magazine.
+const wideMQ = matchMedia('(min-width: 700px)');
+const isWide = () => wideMQ.matches;
+wideMQ.addEventListener('change', () => { if (document.body.dataset.page === 'list') renderList(); });
+
+const Mag = (() => {
+  let rank = new Map();   // id → willekeurig getal; blijft staan tot 'Verras me' of opnieuw openen
+  let heroId = null;
+  const rnd = id => { if (!rank.has(id)) rank.set(id, Math.random()); return rank.get(id); };
+  // Recepten met foto eerst, daarbinnen willekeurig
+  const order = list => [...list].sort((a, b) => (!!b.photo - !!a.photo) || rnd(a.id) - rnd(b.id));
+  const shuffle = () => { rank = new Map(); heroId = null; };
+
+  function pickHero(all) {
+    const withPhoto = order(all).filter(r => r.photo);
+    if (!withPhoto.length) return null;
+    return withPhoto.find(r => r.id === heroId) || withPhoto[0];
+  }
+  function nextHero() {
+    const withPhoto = order(state.recipes).filter(r => r.photo);
+    const i = withPhoto.findIndex(r => r.id === heroId);
+    heroId = withPhoto[(i + 1) % withPhoto.length]?.id || null;
+  }
+
+  const timeOf = r => formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
+  const metaOf = r => [timeOf(r), r.servings ? `${r.servings} pers.` : ''].filter(Boolean).map(esc).join(' · ');
+  function leadOf(r) {
+    if (r.description) return r.description;
+    const first = lines(r.steps || '').find(l => !l.startsWith('#')) || '';
+    return first.length > 170 ? first.slice(0, 165).replace(/\s+\S*$/, '') + '…' : first;
+  }
+  const photoHtml = r => r.photo
+    ? `<img src="${r.photo}" alt="" loading="lazy">`
+    : `<span class="mag-nophoto">${ICONS.plate}</span>`;
+
+  function heroHtml(r, many) {
+    const tags = [...coursesOf(r), ...catsOf(r)];
+    return `
+      <li class="mag-hero">
+        <a class="mh-photo" href="#/r/${esc(r.id)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
+        <div class="mh-text">
+          ${tags.length ? `<span class="mag-kicker">${tags.map(esc).join(' · ')}</span>` : ''}
+          <h2 class="flag"><a href="#/r/${esc(r.id)}">${esc(r.title)}</a></h2>
+          ${leadOf(r) ? `<p class="mh-lead">${esc(leadOf(r))}</p>` : ''}
+          ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
+          <div class="mh-actions">
+            <a class="btn mh-open" href="#/r/${esc(r.id)}">Bekijk recept</a>
+            ${many ? `<button class="mh-next" id="heroNext">Ander recept ›</button>` : ''}
+          </div>
+        </div>
+      </li>`;
+  }
+
+  function render(el, list) {
+    // Uitgelicht recept alleen als je niet zoekt of filtert
+    const browsing = !state.query.trim() && state.filter === 'all' && !state.course;
+    const hero = browsing ? pickHero(state.recipes) : null;
+    if (hero) heroId = hero.id;
+    const rest = order(list).filter(r => r !== hero);
+    const many = state.recipes.filter(r => r.photo).length > 1;
+    const start = hero ? 2 : 1;
+    el.innerHTML = (hero ? heroHtml(hero, many) : '') + rest.map((r, i) => {
+      // Af en toe een grote kaart, alleen met foto
+      const big = r.photo && (i % 10 === 1 || i % 10 === 6);
+      const kicker = coursesOf(r)[0] || catsOf(r)[0] || '';
+      return `
+        <li class="mag-card${big ? ' big' : ''}"><a href="#/r/${esc(r.id)}">
+          <div class="mc-photo">${photoHtml(r)}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
+          <div class="mc-label">
+            <span class="mag-kicker">N° ${String(i + start).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
+            <h3>${esc(r.title)}</h3>
+            ${metaOf(r) ? `<span class="mag-meta">${metaOf(r)}</span>` : ''}
+          </div>
+        </a></li>`;
+    }).join('');
+    const next = el.querySelector('#heroNext');
+    if (next) next.onclick = () => { nextHero(); render(el, list); };
+  }
+
+  return { render, shuffle };
+})();
 
 /* ---------- Detail ---------- */
 
@@ -1009,6 +1107,7 @@ async function route() {
   window.scrollTo(0, 0);
 
   if (page !== 'r' && state.cookMode) setCookMode(false);
+  document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', boodschappen: 'shop' })[page] || 'list';
 
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));

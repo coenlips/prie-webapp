@@ -712,3 +712,112 @@ body.cook .steps li.current {
 body.cook .steps li.current p { font-weight: 600; }
 body.cook .steps li.current .num { font-size: 30px; }
 body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste stap in het midden kan */
+
+/* ================= Magazine op iPad en laptop ================= */
+.list-tools { display: flex; gap: 12px; align-items: stretch; }
+.list-tools .search { flex: 1; min-width: 0; }
+.surprise, .add-top { display: none; }
+
+@media (min-width: 700px) {
+  body[data-page=list] { --page-w: 1320px; }
+  body[data-page=list] main { max-width: var(--page-w); padding: 22px 32px 64px; }
+  body[data-page=list] .topbar { padding-left: max(24px, calc((100% - var(--page-w)) / 2 + 24px)); padding-right: max(24px, calc((100% - var(--page-w)) / 2 + 32px)); }
+  body[data-page=list] .fab { display: none; }
+  body[data-page=list] .topbar-actions { align-items: center; gap: 6px; }
+  .add-top {
+    display: grid; place-items: center; width: 44px; height: 44px; margin-left: 6px;
+    background: var(--accent); color: #fff; border-radius: 3px;
+  }
+  .add-top svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
+  .add-top:active { background: var(--accent-dark); }
+  .list-tools .search { max-width: 620px; }
+  .surprise {
+    display: flex; align-items: center; gap: 8px; padding: 0 16px; border-radius: 3px;
+    border: 1.5px solid var(--accent); color: var(--accent);
+    font: 500 15px var(--font-label); letter-spacing: .08em; text-transform: uppercase;
+  }
+  .surprise svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; }
+  .surprise:active { background: var(--accent-soft); }
+  body[data-page=list] .chips { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding: 0; }
+  body[data-page=list] .chip { cursor: pointer; }
+
+  .cards.mag {
+    margin-top: 26px; display: grid; gap: 26px; grid-auto-flow: dense;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .cards.mag > li { border: 0; }
+  .cards.mag > li.none { grid-column: 1 / -1; }
+
+  /* Uitgelicht recept: foto + witte pagina met vaandel, teal dubbel kader */
+  .mag-hero {
+    grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0, 1fr);
+    background: var(--surface); outline: 4px double var(--teal); outline-offset: 8px; margin: 10px 10px 16px;
+  }
+  .mh-photo { display: block; aspect-ratio: 16 / 10; overflow: hidden; }
+  .mh-photo img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mh-text { padding: 28px 34px 32px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; min-width: 0; }
+  .mh-lead { margin: 0; color: var(--muted); font-size: 17px; line-height: 1.5; max-width: 52ch; }
+  .mh-actions { display: flex; align-items: center; gap: 18px; margin-top: 4px; }
+  .mh-open { width: auto; padding: 12px 24px; }
+  .mh-next { font: 500 15px var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--accent); padding: 10px 0; }
+  .mag-kicker { font: 500 13px var(--font-label); letter-spacing: .18em; text-transform: uppercase; color: var(--mustard); }
+  .mag-meta { font: 500 13px var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+
+  /* Vaandel met gevouwen staartjes, zoals op het app-icoon */
+  .flag { position: relative; isolation: isolate; margin: 4px 30px 10px 26px; max-width: calc(100% - 56px); font-weight: 400; }
+  .flag a, .flag > span {
+    position: relative; z-index: 1; display: block; background: var(--accent); color: #fff8ee;
+    font: 400 clamp(40px, 4.6vw, 62px)/1 var(--font-title); letter-spacing: .04em;
+    padding: 14px 26px 10px; outline: 2px solid rgba(255, 248, 238, .85); outline-offset: -7px;
+    overflow-wrap: anywhere;
+  }
+  .flag::before, .flag::after {
+    content: ''; position: absolute; z-index: 0; top: 14px; height: 100%; width: 40px;
+    background: color-mix(in srgb, var(--accent) 70%, #000);
+  }
+  .flag::before { left: -28px; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 32% 50%); }
+  .flag::after { right: -28px; clip-path: polygon(0 0, 100% 0, 68% 50%, 100% 100%, 0 100%); }
+
+  /* Receptkaarten: vierkante foto met papieren label */
+  .mag-card a { display: block; position: relative; }
+  .mc-photo { aspect-ratio: 1; overflow: hidden; background: #ecdfca; display: grid; place-items: center; }
+  .mc-photo img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .5s ease; }
+  .mag-nophoto { color: var(--muted); opacity: .5; }
+  .mag-nophoto svg { width: 72px; height: 72px; fill: none; stroke: currentColor; stroke-width: 1.2; }
+  .mc-fav {
+    position: absolute; top: 12px; right: 12px; width: 36px; height: 36px; border-radius: 50%;
+    background: color-mix(in srgb, var(--surface) 92%, transparent); color: var(--accent); display: grid; place-items: center;
+  }
+  .mc-fav svg { width: 18px; height: 18px; fill: currentColor; stroke: none; }
+  .mc-label {
+    position: absolute; left: 14px; right: 14px; bottom: 14px; text-align: center;
+    background: var(--surface); padding: 11px 12px 10px; outline: 3px double var(--teal); outline-offset: -6px;
+  }
+  .mc-label h3 {
+    margin: 3px 0 2px; font: 400 26px/1.02 var(--font-title); letter-spacing: .03em; color: var(--text);
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+  }
+  .mc-label .mag-kicker { font-size: 11px; }
+  .mc-label .mag-meta { font-size: 11px; }
+  @media (hover: hover) {
+    .mag-card a:hover img, .mh-photo:hover img { transform: scale(1.035); }
+    .mh-photo img { transition: transform .5s ease; }
+  }
+  .mag-card a:active { opacity: .85; }
+}
+@media (min-width: 700px) and (prefers-color-scheme: dark) { .mc-photo { background: #3a2d23; } }
+
+/* iPad liggend en laptop: foto en pagina naast elkaar, 3 kolommen met grote kaarten */
+@media (min-width: 1000px) {
+  .cards.mag { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mag-card.big { grid-column: span 2; grid-row: span 2; }
+  .mag-card.big a, .mag-card.big .mc-photo { height: 100%; aspect-ratio: auto; }
+  .mag-card.big .mc-label h3 { font-size: 40px; }
+  .mag-card.big .mc-label { left: 18px; right: 18px; bottom: 18px; padding: 14px 16px 12px; }
+  .mag-hero { grid-template-columns: 3fr 2fr; }
+  .mh-photo { aspect-ratio: 4 / 3; }
+  .mh-text { justify-content: center; padding: 36px 34px 34px 0; }
+  .mh-text > :not(.flag) { margin-left: 34px; }
+  .mag-hero .flag { margin-left: -26px; } /* vaandel steekt over de foto heen */
+}
+@media (min-width: 1380px) { .cards.mag { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
