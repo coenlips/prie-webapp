@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '47 · 23 november 2026';
+const APP_VERSION = '48 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -231,6 +231,7 @@ function renderList() {
   if (state.course && !usedCourses.includes(state.course)) state.course = null;
 
   view.innerHTML = `
+    <div class="list-head">
     <div class="list-tools">
     <div class="search">
       ${ICONS.search}
@@ -245,6 +246,7 @@ function renderList() {
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
         : `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
+    </div>
     <div class="inbox-banner" id="inboxBanner" hidden></div>
     <ul class="cards" id="cards"></ul>
   `;
@@ -469,6 +471,8 @@ const PhotoFocus = (() => {
 // iPhone: snel opzoeken, alfabetisch. iPad en laptop: inspiratie, gehusseld als een magazine.
 const wideMQ = matchMedia('(min-width: 700px)');
 const isWide = () => wideMQ.matches;
+// Hoogte van de kopbalk bijhouden, zodat de zoekbalk (iPad/laptop) er precies onder blijft staan
+new ResizeObserver(([e]) => document.documentElement.style.setProperty('--topbar-h', e.target.offsetHeight + 'px')).observe($('.topbar'));
 wideMQ.addEventListener('change', () => { if (document.body.dataset.page === 'list') renderList(); });
 const colsMQ = [matchMedia('(min-width: 1000px)'), matchMedia('(min-width: 1380px)')];
 const magCols = () => colsMQ[1].matches ? 4 : colsMQ[0].matches ? 3 : 2;
