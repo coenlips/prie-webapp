@@ -866,16 +866,15 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 }
 
 /* Zoeken en filters in- en uitklappen */
-.list-head { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .25s ease, padding .25s ease; }
+.list-head { display: grid; grid-template-rows: 1fr; }   /* de animatie zit in foldFilters() */
 .list-head.closed { grid-template-rows: 0fr; padding-top: 2px !important; padding-bottom: 0 !important; }
 .lh-inner { min-height: 0; overflow: hidden; padding: 2px 16px; margin: -2px -16px; }   /* ruimte voor focusranden en de veegbalk tot de rand */
 @media (min-width: 700px) { .lh-inner { padding: 2px; margin: -2px; } }
-.list-head.closed .lh-inner { visibility: hidden; transition: visibility 0s .25s; }
+.list-head.closed .lh-inner { visibility: hidden; }
 .filter-toggle { position: relative; }
 .filter-toggle svg { fill: none; }
 .filter-toggle.on { background: var(--accent-soft); }
 .filter-dot { position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
-@media (prefers-reduced-motion: reduce) { .list-head { transition: none; } }
 
 /* Mooiere regelval in titels (regels ongeveer even lang) */
 .flag a, .mc-label h3 { text-wrap: balance; }
@@ -891,5 +890,5 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 }
 
 /* Schaduwrandje onder het uitgeklapte filtermenu: verschil met de pagina die eronder scrolt */
-body[data-page=list] .list-head { box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); transition: grid-template-rows .25s ease, padding .25s ease, box-shadow .25s ease; }
+body[data-page=list] .list-head { box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
 body[data-page=list] .list-head.closed { box-shadow: none; }

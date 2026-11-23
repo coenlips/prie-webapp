@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '58 · 23 november 2026';
+const APP_VERSION = '59 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -285,10 +285,12 @@ function renderList() {
   }
   // Zoeken en filters in- en uitklappen; de keuze wordt onthouden
   $('#filterToggle').onclick = () => {
-    const head = $('#listHead'), open = head.classList.toggle('closed') === false;
-    $('#filterToggle').classList.toggle('on', open);
-    $('#filterToggle').setAttribute('aria-expanded', open);
+    const head = $('#listHead'), btn = $('#filterToggle');
+    const open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.classList.toggle('on', open);
+    btn.setAttribute('aria-expanded', open);
     try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
+    foldFilters(head, open);
   };
   $('#surprise').onclick = () => {
     Mag.shuffle();
@@ -297,6 +299,44 @@ function renderList() {
   };
   renderCards();
   Importer.checkInbox({ maxAge: 20000 });   // toont meteen wat er al bekend is, en kijkt zo nu en dan op de server
+}
+
+// In- en uitklappen van zoeken en filters. Soepel doordat alleen geschoven wordt (transform):
+// het menu schuift onder de kopbalk weg en de recepten schuiven mee. De echte opmaak
+// verandert maar één keer (bij dichtklappen aan het eind, bij openklappen aan het begin),
+// zodat het raster met grote foto's niet elk beeldje opnieuw berekend hoeft te worden.
+function foldFilters(head, open) {
+  const els = [head];
+  for (let n = head.nextElementSibling; n; n = n.nextElementSibling) els.push(n);
+  // halverwege een animatie omgedraaid? dan verder vanaf waar het menu nu is
+  const y = head._fold ? new DOMMatrix(getComputedStyle(head).transform).m42 : null;
+  (head._fold || []).forEach(a => a.cancel());
+  head._fold = null;
+  if (!open && head.contains(document.activeElement)) document.activeElement.blur();
+  head.classList.add('closed');
+  const hClosed = head.offsetHeight;
+  head.classList.remove('closed');
+  const d = head.offsetHeight - hClosed;
+  if (!d || !head.animate || matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    head.classList.toggle('closed', !open);
+    return;
+  }
+  const from = y ?? (open ? -d : 0), to = open ? 0 : -d;
+  const opts = { duration: 280 * Math.max(.3, Math.abs(to - from) / d), easing: 'cubic-bezier(.3, .7, .2, 1)', fill: 'forwards' };
+  const frames = [{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }];
+  if (open) {
+    // nu al open in de opmaak; schuift vanonder de kopbalk tevoorschijn
+    head._fold = els.map(el => el.animate(frames, opts));
+    head._fold[0].finished.then(() => { head._fold.forEach(a => a.cancel()); head._fold = null; }, () => {});
+  } else {
+    // nog even open laten staan, onder de kopbalk wegschuiven, en dan pas echt dichtklappen
+    head._fold = els.map(el => el.animate(frames, opts));
+    head._fold[0].finished.then(() => {
+      head.classList.add('closed');
+      head._fold.forEach(a => a.cancel());
+      head._fold = null;
+    }, () => {});
+  }
 }
 
 function renderCards() {
