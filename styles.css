@@ -892,3 +892,6 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 /* Schaduwrandje onder het uitgeklapte filtermenu: verschil met de pagina die eronder scrolt */
 body[data-page=list] .list-head { box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
 body[data-page=list] .list-head.closed { box-shadow: none; }
+
+/* Titel in het vaandel gecentreerd */
+.flag a, .flag > span { text-align: center; }

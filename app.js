@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '59 · 23 november 2026';
+const APP_VERSION = '60 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -529,17 +529,36 @@ function lineCount(el) {
 function fitText(el, steps) {
   el.style.fontSize = '';
   const s = el.style;
-  // tijdens het meten: niet midden in een woord breken en niet afkappen
-  const keep = [s.overflowWrap, s.display, s.webkitLineClamp];
-  s.overflowWrap = 'normal';
+  // tijdens het meten niet afkappen (regelafkapping uit)
+  const keep = [s.display, s.webkitLineClamp];
   if (getComputedStyle(el).webkitLineClamp !== 'none') { s.display = 'block'; s.webkitLineClamp = 'unset'; }
-  let size = parseFloat(getComputedStyle(el).fontSize);
-  const fits = lines => lineCount(el) <= lines && el.scrollWidth <= el.clientWidth;
+  // het vaandel krimpt mee met de tekst; meet met de volle breedte die het mag hebben
+  const flag = el.closest('.flag'), keepW = flag && flag.style.width;
+  if (flag) flag.style.width = '100%';
+  const node = [...el.childNodes].find(n => n.nodeType === 3);
+  const cs = getComputedStyle(el);
+  const room = () => el.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  // Past het? Niet meer regels dan gewenst, en elk woord op één regel met wat speling
+  // (een paar procent marge, zodat het ook in Safari net zo uitvalt).
+  const fits = lines => {
+    if (lineCount(el) > lines) return false;
+    if (!node) return true;
+    const max = room() * .97, text = node.textContent, re = /\S+/g;
+    for (let m; (m = re.exec(text));) {
+      const r = document.createRange(); r.setStart(node, m.index); r.setEnd(node, m.index + m[0].length);
+      const rects = [...r.getClientRects()].filter(x => x.width > 1);
+      if (new Set(rects.map(x => Math.round(x.top))).size > 1) return false;
+      if (rects.reduce((w, x) => w + x.width, 0) > max) return false;
+    }
+    return true;
+  };
+  let size = parseFloat(cs.fontSize);
   for (const { lines, min } of steps) {
     while (!fits(lines) && size > min) { size = Math.max(min, size - 2); s.fontSize = size + 'px'; }
     if (fits(lines)) break;
   }
-  [s.overflowWrap, s.display, s.webkitLineClamp] = keep;
+  [s.display, s.webkitLineClamp] = keep;
+  if (flag) flag.style.width = keepW;
 }
 function fitTitles(root) {
   // eerst in 2 regels; lukt dat niet, dan 3; één heel lang woord mag nog kleiner
