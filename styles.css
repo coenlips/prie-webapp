@@ -895,3 +895,13 @@ body[data-page=list] .list-head.closed { box-shadow: none; }
 
 /* Titel in het vaandel gecentreerd */
 .flag a, .flag > span { text-align: center; }
+
+/* iPad en laptop: logo twee keer zo groot, met hetzelfde verloopje als op de iPhone
+   (de titel is daar net zo breed als het woord, zodat het verloop niet over de hele kop wordt uitgerekt) */
+@media (min-width: 700px) {
+  body:not(.no-fab) .topbar h1 {
+    flex: 0 1 auto; margin-right: auto; padding-right: .3em;
+    font-size: 80px; line-height: .95;
+    background-size: 125% 100%;
+  }
+}
