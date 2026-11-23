@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '70 · 23 november 2026';
+const APP_VERSION = '71 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -986,7 +986,7 @@ async function renderDetail(id) {
       const ba = $('#bonApp'), show = allStepsDone();
       if (ba.hidden === show) {
         ba.hidden = !show;
-        if (show) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: 'nearest' }));
+        if (show) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: state.cookMode ? 'end' : 'nearest' }));
       }
     });
     $('#cook').onclick = async () => {

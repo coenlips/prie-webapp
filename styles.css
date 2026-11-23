@@ -988,3 +988,24 @@ body.cook #title { display: none; }
 @media (min-width: 900px) { body.cook .cook-tabs .cook-stepper { display: flex; flex: none; margin: 0; height: 36px; } }
 .cook-stepper button { width: 28px; height: 100%; }
 .cook-stepper span { min-width: 34px; }
+
+/* Kookstand: 'Eet smakelijk!' / 'Proost!' groter en verticaal gecentreerd in de lege ruimte onder de
+   laatste stap (die ruimte is er zodat ook de laatste stap in het midden kan staan) */
+body.cook.cook-tab-steps .part-steps { display: flex; flex-direction: column; padding-bottom: 0; }
+@media (min-width: 900px) {
+  body.cook .part-steps, body.cook:not(.cook-tab-steps) .part-steps { display: flex; flex-direction: column; padding-bottom: 0; }
+}
+body.cook .part-steps > h3 { align-self: flex-start; }
+body.cook .part-steps::after { content: ''; flex: none; height: 40vh; }
+body.cook .part-steps:has(> .bon-appetit:not([hidden]))::after { display: none; }
+body.cook .bon-appetit { flex: 1 0 40vh; align-items: center; margin: 0; padding: 0; }
+body.cook .ba-band { font-size: min(44px, 10vw); padding: 13px 34px 10px; outline-offset: -6px; }
+body.cook .ba-ribbon::before, body.cook .ba-ribbon::after { top: 13px; width: 44px; }
+body.cook .ba-ribbon::before { left: -32px; }
+body.cook .ba-ribbon::after { right: -32px; }
+@media (min-width: 900px) {
+  body.cook .ba-band { font-size: 68px; padding: 18px 50px 13px; outline-width: 2px; outline-offset: -8px; }
+  body.cook .ba-ribbon::before, body.cook .ba-ribbon::after { top: 18px; width: 64px; }
+  body.cook .ba-ribbon::before { left: -46px; }
+  body.cook .ba-ribbon::after { right: -46px; }
+}
