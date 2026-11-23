@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '62 · 23 november 2026';
+const APP_VERSION = '63 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -572,6 +572,7 @@ function fitTitles(root) {
 
 // iPhone: snel opzoeken, alfabetisch. iPad en laptop: inspiratie, gehusseld als een magazine.
 const wideMQ = matchMedia('(min-width: 700px)');
+const detailWideMQ = matchMedia('(min-width: 900px)');   // receptpagina: foto links, recept rechts
 const isWide = () => wideMQ.matches;
 // Hoogte van de kopbalk bijhouden, zodat de zoekbalk (iPad/laptop) er precies onder blijft staan
 new ResizeObserver(([e]) => document.documentElement.style.setProperty('--topbar-h', e.target.getBoundingClientRect().height + 'px')).observe($('.topbar'), { box: 'border-box' });
@@ -838,8 +839,9 @@ async function renderDetail(id) {
   function draw() {
     const factor = servings / base;
     view.innerHTML = `
-      ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
-      <section class="detail">
+      <div class="photo-col${r.photo ? '' : ' no-photo'}">
+        ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
+        <div class="photo-cap">
         <h2 class="detail-title">${esc(r.title)}</h2>
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
         <div class="meta">
@@ -849,6 +851,9 @@ async function renderDetail(id) {
           ${r.cookTime ? `<span>${ICONS.clock} Koken ${formatTime(r.cookTime)}</span>` : ''}
           ${(r.tags || []).map(t => `<span class="tag">#${esc(t)}</span>`).join('')}
         </div>
+        </div>
+      </div>
+      <section class="detail">
 
         <div class="part-ingr">
         <div class="section-head">
@@ -893,6 +898,15 @@ async function renderDetail(id) {
           <button class="btn ghost" id="shareBtn">${ICONS.share} Delen</button>
         </div>
       </section>`;
+
+    // iPad/laptop: titel op de foto passend maken (lange namen kleiner, woorden heel)
+    const col = view.querySelector('.photo-col'), title = view.querySelector('.detail-title');
+    const fitPhotoTitle = () => {
+      if (detailWideMQ.matches && !state.cookMode) fitText(title, [{ lines: 2, min: 40 }, { lines: 3, min: 30 }, { lines: 4, min: 22 }]);
+      else title.style.fontSize = '';
+    };
+    document.fonts.ready.then(fitPhotoTitle);
+    new ResizeObserver(() => fitPhotoTitle()).observe(col);
 
     $('#minus').onclick = () => { if (servings > 1) { servings--; draw(); } };
     $('#plus').onclick = () => { servings++; draw(); };
