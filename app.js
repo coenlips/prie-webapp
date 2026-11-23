@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '52 · 23 november 2026';
+const APP_VERSION = '53 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -478,6 +478,37 @@ const PhotoFocus = (() => {
   return { get, peek, apply, style };
 })();
 
+/* ---------- Titels passend maken ---------- */
+// Lange namen krijgen kleinere letters, zodat ze in een paar regels passen
+// en woorden niet midden in het woord worden afgebroken.
+function lineCount(el) {
+  const range = document.createRange();
+  range.selectNodeContents(el);
+  return new Set([...range.getClientRects()].filter(r => r.width > 1).map(r => Math.round(r.top))).size;
+}
+function fitText(el, steps) {
+  el.style.fontSize = '';
+  const s = el.style;
+  // tijdens het meten: niet midden in een woord breken en niet afkappen
+  const keep = [s.overflowWrap, s.display, s.webkitLineClamp];
+  s.overflowWrap = 'normal';
+  if (getComputedStyle(el).webkitLineClamp !== 'none') { s.display = 'block'; s.webkitLineClamp = 'unset'; }
+  let size = parseFloat(getComputedStyle(el).fontSize);
+  const fits = lines => lineCount(el) <= lines && el.scrollWidth <= el.clientWidth;
+  for (const { lines, min } of steps) {
+    while (!fits(lines) && size > min) { size = Math.max(min, size - 2); s.fontSize = size + 'px'; }
+    if (fits(lines)) break;
+  }
+  [s.overflowWrap, s.display, s.webkitLineClamp] = keep;
+}
+function fitTitles(root) {
+  // eerst in 2 regels; lukt dat niet, dan 3; één heel lang woord mag nog kleiner
+  root.querySelectorAll('.mag-hero .flag a').forEach(a => fitText(a, [{ lines: 2, min: 34 }, { lines: 3, min: 24 }, { lines: 3, min: 16 }]));
+  root.querySelectorAll('.mag-card h3').forEach(h => fitText(h, h.closest('.big')
+    ? [{ lines: 2, min: 26 }, { lines: 3, min: 20 }, { lines: 3, min: 14 }]
+    : [{ lines: 2, min: 18 }, { lines: 3, min: 16 }, { lines: 3, min: 12 }]));
+}
+
 /* ---------- Magazine (iPad en laptop) ---------- */
 
 // iPhone: snel opzoeken, alfabetisch. iPad en laptop: inspiratie, gehusseld als een magazine.
@@ -626,6 +657,16 @@ const Mag = (() => {
           </div>
         </a></li>`;
     }).join('');
+    // Titels passend maken (na het laden van de letters) en opnieuw bij een andere breedte
+    document.fonts.ready.then(() => fitTitles(el));
+    if (!el._fitObs) {
+      let w = 0, raf;
+      el._fitObs = new ResizeObserver(([e]) => {
+        if (Math.abs(e.contentRect.width - w) < 1) return;
+        w = e.contentRect.width; cancelAnimationFrame(raf); raf = requestAnimationFrame(() => fitTitles(el));
+      });
+      el._fitObs.observe(el);
+    }
     const next = el.querySelector('#heroNext');
     if (next) next.onclick = () => { nextHero(); render(el, list); };
     const on = (id, fn) => { const b = el.querySelector('#' + id); if (b) b.onclick = fn; };

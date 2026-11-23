@@ -795,7 +795,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   }
   .mc-label h3 {
     margin: 3px 0 2px; font: 400 26px/1.02 var(--font-title); letter-spacing: .03em; color: var(--text);
-    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; overflow-wrap: anywhere;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; line-clamp: 3; overflow: hidden; overflow-wrap: anywhere;
   }
   .mc-label .mag-kicker { font-size: 11px; }
   .mc-label .mag-meta { font-size: 11px; }
@@ -876,3 +876,6 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 .filter-toggle.on { background: var(--accent-soft); }
 .filter-dot { position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
 @media (prefers-reduced-motion: reduce) { .list-head { transition: none; } }
+
+/* Mooiere regelval in titels (regels ongeveer even lang) */
+.flag a, .mc-label h3 { text-wrap: balance; }
