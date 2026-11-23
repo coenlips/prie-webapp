@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '67 · 23 november 2026';
+const APP_VERSION = '68 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -209,6 +209,8 @@ function setHeader({ title = 'Ricetta', back = false, actions = '', timer = true
 }
 
 $('#backBtn').addEventListener('click', () => {
+  // in de kookstand: terug naar het gewone receptscherm
+  if (state.cookMode) { setCookMode(false); return; }
   const page = (location.hash || '#/').split('/')[1];
   if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();

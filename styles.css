@@ -238,7 +238,7 @@ body.cook .notes-head, body.cook .notes, body.cook .detail-actions, body.cook .s
 body.cook #topActions { display: none; }
 
 /* Kookstand: twee schermen, te kiezen met de vaste balk bovenin */
-.cook-tabs { flex-basis: 100%; display: flex; align-items: center; gap: 8px; padding-top: 6px; }
+.cook-tabs { flex: 1; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
 .segmented {
   flex: 1; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px;
   background: var(--line); border-radius: 12px;
@@ -977,3 +977,7 @@ body[data-page=list] .list-head.closed { box-shadow: none; }
   body.cook .part-steps > h3 { display: inline-block; margin-top: 0; }
   body.cook .ingredients li:not(.sub) { font-size: 19px; }
 }
+
+/* Kookstand: geen receptnaam in de kopbalk (die staat al in beeld); terug-pijltje, schakelknoppen
+   en koksmuts op één regel */
+body.cook #title { display: none; }
