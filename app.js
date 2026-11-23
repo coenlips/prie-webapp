@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '51 · 23 november 2026';
+const APP_VERSION = '52 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -22,6 +22,7 @@ const ICONS = {
   cloud: '<svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.5 9.2 4.7 4.7 0 0 0 7 18.5z"/></svg>',
   dice: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/></svg>',
   plus: '<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  filter: '<svg viewBox="0 0 24 24"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg>',
   plate: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12.5" r="5.5"/><circle cx="12" cy="12.5" r="2.6"/><path d="M3 4v4.5a1.5 1.5 0 0 0 3 0V4M4.5 9.5V20M21 4c-1.7 0-2.6 2.2-2.6 5.2 0 1.6.9 2.3 2.6 2.3M21 4v16"/></svg>',
   phone: '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M12 8.5v6M9 11.5h6"/></svg>',
   chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
@@ -217,7 +218,9 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 /* ---------- Lijst ---------- */
 
 function renderList() {
+  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open') !== '0'; } catch { return true; } })();
   setHeader({ actions: `
+    <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
     <button class="add-top" id="addTop" aria-label="Nieuw recept">${ICONS.plus}</button>` });
@@ -231,7 +234,7 @@ function renderList() {
   if (state.course && !usedCourses.includes(state.course)) state.course = null;
 
   view.innerHTML = `
-    <div class="list-head">
+    <div class="list-head${filtersOpen ? '' : ' closed'}" id="listHead"><div class="lh-inner">
     <div class="list-tools">
     <div class="search">
       ${ICONS.search}
@@ -246,7 +249,7 @@ function renderList() {
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
         : `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
-    </div>
+    </div></div>
     <div class="inbox-banner" id="inboxBanner" hidden></div>
     <ul class="cards" id="cards"></ul>
   `;
@@ -280,6 +283,13 @@ function renderList() {
     chipBar.scrollLeft = state.chipScroll || 0;
     chipBar.addEventListener('scroll', () => { state.chipScroll = chipBar.scrollLeft; }, { passive: true });
   }
+  // Zoeken en filters in- en uitklappen; de keuze wordt onthouden
+  $('#filterToggle').onclick = () => {
+    const head = $('#listHead'), open = head.classList.toggle('closed') === false;
+    $('#filterToggle').classList.toggle('on', open);
+    $('#filterToggle').setAttribute('aria-expanded', open);
+    try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
+  };
   $('#surprise').onclick = () => {
     Mag.shuffle();
     renderCards();
@@ -291,6 +301,8 @@ function renderList() {
 
 function renderCards() {
   const q = state.query.trim().toLowerCase();
+  const dot = $('#filterToggle .filter-dot');
+  if (dot) dot.hidden = !(q || state.filter !== 'all' || state.course);
   const list = state.recipes.filter(r => {
     if (state.filter === 'fav' && !r.favorite) return false;
     if (state.filter !== 'all' && state.filter !== 'fav' && !catsOf(r).includes(state.filter)) return false;

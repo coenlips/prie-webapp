@@ -864,3 +864,15 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   body[data-page=list] .list-head { padding-left: var(--gutter); padding-right: var(--gutter); border-bottom: 4px double var(--teal); }
   body[data-page=list] .cards, body[data-page=list] .inbox-banner, body[data-page=list] .empty { margin-left: var(--gutter); margin-right: var(--gutter); }
 }
+
+/* Zoeken en filters in- en uitklappen */
+.list-head { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .25s ease, padding .25s ease; }
+.list-head.closed { grid-template-rows: 0fr; padding-top: 0 !important; padding-bottom: 0 !important; }
+.lh-inner { min-height: 0; overflow: hidden; padding: 2px 16px; margin: -2px -16px; }   /* ruimte voor focusranden en de veegbalk tot de rand */
+@media (min-width: 700px) { .lh-inner { padding: 2px; margin: -2px; } }
+.list-head.closed .lh-inner { visibility: hidden; transition: visibility 0s .25s; }
+.filter-toggle { position: relative; }
+.filter-toggle svg { fill: none; }
+.filter-toggle.on { background: var(--accent-soft); }
+.filter-dot { position: absolute; top: 7px; right: 7px; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 2px var(--bg); }
+@media (prefers-reduced-motion: reduce) { .list-head { transition: none; } }
