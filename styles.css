@@ -981,3 +981,10 @@ body[data-page=list] .list-head.closed { box-shadow: none; }
 /* Kookstand: geen receptnaam in de kopbalk (die staat al in beeld); terug-pijltje, schakelknoppen
    en koksmuts op één regel */
 body.cook #title { display: none; }
+
+/* Kookstand op iPad liggend en laptop: aantal personen in de kopbalk, links van de koksmuts
+   (op de iPhone en iPad staand niet) */
+.cook-tabs .cook-stepper { display: none; }
+@media (min-width: 900px) { body.cook .cook-tabs .cook-stepper { display: flex; flex: none; margin: 0; height: 36px; } }
+.cook-stepper button { width: 28px; height: 100%; }
+.cook-stepper span { min-width: 34px; }

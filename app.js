@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '68 · 23 november 2026';
+const APP_VERSION = '69 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -849,6 +849,8 @@ async function renderDetail(id) {
 
   function draw() {
     const factor = servings / base;
+    // scrollplek van de kolommen (kookstand iPad/laptop) bewaren bij opnieuw tekenen
+    const keepScroll = ['.part-ingr', '.part-steps'].map(s => view.querySelector(s)?.scrollTop || 0);
     view.innerHTML = `
       <div class="photo-col${r.photo ? '' : ' no-photo'}">
         ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
@@ -938,8 +940,21 @@ async function renderDetail(id) {
     document.fonts.ready.then(relayout);
     new ResizeObserver(relayout).observe(col);
 
+    ['.part-ingr', '.part-steps'].forEach((s, i) => { const el = view.querySelector(s); if (el && keepScroll[i]) el.scrollTop = keepScroll[i]; });
+
     $('#minus').onclick = () => { if (servings > 1) { servings--; draw(); } };
     $('#plus').onclick = () => { servings++; draw(); };
+    // Kookstand: aantal personen ook in de kopbalk, links van de koksmuts
+    let cs = $('#cookServings');
+    if (!cs) {
+      cs = document.createElement('div');
+      cs.className = 'stepper cook-stepper'; cs.id = 'cookServings'; cs.setAttribute('aria-label', 'Aantal porties');
+      $('#cookOff').before(cs);
+    }
+    cs.innerHTML = `<button aria-label="Minder porties">−</button><span>${ICONS.people} ${servings}</span><button aria-label="Meer porties">+</button>`;
+    const [csMin, csPlus] = cs.querySelectorAll('button');
+    csMin.onclick = () => { if (servings > 1) { servings--; draw(); } };
+    csPlus.onclick = () => { servings++; draw(); };
     view.querySelectorAll('[data-i]').forEach(li => li.onclick = () => {
       const k = 'i' + li.dataset.i; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
@@ -1532,6 +1547,7 @@ async function route() {
   window.scrollTo(0, 0);
 
   if (page !== 'r' && state.cookMode) setCookMode(false);
+  document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
   document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', boodschappen: 'shop' })[page] || 'list';
 
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
