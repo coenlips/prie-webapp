@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '45 · 23 november 2026';
+const APP_VERSION = '46 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -330,6 +330,93 @@ function renderCards() {
   }).join('');
 }
 
+/* ---------- Waar staat het eten op de foto? ---------- */
+// Eenvoudige beeldanalyse, zonder AI en zonder server: de foto wordt verkleind tot
+// 48×48 pixels; plekken met veel kleur en detail (het eten) wegen zwaar, rustige
+// achtergrond (tafel, kleed, muur, gelijk aan de randen van de foto) telt niet mee.
+const PhotoFocus = (() => {
+  const N = 48, cache = new Map();
+  const keyOf = r => `${r.id}:${r.updatedAt || 0}:${(r.photo || '').length}`;
+  try { // resultaten bewaren, zodat elke foto maar één keer wordt bekeken
+    for (const [k, v] of Object.entries(JSON.parse(localStorage.getItem('ricetta-focus') || '{}'))) cache.set(k, v);
+  } catch {}
+  let saveTimer;
+  const save = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try { localStorage.setItem('ricetta-focus', JSON.stringify(Object.fromEntries([...cache].slice(-400)))); } catch {}
+    }, 500);
+  };
+
+  async function analyse(src) {
+    const img = new Image();
+    img.src = src;
+    await img.decode();
+    const aspect = img.naturalWidth / img.naturalHeight || 1;
+    const w = aspect >= 1 ? N : Math.max(8, Math.round(N * aspect));
+    const h = aspect >= 1 ? Math.max(8, Math.round(N / aspect)) : N;
+    const c = document.createElement('canvas'); c.width = w; c.height = h;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(img, 0, 0, w, h);
+    const px = g.getImageData(0, 0, w, h).data;
+    const L = new Float32Array(w * h), S = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) {
+      const r = px[i * 4] / 255, gg = px[i * 4 + 1] / 255, b = px[i * 4 + 2] / 255;
+      const mx = Math.max(r, gg, b), mn = Math.min(r, gg, b);
+      L[i] = (r + gg + b) / 3; S[i] = mx - mn;
+    }
+    const sal = new Float32Array(w * h);
+    let border = 0, nb = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = y * w + x;
+      const gx = x < w - 1 ? Math.abs(L[i + 1] - L[i]) : 0, gy = y < h - 1 ? Math.abs(L[i + w] - L[i]) : 0;
+      sal[i] = S[i] + 2 * (gx + gy);
+      if (x < 2 || y < 2 || x >= w - 2 || y >= h - 2) { border += sal[i]; nb++; }
+    }
+    const bg = (border / nb) * 1.1;   // zo "druk" is de achtergrond
+    const wt = new Float32Array(w * h);
+    for (let i = 0; i < w * h; i++) { const v = Math.max(0, sal[i] - bg); wt[i] = v * v; }
+    return { w, h, wt };
+  }
+
+  // Middelpunt van het eten binnen een uitsnede; plus hoeveel eten er boven/onder zit
+  function place(m, boxAspect) {
+    const { w, h, wt } = m;
+    // Uitsnede zoals object-fit: cover die maakt, eerst gecentreerd op het zwaartepunt
+    let sx = 0, sy = 0, sum = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = wt[y * w + x]; sx += v * x; sy += v * y; sum += v; }
+    const fx = sum ? (sx / sum + .5) / w : .5, fy = sum ? (sy / sum + .5) / h : .5;
+    const imgAspect = w / h;
+    let cw = w, ch = h;
+    if (imgAspect > boxAspect) cw = h * boxAspect; else ch = w / boxAspect;
+    const clamp = v => Math.min(1, Math.max(0, v));
+    const posX = w - cw > .5 ? clamp((fx * w - cw / 2) / (w - cw)) : .5;
+    const posY = h - ch > .5 ? clamp((fy * h - ch / 2) / (h - ch)) : .5;
+    const x0 = posX * (w - cw), y0 = posY * (h - ch);
+    let top = 0, bottom = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      if (x < x0 || x >= x0 + cw || y < y0 || y >= y0 + ch) continue;
+      const rel = (y - y0) / ch, v = wt[y * w + x];
+      if (rel < .32) top += v; else if (rel > .68) bottom += v;
+    }
+    return { pos: `${Math.round(posX * 100)}% ${Math.round(posY * 100)}%`, labelTop: bottom > top * 1.8 && bottom > 0 };
+  }
+
+  const models = new Map();
+  async function get(r, boxAspect) {
+    const key = `${keyOf(r)}:${boxAspect.toFixed(2)}`;
+    if (cache.has(key)) return cache.get(key);
+    let m = models.get(keyOf(r));
+    if (!m) { m = await analyse(r.photo); models.set(keyOf(r), m); }
+    const res = place(m, boxAspect);
+    cache.set(key, res); save();
+    return res;
+  }
+  // Direct beschikbaar als de foto al eerder is bekeken
+  const peek = (r, boxAspect) => cache.get(`${keyOf(r)}:${boxAspect.toFixed(2)}`);
+  return { get, peek };
+})();
+
 /* ---------- Magazine (iPad en laptop) ---------- */
 
 // iPhone: snel opzoeken, alfabetisch. iPad en laptop: inspiratie, gehusseld als een magazine.
@@ -364,7 +451,7 @@ const Mag = (() => {
     return first.length > 170 ? first.slice(0, 165).replace(/\s+\S*$/, '') + '…' : first;
   }
   const photoHtml = r => r.photo
-    ? `<img src="${r.photo}" alt="" loading="lazy">`
+    ? `<img src="${r.photo}" alt="" loading="lazy"${PhotoFocus.peek(r, 1) ? ` style="object-position:${PhotoFocus.peek(r, 1).pos}"` : ''}>`
     : `<span class="mag-nophoto">${ICONS.plate}</span>`;
 
   function heroHtml(r, many) {
@@ -397,8 +484,10 @@ const Mag = (() => {
       // Af en toe een grote kaart, alleen met foto
       const big = r.photo && (i % 10 === 1 || i % 10 === 6);
       const kicker = coursesOf(r)[0] || catsOf(r)[0] || '';
+      const f = r.photo && PhotoFocus.peek(r, 1);
+      const cls = (big ? ' big' : '') + (r.photo && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
       return `
-        <li class="mag-card${big ? ' big' : ''}"><a href="#/r/${esc(r.id)}">
+        <li class="mag-card${cls}" data-id="${esc(r.id)}"><a href="#/r/${esc(r.id)}">
           <div class="mc-photo">${photoHtml(r)}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
           <div class="mc-label">
             <span class="mag-kicker">N° ${String(i + start).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
@@ -409,6 +498,22 @@ const Mag = (() => {
     }).join('');
     const next = el.querySelector('#heroNext');
     if (next) next.onclick = () => { nextHero(); render(el, list); };
+    // Titel niet over het eten: per foto bepalen waar het eten staat
+    const byId = new Map(list.map(r => [r.id, r]));
+    el.querySelectorAll('.mag-card.focusing').forEach(async li => {
+      const r = byId.get(li.dataset.id);
+      try {
+        const f = await PhotoFocus.get(r, 1);
+        li.querySelector('img').style.objectPosition = f.pos;
+        li.classList.toggle('label-top', f.labelTop);
+      } catch {}
+      li.classList.remove('focusing');
+    });
+    if (hero) {
+      const img = el.querySelector('.mh-photo img');
+      const box = () => img.parentElement.clientWidth / Math.max(1, img.parentElement.clientHeight);
+      PhotoFocus.get(hero, box()).then(f => { img.style.objectPosition = f.pos; }).catch(() => {});
+    }
   }
 
   return { render, shuffle };

@@ -821,3 +821,14 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   .mag-hero .flag { margin-left: -26px; } /* vaandel steekt over de foto heen */
 }
 @media (min-width: 1380px) { .cards.mag { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+
+/* Titel-label boven als het eten onderin de foto staat */
+@media (min-width: 700px) {
+  .mc-label { transition: opacity .25s; }
+  .mag-card.focusing .mc-label { opacity: 0; }
+  .mag-card.label-top .mc-label { top: 14px; bottom: auto; }
+  .mag-card.label-top .mc-fav { top: auto; bottom: 12px; }
+}
+@media (min-width: 1000px) {
+  .mag-card.big.label-top .mc-label { top: 18px; bottom: auto; }
+}
