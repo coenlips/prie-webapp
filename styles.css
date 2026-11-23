@@ -742,7 +742,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   body[data-page=list] .chip { cursor: pointer; }
 
   .cards.mag {
-    margin-top: 26px; display: grid; gap: 26px; grid-auto-flow: dense;
+    margin-top: 26px; display: grid; gap: 26px;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
   .cards.mag > li { border: 0; }
@@ -810,7 +810,6 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 /* iPad liggend en laptop: foto en pagina naast elkaar, 3 kolommen met grote kaarten */
 @media (min-width: 1000px) {
   .cards.mag { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-  .mag-card.big { grid-column: span 2; grid-row: span 2; }
   .mag-card.big a, .mag-card.big .mc-photo { height: 100%; aspect-ratio: auto; }
   .mag-card.big .mc-label h3 { font-size: 40px; }
   .mag-card.big .mc-label { left: 18px; right: 18px; bottom: 18px; padding: 14px 16px 12px; }
@@ -831,4 +830,22 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 }
 @media (min-width: 1000px) {
   .mag-card.big.label-top .mc-label { top: 18px; bottom: auto; }
+}
+
+/* Uitsnede: foto geschoven/ingezoomd binnen het vierkant */
+@media (min-width: 700px) {
+  .mc-photo, .mh-photo { position: relative; }
+  .mc-photo img.cropped, .mh-photo img.cropped { position: absolute; max-width: none; object-fit: fill; }
+  .mag-card.big a { height: 100%; }
+  .mag-card.big .mc-photo { height: 100%; }
+  /* Opvultegel: zelfde vierkant, papier met kader */
+  .mag-filler { min-width: 0; }
+  .mag-filler button {
+    width: 100%; aspect-ratio: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px;
+    background: var(--surface); outline: 3px double var(--teal); outline-offset: -10px; color: var(--accent); padding: 20px; text-align: center;
+  }
+  .mag-filler svg { width: 46px; height: 46px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; }
+  .mag-filler b { font: 400 30px/1 var(--font-title); letter-spacing: .05em; }
+  .mag-filler small { font: 500 12px var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .mag-filler button:active { background: var(--accent-soft); }
 }

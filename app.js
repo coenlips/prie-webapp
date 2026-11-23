@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '46 · 23 november 2026';
+const APP_VERSION = '47 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -337,14 +337,14 @@ function renderCards() {
 const PhotoFocus = (() => {
   const N = 48, cache = new Map();
   const keyOf = r => `${r.id}:${r.updatedAt || 0}:${(r.photo || '').length}`;
-  try { // resultaten bewaren, zodat elke foto maar één keer wordt bekeken
-    for (const [k, v] of Object.entries(JSON.parse(localStorage.getItem('ricetta-focus') || '{}'))) cache.set(k, v);
+  try { // resultaten bewaren (v2: met uitsnede), zodat elke foto maar één keer wordt bekeken
+    for (const [k, v] of Object.entries(JSON.parse(localStorage.getItem('ricetta-focus2') || '{}'))) cache.set(k, v);
   } catch {}
   let saveTimer;
   const save = () => {
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => {
-      try { localStorage.setItem('ricetta-focus', JSON.stringify(Object.fromEntries([...cache].slice(-400)))); } catch {}
+      try { localStorage.setItem('ricetta-focus2', JSON.stringify(Object.fromEntries([...cache].slice(-400)))); } catch {}
     }, 500);
   };
 
@@ -379,42 +379,89 @@ const PhotoFocus = (() => {
     return { w, h, wt };
   }
 
-  // Middelpunt van het eten binnen een uitsnede; plus hoeveel eten er boven/onder zit
-  function place(m, boxAspect) {
+  // Uitsnede kiezen. Voorkeur: de uitsnede zo schuiven (zo nodig iets inzoomen) dat het
+  // eten boven het label valt. Lukt dat niet, dan pas het label naar boven.
+  // zone = welk deel van de hoogte het label onderaan bedekt (0 = geen label).
+  function place(m, boxAspect, zone) {
     const { w, h, wt } = m;
-    // Uitsnede zoals object-fit: cover die maakt, eerst gecentreerd op het zwaartepunt
-    let sx = 0, sy = 0, sum = 0;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = wt[y * w + x]; sx += v * x; sy += v * y; sum += v; }
-    const fx = sum ? (sx / sum + .5) / w : .5, fy = sum ? (sy / sum + .5) / h : .5;
-    const imgAspect = w / h;
-    let cw = w, ch = h;
-    if (imgAspect > boxAspect) cw = h * boxAspect; else ch = w / boxAspect;
-    const clamp = v => Math.min(1, Math.max(0, v));
-    const posX = w - cw > .5 ? clamp((fx * w - cw / 2) / (w - cw)) : .5;
-    const posY = h - ch > .5 ? clamp((fy * h - ch / 2) / (h - ch)) : .5;
-    const x0 = posX * (w - cw), y0 = posY * (h - ch);
-    let top = 0, bottom = 0;
-    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
-      if (x < x0 || x >= x0 + cw || y < y0 || y >= y0 + ch) continue;
-      const rel = (y - y0) / ch, v = wt[y * w + x];
-      if (rel < .32) top += v; else if (rel > .68) bottom += v;
+    // Optelsom-tabel: snel de hoeveelheid "eten" in elke rechthoek
+    const W = w + 1, sat = new Float64Array(W * (h + 1));
+    for (let y = 0; y < h; y++) {
+      let row = 0;
+      for (let x = 0; x < w; x++) { row += wt[y * w + x]; sat[(y + 1) * W + x + 1] = sat[y * W + x + 1] + row; }
     }
-    return { pos: `${Math.round(posX * 100)}% ${Math.round(posY * 100)}%`, labelTop: bottom > top * 1.8 && bottom > 0 };
+    const massIn = (x0, y0, x1, y1) => { // fractionele randen: afronden naar hele cellen is precies genoeg
+      x0 = Math.max(0, Math.round(x0)); y0 = Math.max(0, Math.round(y0)); x1 = Math.min(w, Math.round(x1)); y1 = Math.min(h, Math.round(y1));
+      if (x1 <= x0 || y1 <= y0) return 0;
+      return sat[y1 * W + x1] - sat[y0 * W + x1] - sat[y1 * W + x0] + sat[y0 * W + x0];
+    };
+    const total = massIn(0, 0, w, h);
+    let bw = w, bh = h;                                   // grootste uitsnede met de vorm van het vak
+    if (w / h > boxAspect) bw = h * boxAspect; else bh = w / boxAspect;
+    const result = (cw, ch, x0, y0, labelTop) => ({
+      // positie en grootte van de foto binnen het vak, in procenten van het vak
+      crop: { w: +(w / cw * 100).toFixed(2), h: +(h / ch * 100).toFixed(2), l: +(-x0 / cw * 100).toFixed(2), t: +(-y0 / ch * 100).toFixed(2) },
+      labelTop,
+    });
+    // Zwaartepunt van het eten
+    let sx = 0, sy = 0;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const v = wt[y * w + x]; sx += v * (x + .5); sy += v * (y + .5); }
+    const fx = total ? sx / total : w / 2, fy = total ? sy / total : h / 2;
+    const centred = (cw, ch) => [Math.min(w - cw, Math.max(0, fx - cw / 2)), Math.min(h - ch, Math.max(0, fy - ch / 2))];
+    if (!total) return result(bw, bh, (w - bw) / 2, (h - bh) / 2, false);
+
+    if (zone > 0) {
+      let best = null;
+      for (const s of [1, 1.12, 1.25, 1.4, 1.6]) {       // eerst zonder inzoomen
+        const cw = bw / s, ch = bh / s;
+        const steps = 12;
+        for (let i = 0; i <= steps; i++) for (let j = 0; j <= steps; j++) {
+          const x0 = (w - cw) * i / steps, y0 = (h - ch) * j / steps;
+          const inCrop = massIn(x0, y0, x0 + cw, y0 + ch);
+          const kept = inCrop / total;
+          if (kept < .82) continue;                      // niet te veel eten wegsnijden
+          const under = massIn(x0, y0 + ch * (1 - zone), x0 + cw, y0 + ch) / inCrop;
+          if (under > .1) continue;                      // nauwelijks eten onder het label
+          // liefst: zo min mogelijk zoom, zo veel mogelijk eten, eten mooi in het midden
+          const off = Math.abs((fx - x0) / cw - .5) + Math.abs((fy - y0) / ch - .38);
+          const score = (s - 1) * 4 - kept * 2 + under * 3 + off;
+          if (!best || score < best.score) best = { score, cw, ch, x0, y0 };
+        }
+        if (best) break;
+      }
+      if (best) return result(best.cw, best.ch, best.x0, best.y0, false);
+    }
+    // Geen goede schuif gevonden: gecentreerd op het eten, label naar boven als het eten onderin zit
+    const [x0, y0] = centred(bw, bh);
+    let labelTop = false;
+    if (zone > 0) {
+      const under = massIn(x0, y0 + bh * (1 - zone), x0 + bw, y0 + bh);
+      const over = massIn(x0, y0, x0 + bw, y0 + bh * zone);
+      labelTop = under > over * 1.8;
+    }
+    return result(bw, bh, x0, y0, labelTop);
   }
 
   const models = new Map();
-  async function get(r, boxAspect) {
-    const key = `${keyOf(r)}:${boxAspect.toFixed(2)}`;
+  async function get(r, boxAspect, zone = 0) {
+    const key = `${keyOf(r)}:${boxAspect.toFixed(2)}:${zone}`;
     if (cache.has(key)) return cache.get(key);
     let m = models.get(keyOf(r));
     if (!m) { m = await analyse(r.photo); models.set(keyOf(r), m); }
-    const res = place(m, boxAspect);
+    const res = place(m, boxAspect, zone);
     cache.set(key, res); save();
     return res;
   }
+  // Foto in het vak zetten volgens de gekozen uitsnede
+  function apply(img, f) {
+    const c = f.crop;
+    img.classList.add('cropped');
+    Object.assign(img.style, { width: c.w + '%', height: c.h + '%', left: c.l + '%', top: c.t + '%' });
+  }
   // Direct beschikbaar als de foto al eerder is bekeken
-  const peek = (r, boxAspect) => cache.get(`${keyOf(r)}:${boxAspect.toFixed(2)}`);
-  return { get, peek };
+  const peek = (r, boxAspect, zone = 0) => cache.get(`${keyOf(r)}:${boxAspect.toFixed(2)}:${zone}`);
+  const style = f => `width:${f.crop.w}%;height:${f.crop.h}%;left:${f.crop.l}%;top:${f.crop.t}%`;
+  return { get, peek, apply, style };
 })();
 
 /* ---------- Magazine (iPad en laptop) ---------- */
@@ -423,6 +470,9 @@ const PhotoFocus = (() => {
 const wideMQ = matchMedia('(min-width: 700px)');
 const isWide = () => wideMQ.matches;
 wideMQ.addEventListener('change', () => { if (document.body.dataset.page === 'list') renderList(); });
+const colsMQ = [matchMedia('(min-width: 1000px)'), matchMedia('(min-width: 1380px)')];
+const magCols = () => colsMQ[1].matches ? 4 : colsMQ[0].matches ? 3 : 2;
+colsMQ.forEach(mq => mq.addEventListener('change', () => { if (document.body.dataset.page === 'list' && isWide()) renderCards(); }));
 
 const Mag = (() => {
   let rank = new Map();   // id → willekeurig getal; blijft staan tot 'Verras me' of opnieuw openen
@@ -450,14 +500,11 @@ const Mag = (() => {
     const first = lines(r.steps || '').find(l => !l.startsWith('#')) || '';
     return first.length > 170 ? first.slice(0, 165).replace(/\s+\S*$/, '') + '…' : first;
   }
-  const photoHtml = r => r.photo
-    ? `<img src="${r.photo}" alt="" loading="lazy"${PhotoFocus.peek(r, 1) ? ` style="object-position:${PhotoFocus.peek(r, 1).pos}"` : ''}>`
-    : `<span class="mag-nophoto">${ICONS.plate}</span>`;
 
   function heroHtml(r, many) {
     const tags = [...coursesOf(r), ...catsOf(r)];
     return `
-      <li class="mag-hero">
+      <li class="mag-hero" style="grid-row:1">
         <a class="mh-photo" href="#/r/${esc(r.id)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
         <div class="mh-text">
           ${tags.length ? `<span class="mag-kicker">${tags.map(esc).join(' · ')}</span>` : ''}
@@ -472,6 +519,64 @@ const Mag = (() => {
       </li>`;
   }
 
+  // Indeling zonder gaten: elke rij vol. Grote kaarten (2×2) staan in een "band" van twee
+  // rijen, afwisselend links, midden of rechts. Blijft er een plek over, dan een tegel.
+  function plan(items, cols) {
+    const n = items.length, withPhoto = items.filter(r => r.photo).length;
+    const band = cols >= 3 ? 1 + 2 * (cols - 2) : 0;   // kaarten in een band met één grote
+    let b = 0;
+    if (band) {
+      const want = Math.floor(n / (cols === 3 ? 7 : 9));
+      const fits = b => b * band <= n && b <= withPhoto;
+      // zo weinig mogelijk opvultegels, en zo dicht mogelijk bij het gewenste aantal grote kaarten
+      const tiles = b => (cols - (n - b * band) % cols) % cols;
+      const cost = x => tiles(x) * 1.5 + Math.abs(x - want);
+      for (let x = 0; fits(x); x++) if (cost(x) <= cost(b)) b = x;
+    }
+    const plain = n - b * band, fullRows = Math.floor(plain / cols), rest = plain % cols;
+    // Volgorde van rijen: banden gelijkmatig verdeeld, de onvolledige rij als laatste
+    const T = fullRows + b, seq = Array(T).fill('row');
+    for (let j = 0; j < b; j++) {
+      let i = Math.min(T - 1, Math.floor((j + .5) * T / b));
+      while (seq[i] === 'band') i = (i + 1) % T;
+      seq[i] = 'band';
+    }
+    const spots = cols === 4 ? [1, 0, 2] : [0, 1];        // midden, links, rechts
+    const out = []; let k = 0, row = 0, bands = 0;
+    const big = () => {                                  // grote kaart altijd met foto
+      const j = items.findIndex((r, idx) => idx >= k && r.photo);
+      if (j >= k) { const [r] = items.splice(j, 1); items.splice(k, 0, r); return items[k++]; }
+      // geen foto meer verderop: ruil met een eerder geplaatste kleine kaart met foto
+      const prev = [...out].reverse().find(c => c.r && !c.big && c.r.photo);
+      const r = prev.r; prev.r = items[k++];
+      return r;
+    };
+    for (const part of seq) {
+      if (part === 'row') {
+        for (let c = 0; c < cols; c++) out.push({ r: items[k++], row, col: c });
+        row += 1;
+      } else {
+        const at = spots[bands++ % spots.length];
+        out.push({ r: big(), row, col: at, big: true });
+        for (const rr of [row, row + 1]) for (let c = 0; c < cols; c++) {
+          if (c === at || c === at + 1) continue;
+          out.push({ r: items[k++], row: rr, col: c });
+        }
+        row += 2;
+      }
+    }
+    for (let c = 0; c < rest; c++) out.push({ r: items[k++], row, col: c });
+    const fillers = rest ? cols - rest : 0;
+    for (let c = 0; c < fillers; c++) out.push({ filler: c, row, col: rest + c });
+    return out;
+  }
+
+  const FILLERS = [
+    { id: 'fillSurprise', icon: 'dice', title: 'Verras me', sub: 'Alles opnieuw husselen' },
+    { id: 'fillNew', icon: 'plus', title: 'Nieuw recept', sub: 'Van een website of zelf invullen' },
+    { id: 'fillShop', icon: 'basket', title: 'Boodschappen', sub: 'Naar je lijstje' },
+  ];
+
   function render(el, list) {
     // Uitgelicht recept alleen als je niet zoekt of filtert
     const browsing = !state.query.trim() && state.filter === 'all' && !state.course;
@@ -479,18 +584,27 @@ const Mag = (() => {
     if (hero) heroId = hero.id;
     const rest = order(list).filter(r => r !== hero);
     const many = state.recipes.filter(r => r.photo).length > 1;
-    const start = hero ? 2 : 1;
-    el.innerHTML = (hero ? heroHtml(hero, many) : '') + rest.map((r, i) => {
-      // Af en toe een grote kaart, alleen met foto
-      const big = r.photo && (i % 10 === 1 || i % 10 === 6);
+    const start = hero ? 2 : 1, row0 = hero ? 2 : 1;
+    const cells = plan(rest, magCols());
+    let nr = 0;
+    el.innerHTML = (hero ? heroHtml(hero, many) : '') + cells.map(cell => {
+      const pos = `grid-row:${row0 + cell.row}${cell.big ? ' / span 2' : ''};grid-column:${cell.col + 1}${cell.big ? ' / span 2' : ''}`;
+      if (cell.filler !== undefined) {
+        const f = FILLERS[cell.filler];
+        return `<li class="mag-filler" style="${pos}"><button id="${f.id}">${ICONS[f.icon]}<b>${f.title}</b><small>${f.sub}</small></button></li>`;
+      }
+      const r = cell.r, zone = cell.big ? .22 : .36;
       const kicker = coursesOf(r)[0] || catsOf(r)[0] || '';
-      const f = r.photo && PhotoFocus.peek(r, 1);
-      const cls = (big ? ' big' : '') + (r.photo && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
+      const f = r.photo && PhotoFocus.peek(r, 1, zone);
+      const cls = (cell.big ? ' big' : '') + (r.photo && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
+      const img = r.photo
+        ? `<img src="${r.photo}" alt="" loading="lazy"${f ? ` class="cropped" style="${PhotoFocus.style(f)}"` : ''}>`
+        : `<span class="mag-nophoto">${ICONS.plate}</span>`;
       return `
-        <li class="mag-card${cls}" data-id="${esc(r.id)}"><a href="#/r/${esc(r.id)}">
-          <div class="mc-photo">${photoHtml(r)}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
+        <li class="mag-card${cls}" data-id="${esc(r.id)}" data-zone="${zone}" style="${pos}"><a href="#/r/${esc(r.id)}">
+          <div class="mc-photo">${img}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
           <div class="mc-label">
-            <span class="mag-kicker">N° ${String(i + start).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
+            <span class="mag-kicker">N° ${String(start + nr++).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
             <h3>${esc(r.title)}</h3>
             ${metaOf(r) ? `<span class="mag-meta">${metaOf(r)}</span>` : ''}
           </div>
@@ -498,25 +612,29 @@ const Mag = (() => {
     }).join('');
     const next = el.querySelector('#heroNext');
     if (next) next.onclick = () => { nextHero(); render(el, list); };
-    // Titel niet over het eten: per foto bepalen waar het eten staat
+    const on = (id, fn) => { const b = el.querySelector('#' + id); if (b) b.onclick = fn; };
+    on('fillSurprise', () => { shuffle(); render(el, list); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+    on('fillNew', () => Importer.openSheet());
+    on('fillShop', () => { location.hash = '#/boodschappen'; });
+    // Titel niet over het eten: per foto de uitsnede bepalen
     const byId = new Map(list.map(r => [r.id, r]));
     el.querySelectorAll('.mag-card.focusing').forEach(async li => {
       const r = byId.get(li.dataset.id);
       try {
-        const f = await PhotoFocus.get(r, 1);
-        li.querySelector('img').style.objectPosition = f.pos;
+        const f = await PhotoFocus.get(r, 1, +li.dataset.zone);
+        PhotoFocus.apply(li.querySelector('img'), f);
         li.classList.toggle('label-top', f.labelTop);
       } catch {}
       li.classList.remove('focusing');
     });
     if (hero) {
       const img = el.querySelector('.mh-photo img');
-      const box = () => img.parentElement.clientWidth / Math.max(1, img.parentElement.clientHeight);
-      PhotoFocus.get(hero, box()).then(f => { img.style.objectPosition = f.pos; }).catch(() => {});
+      const box = img.parentElement.clientWidth / Math.max(1, img.parentElement.clientHeight);
+      PhotoFocus.get(hero, box).then(f => PhotoFocus.apply(img, f)).catch(() => {});
     }
   }
 
-  return { render, shuffle };
+  return { render, shuffle, _plan: plan }; // _plan: voor de tests
 })();
 
 /* ---------- Detail ---------- */
