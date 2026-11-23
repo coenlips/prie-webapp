@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '69 · 23 november 2026';
+const APP_VERSION = '70 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -66,6 +66,12 @@ const AppSettings = {
 };
 const courseList = () => AppSettings.data.courses;
 const coursesOf = r => courseList().filter(c => (r.courses || []).includes(c));
+
+// Is dit een drankje? Dan 'Proost!' in plaats van 'Eet smakelijk!'. Kijkt naar categorieën, gangen en
+// tags, met woordstammen zodat ook vervoegingen en andere talen meetellen (drank, dranken, drinken,
+// drinks, softdrinks, Getränke, boissons, bebidas, bevande, cocktails, beverages, ...).
+const DRINK_RE = /drank|drink|getr[aä]nk|boisson|bebida|bevand|bibit|napoj|cocktail|mocktail|beverage/i;
+const isDrink = r => [...(r.courses || []), ...catsOf(r), ...(r.tags || [])].some(w => DRINK_RE.test(w));
 const usesCategory = (r, name) => catsOf(r).some(x => x.toLowerCase() === name.toLowerCase());
 
 // Categorieën die precies een gang zijn, naar de gang verplaatsen. Geeft het aantal recepten terug.
@@ -843,7 +849,7 @@ async function renderDetail(id) {
 
   const ingr = lines(r.ingredients);
   const steps = lines(r.steps);
-  // echte stappen (geen #kopje); als ze allemaal zijn afgestreept: 'Eet smakelijk!'
+  // echte stappen (geen #kopje); als ze allemaal zijn afgestreept: 'Eet smakelijk!' (of 'Proost!')
   const stepKeys = steps.map((l, i) => l.startsWith('#') ? null : 's' + i).filter(Boolean);
   const allStepsDone = () => stepKeys.length > 0 && stepKeys.every(k => done.has(k));
 
@@ -899,7 +905,7 @@ async function renderDetail(id) {
           })()}
         </ol>
         <div class="bon-appetit" id="bonApp" ${allStepsDone() ? '' : 'hidden'} aria-live="polite">
-          <span class="ba-ribbon"><span class="ba-band">Eet smakelijk!</span></span>
+          <span class="ba-ribbon"><span class="ba-band">${isDrink(r) ? 'Proost!' : 'Eet smakelijk!'}</span></span>
         </div>
         </div>
 
