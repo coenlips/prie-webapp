@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '63 · 23 november 2026';
+const APP_VERSION = '64 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -905,8 +905,26 @@ async function renderDetail(id) {
       if (detailWideMQ.matches && !state.cookMode) fitText(title, [{ lines: 2, min: 40 }, { lines: 3, min: 30 }, { lines: 4, min: 22 }]);
       else title.style.fontSize = '';
     };
-    document.fonts.ready.then(fitPhotoTitle);
-    new ResizeObserver(() => fitPhotoTitle()).observe(col);
+    // en de uitsnede van de foto: eten zo goed mogelijk in beeld, boven de titel
+    const img = col.querySelector('.hero');
+    const placePhoto = async () => {
+      const wide = detailWideMQ.matches && !state.cookMode;
+      if (!img || !wide) {
+        if (img) { img.classList.remove('cropped'); img.removeAttribute('style'); }
+        return;
+      }
+      const box = col.getBoundingClientRect(), cap = col.querySelector('.photo-cap').getBoundingClientRect();
+      if (!box.width || !box.height) return;
+      const zone = Math.min(.6, Math.max(.15, Math.round(cap.height / box.height * 20) / 20));
+      try {
+        const f = await PhotoFocus.get(r, box.width / box.height, zone);
+        if (img.isConnected && detailWideMQ.matches && !state.cookMode) PhotoFocus.apply(img, f);
+      } catch {}
+    };
+    let raf;
+    const relayout = () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(() => { fitPhotoTitle(); placePhoto(); }); };
+    document.fonts.ready.then(relayout);
+    new ResizeObserver(relayout).observe(col);
 
     $('#minus').onclick = () => { if (servings > 1) { servings--; draw(); } };
     $('#plus').onclick = () => { servings++; draw(); };

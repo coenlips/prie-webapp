@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js.
-const VERSION = 'v63';
+const VERSION = 'v64';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
