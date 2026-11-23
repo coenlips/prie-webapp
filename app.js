@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '50 · 23 november 2026';
+const APP_VERSION = '51 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -472,7 +472,7 @@ const PhotoFocus = (() => {
 const wideMQ = matchMedia('(min-width: 700px)');
 const isWide = () => wideMQ.matches;
 // Hoogte van de kopbalk bijhouden, zodat de zoekbalk (iPad/laptop) er precies onder blijft staan
-new ResizeObserver(([e]) => document.documentElement.style.setProperty('--topbar-h', e.target.offsetHeight + 'px')).observe($('.topbar'));
+new ResizeObserver(([e]) => document.documentElement.style.setProperty('--topbar-h', e.target.getBoundingClientRect().height + 'px')).observe($('.topbar'));
 wideMQ.addEventListener('change', () => { if (document.body.dataset.page === 'list') renderList(); });
 const colsMQ = [matchMedia('(min-width: 1000px)'), matchMedia('(min-width: 1380px)')];
 const magCols = () => colsMQ[1].matches ? 4 : colsMQ[0].matches ? 3 : 2;

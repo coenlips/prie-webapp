@@ -853,7 +853,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 /* iPad en laptop: zoekbalk en filters blijven bovenaan staan; op de iPhone scrollen ze mee */
 @media (min-width: 700px) {
   body[data-page=list] .list-head {
-    position: sticky; top: var(--topbar-h, 72px); z-index: 5;
+    position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5;   /* 2px onder de kop schuiven: geen kier */
     margin-top: -22px; padding: 18px 0 14px;
     background: var(--bg);
   }
