@@ -860,8 +860,8 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   /* balk over de volle breedte met dubbele turquoise lijn; inhoud blijft in het midden */
   body[data-page=list] { --gutter: max(32px, calc((100% - var(--page-w)) / 2 + 32px)); }
   body[data-page=list] main { max-width: none; padding-left: 0; padding-right: 0; }
-  body[data-page=list] .topbar { border-bottom: 0; background-color: var(--bg); }   /* lijn staat onder de filters; kop en filters één vlak */
-  body[data-page=list] .list-head { padding-left: var(--gutter); padding-right: var(--gutter); border-bottom: 4px double var(--teal); }
+  body[data-page=list] .topbar { background-color: var(--bg); }   /* kop en filters één vlak */
+  body[data-page=list] .list-head { padding-left: var(--gutter); padding-right: var(--gutter); }
   body[data-page=list] .cards, body[data-page=list] .inbox-banner, body[data-page=list] .empty { margin-left: var(--gutter); margin-right: var(--gutter); }
 }
 
@@ -882,10 +882,14 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 
 /* iPhone: zoeken en filters blijven nu ook bovenaan staan (in te klappen met het filtericoon) */
 @media (max-width: 699.98px) {
-  body[data-page=list] .topbar { border-bottom: 0; background-color: var(--bg); }
+  body[data-page=list] .topbar { background-color: var(--bg); }
   body[data-page=list] .list-head {
     position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5;
     margin: -12px -16px 12px; padding: 14px 16px 10px;
-    background: var(--bg); border-bottom: 4px double var(--teal);
+    background: var(--bg);
   }
 }
+
+/* Schaduwrandje onder het uitgeklapte filtermenu: verschil met de pagina die eronder scrolt */
+body[data-page=list] .list-head { box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); transition: grid-template-rows .25s ease, padding .25s ease, box-shadow .25s ease; }
+body[data-page=list] .list-head.closed { box-shadow: none; }
