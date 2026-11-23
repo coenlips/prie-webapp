@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '66 · 23 november 2026';
+const APP_VERSION = '67 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -27,7 +27,7 @@ const ICONS = {
   phone: '<svg viewBox="0 0 24 24"><rect x="6.5" y="2.5" width="11" height="19" rx="2.5"/><path d="M12 8.5v6M9 11.5h6"/></svg>',
   chevron: '<svg viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>',
   copy: '<svg viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h9"/></svg>',
-  cook: '<svg viewBox="0 0 24 24"><path d="M2 9.5h20M4.5 9.5V18a3 3 0 0 0 3 3h9a3 3 0 0 0 3-3V9.5M9 9.5V8a3 3 0 0 1 6 0v1.5"/><path d="M7.5 15.2c2.5-2.7 6.5-2.7 9 0c-2.5 2.7-6.5 2.7-9 0z" stroke-width="1.7"/><circle cx="12" cy="15.2" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  cook: '<svg viewBox="0 0 24 24"><path d="M7 13.5a3.5 3.5 0 1 1 1.3-6.75 4 4 0 0 1 7.4 0A3.5 3.5 0 1 1 17 13.5"/><path d="M7 13.5V19a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-5.5M7 16.5h10"/></svg>',
   timer: '<svg viewBox="0 0 24 24"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 9.5v4l2.5 2M10 2.5h4M12 2.5V6M18.5 6.5l1.5-1.5"/></svg>',
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
