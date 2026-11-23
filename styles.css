@@ -1009,3 +1009,43 @@ body.cook .ba-ribbon::after { right: -32px; }
   body.cook .ba-ribbon::before { left: -46px; }
   body.cook .ba-ribbon::after { right: -46px; }
 }
+
+/* ---------- Account: welkom, inloggen, gebruikers ---------- */
+body[data-page=welcome] #title { visibility: hidden; }
+.acc-welcome { max-width: 420px; margin: 0 auto; min-height: calc(100vh - var(--topbar-h) - 40px); display: flex; flex-direction: column; justify-content: center; padding: 8px 8px 40px; }
+.acc-flag { align-self: center; position: relative; isolation: isolate; margin: 0 30px 26px; }
+.acc-flag span { position: relative; z-index: 1; display: block; background: var(--accent); color: #fff8ee; font: 400 46px/1 var(--font-title); letter-spacing: .06em; padding: 14px 30px 10px; outline: 2px solid rgba(255, 248, 238, .85); outline-offset: -7px; }
+.acc-flag::before, .acc-flag::after { content: ''; position: absolute; z-index: 0; top: 14px; height: 100%; width: 40px; background: color-mix(in srgb, var(--accent) 70%, #000); }
+.acc-flag::before { left: -28px; clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 32% 50%); }
+.acc-flag::after { right: -28px; clip-path: polygon(0 0, 100% 0, 68% 50%, 100% 100%, 0 100%); }
+.acc-lead { text-align: center; color: var(--muted); margin: 0 0 22px; }
+.acc-form { display: grid; gap: 10px; }
+.acc-form label { display: grid; gap: 6px; font: 500 12px var(--font-label); text-transform: uppercase; letter-spacing: .12em; color: var(--mustard); }
+.acc-form input { font: inherit; font-size: 17px; text-transform: none; letter-spacing: 0; color: var(--text); padding: 12px 14px; border: 1.5px solid var(--text); border-radius: 2px; background: var(--surface); outline: none; width: 100%; min-width: 0; }
+.acc-form input:focus { border-color: var(--accent); }
+.acc-form .btn { margin-top: 8px; }
+.acc-form .btn:disabled { opacity: .5; }
+.acc-note { text-align: center; color: var(--muted); font-size: 14px; margin: 18px 0 0; line-height: 1.6; }
+.acc-note .link { font-size: 14px; }
+.acc-who { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.acc-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--accent); color: #fff8ee; display: grid; place-items: center; font: 400 24px/1 var(--font-title); flex: none; }
+.acc-who b, .users b { display: block; font-size: 17px; }
+.acc-who small, .users small { color: var(--muted); font-size: 13px; }
+.acc-role { font: 500 11px var(--font-label); letter-spacing: .1em; text-transform: uppercase; background: var(--text); color: var(--bg); padding: 2px 6px; border-radius: 2px; margin-left: 4px; vertical-align: 2px; }
+.acc-actions { display: grid; gap: 10px; margin-bottom: 6px; }
+.card-box .acc-actions .btn + .btn { margin-top: 0; }
+#syncCard > .link { display: block; margin-top: 12px; }
+#syncCard .small-note { margin-top: 10px; }
+.users { list-style: none; margin: 0 0 16px; padding: 0; }
+.users li { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px dashed var(--line); }
+.users-text { flex: 1; min-width: 0; }
+.users-more { font-size: 22px; color: var(--accent); }
+.acc-sheet .btn { margin-top: 12px; }
+.acc-sheet .btn.danger { margin-top: 18px; }
+.acc-sheet-text { color: var(--muted); font-size: 15px; margin: 10px 0; }
+.acc-sheet .sync-msg { margin: 10px 0 0; }
+.pw-box { display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 12px 14px; border: 1.5px dashed var(--accent); background: var(--surface); }
+.pw-box > div { flex: 1; min-width: 0; }
+.pw-box small { display: block; font: 500 11px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--mustard); }
+.pw-box b { font-size: 19px; overflow-wrap: anywhere; }
+.pw-box .pw-mono { font-family: ui-monospace, Menlo, monospace; letter-spacing: .03em; }

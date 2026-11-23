@@ -1,8 +1,12 @@
 <?php
-// Online back-up voor de receptenapp.
+// Online opslag voor de receptenapp Ricetta, met eigen accounts per persoon.
 // Zet dit bestand samen met config.php in een map op je website,
 // bijvoorbeeld https://coenlips.nl/recepten-api/api.php
-// De tabellen worden bij de eerste aanroep vanzelf aangemaakt.
+// De tabellen worden bij de eerste aanroep vanzelf aangemaakt of bijgewerkt.
+//
+// Overstappen vanaf de versie zonder accounts: log in de app in met je naam en het
+// oude app-wachtwoord (APP_PASSWORD). Dan wordt jouw account aangemaakt als beheerder
+// en worden alle bestaande recepten van jou.
 
 declare(strict_types=1);
 
@@ -45,6 +49,12 @@ function out($data): void {
     exit;
 }
 
+function has_column(PDO $pdo, string $table, string $column): bool {
+    $st = $pdo->prepare("SHOW COLUMNS FROM `$table` LIKE ?");
+    $st->execute([$column]);
+    return (bool) $st->fetch();
+}
+
 function db(): PDO {
     static $pdo = null;
     if ($pdo) return $pdo;
@@ -57,47 +67,159 @@ function db(): PDO {
     } catch (PDOException $e) {
         fail(500, 'Kan geen verbinding maken met de database. Controleer config.php.');
     }
+    // Recepten (en de boodschappenlijst) per gebruiker
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten (
-        id VARCHAR(64) NOT NULL PRIMARY KEY,
+        user_id INT NOT NULL DEFAULT 0,
+        id VARCHAR(64) NOT NULL,
         data LONGTEXT NULL,
         deleted TINYINT(1) NOT NULL DEFAULT 0,
-        updated_at BIGINT NOT NULL
+        updated_at BIGINT NOT NULL,
+        PRIMARY KEY (user_id, id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_tokens (
         token_hash CHAR(64) NOT NULL PRIMARY KEY,
+        user_id INT NOT NULL DEFAULT 0,
         created_at BIGINT NOT NULL,
         last_used BIGINT NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    // Postvak: recepten die vanuit Safari (via een opdracht) zijn gedeeld
+    // Postvak: recepten die vanaf de iPhone (via een opdracht) zijn gedeeld
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_inbox (
         id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL DEFAULT 0,
         created_at BIGINT NOT NULL,
         data LONGTEXT NOT NULL
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Gebruikers. Wachtwoorden alleen als onomkeerbare hash (password_hash).
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(40) NOT NULL,
+        name_key VARCHAR(40) NOT NULL UNIQUE,
+        pw_hash VARCHAR(255) NOT NULL,
+        is_admin TINYINT(1) NOT NULL DEFAULT 0,
+        must_change TINYINT(1) NOT NULL DEFAULT 0,
+        share_key CHAR(32) NOT NULL UNIQUE,
+        created_at BIGINT NOT NULL,
+        last_seen BIGINT NOT NULL DEFAULT 0
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Mislukte inlogpogingen (om het raden van wachtwoorden te remmen)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_fails (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name_key VARCHAR(40) NOT NULL,
+        ip VARCHAR(45) NOT NULL,
+        at BIGINT NOT NULL,
+        INDEX (at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+    // Bijwerken vanaf de versie zonder accounts
+    if (!has_column($pdo, 'recepten', 'user_id')) {
+        $pdo->exec("ALTER TABLE recepten ADD COLUMN user_id INT NOT NULL DEFAULT 0 FIRST, DROP PRIMARY KEY, ADD PRIMARY KEY (user_id, id)");
+    }
+    if (!has_column($pdo, 'recepten_tokens', 'user_id')) {
+        $pdo->exec("ALTER TABLE recepten_tokens ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER token_hash");
+    }
+    if (!has_column($pdo, 'recepten_inbox', 'user_id')) {
+        $pdo->exec("ALTER TABLE recepten_inbox ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER id");
+    }
     return $pdo;
 }
 
 function body(): array {
+    static $data = null;
+    if ($data !== null) return $data;
     $raw = file_get_contents('php://input') ?: '';
     $data = json_decode($raw, true);
-    return is_array($data) ? $data : [];
+    if (!is_array($data)) $data = [];
+    return $data;
 }
 
 function now_ms(): int { return (int) round(microtime(true) * 1000); }
 
-function require_token(): void {
-    $token = $_SERVER['HTTP_X_TOKEN'] ?? '';
-    if (!preg_match('/^[a-f0-9]{64}$/', $token)) fail(401, 'Niet ingelogd.');
-    $hash = hash('sha256', $token);
-    $st = db()->prepare('UPDATE recepten_tokens SET last_used = ? WHERE token_hash = ?');
-    $st->execute([now_ms(), $hash]);
-    if ($st->rowCount() === 0) {
-        $check = db()->prepare('SELECT 1 FROM recepten_tokens WHERE token_hash = ?');
-        $check->execute([$hash]);
-        if (!$check->fetchColumn()) fail(401, 'Niet ingelogd.');
+function client_ip(): string { return substr((string) ($_SERVER['REMOTE_ADDR'] ?? ''), 0, 45); }
+
+/* ---------- Gebruikers ---------- */
+
+function clean_name(string $name): string {
+    $name = trim(preg_replace('/\s+/u', ' ', $name) ?? '');
+    if ($name === '' || mb_strlen($name) > 40 || preg_match('/[\x00-\x1F\x7F<>]/u', $name)) {
+        fail(400, 'Kies een naam van 1 tot 40 tekens.');
     }
+    return $name;
+}
+function name_key(string $name): string { return mb_strtolower($name); }
+
+function check_new_password(string $pw): void {
+    if (mb_strlen($pw) < 8) fail(400, 'Kies een wachtwoord van minstens 8 tekens.');
+    if (mb_strlen($pw) > 200) fail(400, 'Dat wachtwoord is te lang.');
 }
 
+// Makkelijk door te geven tijdelijk wachtwoord, zoals 'tomaat-basilicum-47'
+function temp_password(): string {
+    $w = ['tomaat', 'basilicum', 'pasta', 'risotto', 'olijf', 'citroen', 'salie', 'rozemarijn', 'oregano', 'knoflook',
+          'pecorino', 'ricotta', 'burrata', 'polenta', 'gnocchi', 'ravioli', 'pesto', 'espresso', 'focaccia', 'venkel',
+          'aubergine', 'courgette', 'artisjok', 'kappertje', 'peterselie', 'tijm', 'lasagne', 'parmezaan', 'cannoli', 'amaretto'];
+    $a = $w[random_int(0, count($w) - 1)];
+    do { $b = $w[random_int(0, count($w) - 1)]; } while ($b === $a);
+    return $a . '-' . $b . '-' . random_int(10, 99);
+}
+
+function user_out(array $u): array {
+    return ['id' => (int) $u['id'], 'name' => $u['name'], 'admin' => (bool) $u['is_admin'], 'mustChange' => (bool) $u['must_change']];
+}
+
+function new_token(int $userId): string {
+    $token = bin2hex(random_bytes(32));
+    db()->prepare('INSERT INTO recepten_tokens (token_hash, user_id, created_at, last_used) VALUES (?, ?, ?, ?)')
+        ->execute([hash('sha256', $token), $userId, now_ms(), now_ms()]);
+    return $token;
+}
+
+// Ingelogde gebruiker bij het meegestuurde token, of 401
+function require_user(): array {
+    $token = $_SERVER['HTTP_X_TOKEN'] ?? '';
+    if (!preg_match('/^[a-f0-9]{64}$/', $token)) fail(401, 'Niet ingelogd.');
+    $st = db()->prepare('SELECT u.* FROM recepten_tokens t JOIN recepten_users u ON u.id = t.user_id WHERE t.token_hash = ?');
+    $st->execute([hash('sha256', $token)]);
+    $u = $st->fetch();
+    if (!$u) fail(401, 'Niet ingelogd.');
+    $now = now_ms();
+    if ($now - (int) $u['last_seen'] > 60000) {   // hooguit eens per minuut bijwerken
+        db()->prepare('UPDATE recepten_tokens SET last_used = ? WHERE token_hash = ?')->execute([$now, hash('sha256', $token)]);
+        db()->prepare('UPDATE recepten_users SET last_seen = ? WHERE id = ?')->execute([$now, $u['id']]);
+    }
+    return $u;
+}
+
+function require_admin(): array {
+    $u = require_user();
+    if (!$u['is_admin']) fail(403, 'Alleen voor de beheerder.');
+    return $u;
+}
+
+function find_user(int $id): array {
+    $st = db()->prepare('SELECT * FROM recepten_users WHERE id = ?');
+    $st->execute([$id]);
+    $u = $st->fetch();
+    if (!$u) fail(404, 'Deze gebruiker bestaat niet (meer).');
+    return $u;
+}
+
+// Remt het raden van wachtwoorden: per naam en per internetadres een maximum per kwartier
+function throttle(string $key): void {
+    $since = now_ms() - 15 * 60 * 1000;
+    db()->prepare('DELETE FROM recepten_fails WHERE at < ?')->execute([now_ms() - 24 * 3600 * 1000]);
+    $st = db()->prepare('SELECT
+        SUM(name_key = ?) AS by_name, SUM(ip = ?) AS by_ip FROM recepten_fails WHERE at > ?');
+    $st->execute([$key, client_ip(), $since]);
+    $c = $st->fetch();
+    if ((int) $c['by_name'] >= 5 || (int) $c['by_ip'] >= 20) {
+        fail(429, 'Te vaak een verkeerd wachtwoord. Probeer het over een kwartier opnieuw.');
+    }
+}
+function login_failed(string $key): void {
+    db()->prepare('INSERT INTO recepten_fails (name_key, ip, at) VALUES (?, ?, ?)')->execute([$key, client_ip(), now_ms()]);
+    sleep(1);
+    fail(403, 'Naam of wachtwoord klopt niet.');
+}
 
 /* ---------- Webpagina's ophalen (voor recepten importeren) ---------- */
 
@@ -198,19 +320,45 @@ $action = $_GET['action'] ?? '';
 switch ($action) {
     case 'ping':
         db();
-        out(['ok' => true]);
+        out(['ok' => true, 'accounts' => true]);
+
+    /* ---------- Inloggen en account ---------- */
 
     case 'login': {
-        $password = (string) (body()['password'] ?? '');
-        if (APP_PASSWORD === '' || APP_PASSWORD === 'kies-hier-een-wachtwoord') fail(500, 'Stel eerst een wachtwoord in in config.php.');
-        if (!hash_equals(APP_PASSWORD, $password)) {
-            sleep(2); // vertraagt het raden van wachtwoorden
-            fail(403, 'Wachtwoord klopt niet.');
+        $b = body();
+        if (!isset($b['name'])) fail(400, 'Werk de app bij: sluit hem helemaal af en open hem opnieuw.');
+        $name = clean_name((string) $b['name']);
+        $key = name_key($name);
+        $password = (string) ($b['password'] ?? '');
+        throttle($key);
+        $pdo = db();
+
+        // Eerste keer na het bijwerken (nog geen gebruikers): wie inlogt met het oude
+        // app-wachtwoord wordt beheerder en krijgt alle bestaande recepten.
+        if (!(int) $pdo->query('SELECT COUNT(*) FROM recepten_users')->fetchColumn()) {
+            if (APP_PASSWORD === '' || APP_PASSWORD === 'kies-hier-een-wachtwoord') fail(500, 'Stel eerst een wachtwoord in in config.php.');
+            if (!hash_equals(APP_PASSWORD, $password)) login_failed($key);
+            $pdo->prepare('INSERT INTO recepten_users (name, name_key, pw_hash, is_admin, must_change, share_key, created_at, last_seen)
+                VALUES (?, ?, ?, 1, 0, ?, ?, ?)')
+                ->execute([$name, $key, password_hash($password, PASSWORD_DEFAULT), bin2hex(random_bytes(16)), now_ms(), now_ms()]);
+            $id = (int) $pdo->lastInsertId();
+            $pdo->prepare('UPDATE recepten SET user_id = ? WHERE user_id = 0')->execute([$id]);
+            $pdo->prepare('UPDATE recepten_inbox SET user_id = ? WHERE user_id = 0')->execute([$id]);
+            $pdo->exec('DELETE FROM recepten_tokens WHERE user_id = 0');
+            $u = find_user($id);
+            out(['token' => new_token($id), 'user' => user_out($u), 'firstAdmin' => true]);
         }
-        $token = bin2hex(random_bytes(32));
-        db()->prepare('INSERT INTO recepten_tokens (token_hash, created_at, last_used) VALUES (?, ?, ?)')
-            ->execute([hash('sha256', $token), now_ms(), now_ms()]);
-        out(['token' => $token]);
+
+        $st = $pdo->prepare('SELECT * FROM recepten_users WHERE name_key = ?');
+        $st->execute([$key]);
+        $u = $st->fetch();
+        if (!$u || !password_verify($password, $u['pw_hash'])) login_failed($key);
+        $pdo->prepare('DELETE FROM recepten_fails WHERE name_key = ?')->execute([$key]);
+        if (password_needs_rehash($u['pw_hash'], PASSWORD_DEFAULT)) {
+            $pdo->prepare('UPDATE recepten_users SET pw_hash = ? WHERE id = ?')->execute([password_hash($password, PASSWORD_DEFAULT), $u['id']]);
+        }
+        $pdo->prepare('UPDATE recepten_users SET last_seen = ? WHERE id = ?')->execute([now_ms(), $u['id']]);
+        out(['token' => new_token((int) $u['id']), 'user' => user_out($u)]);
     }
 
     case 'logout': {
@@ -219,26 +367,102 @@ switch ($action) {
         out(['ok' => true]);
     }
 
-    case 'list':
-        require_token();
-        $rows = db()->query('SELECT id, deleted, updated_at FROM recepten')->fetchAll();
-        out(array_map(fn($r) => ['id' => $r['id'], 'deleted' => (bool) $r['deleted'], 'updated_at' => (int) $r['updated_at']], $rows));
+    case 'me': {
+        $u = require_user();
+        $st = db()->prepare("SELECT COUNT(*) FROM recepten WHERE user_id = ? AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
+        $st->execute([$u['id']]);
+        out(user_out($u) + ['recipes' => (int) $st->fetchColumn(), 'shareKey' => $u['share_key']]);
+    }
+
+    case 'change_password': {
+        $u = require_user();
+        $b = body();
+        $new = (string) ($b['new'] ?? '');
+        if (!$u['must_change']) {
+            throttle(name_key($u['name']));
+            if (!password_verify((string) ($b['current'] ?? ''), $u['pw_hash'])) {
+                db()->prepare('INSERT INTO recepten_fails (name_key, ip, at) VALUES (?, ?, ?)')->execute([name_key($u['name']), client_ip(), now_ms()]);
+                sleep(1);
+                fail(403, 'Je huidige wachtwoord klopt niet.');
+            }
+        }
+        check_new_password($new);
+        db()->prepare('UPDATE recepten_users SET pw_hash = ?, must_change = 0 WHERE id = ?')->execute([password_hash($new, PASSWORD_DEFAULT), $u['id']]);
+        // Overal anders uitloggen, behalve hier
+        db()->prepare('DELETE FROM recepten_tokens WHERE user_id = ? AND token_hash <> ?')
+            ->execute([$u['id'], hash('sha256', $_SERVER['HTTP_X_TOKEN'] ?? '')]);
+        out(['ok' => true]);
+    }
+
+    /* ---------- Gebruikers beheren (alleen beheerder) ---------- */
+
+    case 'users': {
+        require_admin();
+        $rows = db()->query("SELECT u.id, u.name, u.is_admin, u.must_change, u.created_at, u.last_seen,
+            (SELECT COUNT(*) FROM recepten r WHERE r.user_id = u.id AND r.deleted = 0 AND r.id NOT LIKE '\\_\\_%') AS recipes
+            FROM recepten_users u ORDER BY u.is_admin DESC, u.name")->fetchAll();
+        out(array_map(fn($r) => user_out($r) + ['recipes' => (int) $r['recipes'], 'created' => (int) $r['created_at'], 'lastSeen' => (int) $r['last_seen']], $rows));
+    }
+
+    case 'user_create': {
+        require_admin();
+        $name = clean_name((string) (body()['name'] ?? ''));
+        $st = db()->prepare('SELECT 1 FROM recepten_users WHERE name_key = ?');
+        $st->execute([name_key($name)]);
+        if ($st->fetchColumn()) fail(409, "Er is al iemand met de naam $name.");
+        $pw = temp_password();
+        db()->prepare('INSERT INTO recepten_users (name, name_key, pw_hash, is_admin, must_change, share_key, created_at, last_seen)
+            VALUES (?, ?, ?, 0, 1, ?, ?, 0)')
+            ->execute([$name, name_key($name), password_hash($pw, PASSWORD_DEFAULT), bin2hex(random_bytes(16)), now_ms()]);
+        out(['id' => (int) db()->lastInsertId(), 'name' => $name, 'password' => $pw]);
+    }
+
+    case 'user_reset': {
+        $me = require_admin();
+        $u = find_user((int) (body()['id'] ?? 0));
+        if ((int) $u['id'] === (int) $me['id']) fail(400, 'Je eigen wachtwoord wijzig je bij Account.');
+        $pw = temp_password();
+        db()->prepare('UPDATE recepten_users SET pw_hash = ?, must_change = 1 WHERE id = ?')->execute([password_hash($pw, PASSWORD_DEFAULT), $u['id']]);
+        db()->prepare('DELETE FROM recepten_tokens WHERE user_id = ?')->execute([$u['id']]);
+        db()->prepare('DELETE FROM recepten_fails WHERE name_key = ?')->execute([$u['name_key']]);
+        out(['name' => $u['name'], 'password' => $pw]);
+    }
+
+    case 'user_delete': {
+        $me = require_admin();
+        $u = find_user((int) (body()['id'] ?? 0));
+        if ((int) $u['id'] === (int) $me['id']) fail(400, 'Je kunt jezelf niet verwijderen.');
+        foreach (['recepten', 'recepten_tokens', 'recepten_inbox'] as $t) {
+            db()->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$u['id']]);
+        }
+        db()->prepare('DELETE FROM recepten_users WHERE id = ?')->execute([$u['id']]);
+        out(['ok' => true]);
+    }
+
+    /* ---------- Recepten (elk ziet alleen de eigen recepten) ---------- */
+
+    case 'list': {
+        $u = require_user();
+        $st = db()->prepare('SELECT id, deleted, updated_at FROM recepten WHERE user_id = ?');
+        $st->execute([$u['id']]);
+        out(array_map(fn($r) => ['id' => $r['id'], 'deleted' => (bool) $r['deleted'], 'updated_at' => (int) $r['updated_at']], $st->fetchAll()));
+    }
 
     case 'get': {
-        require_token();
+        $u = require_user();
         $ids = array_values(array_filter((array) (body()['ids'] ?? []), 'is_string'));
         if (!$ids) out([]);
         $in = implode(',', array_fill(0, count($ids), '?'));
-        $st = db()->prepare("SELECT id, data, updated_at FROM recepten WHERE deleted = 0 AND id IN ($in)");
-        $st->execute($ids);
+        $st = db()->prepare("SELECT id, data, updated_at FROM recepten WHERE user_id = ? AND deleted = 0 AND id IN ($in)");
+        $st->execute([$u['id'], ...$ids]);
         out(array_map(fn($r) => ['id' => $r['id'], 'data' => json_decode((string) $r['data'], true), 'updated_at' => (int) $r['updated_at']], $st->fetchAll()));
     }
 
     case 'put': {
-        require_token();
+        $u = require_user();
         $rows = (array) (body()['rows'] ?? []);
         // Alleen overschrijven als de nieuwe versie minstens zo recent is.
-        $st = db()->prepare('INSERT INTO recepten (id, data, deleted, updated_at) VALUES (?, ?, ?, ?)
+        $st = db()->prepare('INSERT INTO recepten (user_id, id, data, deleted, updated_at) VALUES (?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
               data       = IF(VALUES(updated_at) >= updated_at, VALUES(data), data),
               deleted    = IF(VALUES(updated_at) >= updated_at, VALUES(deleted), deleted),
@@ -247,6 +471,7 @@ switch ($action) {
             if (!is_array($r) || !isset($r['id']) || !is_string($r['id']) || strlen($r['id']) > 64) continue;
             $deleted = !empty($r['deleted']);
             $st->execute([
+                $u['id'],
                 $r['id'],
                 $deleted ? null : json_encode($r['data'] ?? null, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 $deleted ? 1 : 0,
@@ -257,7 +482,7 @@ switch ($action) {
     }
 
     case 'fetch': {
-        require_token();
+        require_user();
         $url = trim((string) (body()['url'] ?? ''));
         if ($url === '' || strlen($url) > 2000) fail(400, 'Geef een adres op.');
         if (!str_contains($url, '://')) $url = 'https://' . $url;   // 'www.jumbo.com/...' mag ook
@@ -267,7 +492,7 @@ switch ($action) {
     }
 
     case 'image': {
-        require_token();
+        require_user();
         $url = trim((string) (body()['url'] ?? ''));
         $r = http_get($url, 8 * 1024 * 1024, 'image/avif,image/webp,image/jpeg,image/png,image/*');
         $type = strtolower(explode(';', $r['type'])[0]);
@@ -275,13 +500,27 @@ switch ($action) {
         out(['data' => 'data:' . $type . ';base64,' . base64_encode($r['body'])]);
     }
 
-    // Vanuit de opdracht in Safari: zonder inlogtoken, maar met het app-wachtwoord
-    // Vanuit een opdracht op de iPhone: zonder inlogtoken, maar met het app-wachtwoord.
+    /* ---------- Postvak: recepten gedeeld vanaf de iPhone ---------- */
+
+    // Vanuit een opdracht op de iPhone: zonder inlogtoken, maar met je persoonlijke deelsleutel
+    // (staat in de app bij Instellingen → Delen). Het oude app-wachtwoord werkt ook nog en
+    // hoort bij de beheerder, zodat een bestaande opdracht blijft werken.
     // Twee vormen: JSON {key, data} (Safari-opdracht, recept al uit de pagina gelezen), of een
     // formulier {key, url, html} waarin html de door de iPhone opgehaalde pagina is (Chrome-opdracht).
     case 'inbox_add': {
         $b = $_POST ?: body();
-        if (!hash_equals(APP_PASSWORD, (string) ($b['key'] ?? ''))) { sleep(2); fail(403, 'Wachtwoord klopt niet.'); }
+        $key = (string) ($b['key'] ?? '');
+        $pdo = db();
+        $userId = null;
+        if ($key !== '' && hash_equals(APP_PASSWORD, $key)) {
+            $userId = (int) ($pdo->query('SELECT id FROM recepten_users WHERE is_admin = 1 ORDER BY id LIMIT 1')->fetchColumn() ?: 0);
+        } elseif (preg_match('/^[a-f0-9]{32}$/', $key)) {
+            $st = $pdo->prepare('SELECT id FROM recepten_users WHERE share_key = ?');
+            $st->execute([$key]);
+            $id = $st->fetchColumn();
+            if ($id) $userId = (int) $id;
+        }
+        if ($userId === null) { sleep(2); fail(403, 'Deelsleutel klopt niet. Kopieer hem opnieuw in Ricetta bij Instellingen → Delen.'); }
         $data = $b['data'] ?? null;
         if (is_string($data)) $data = json_decode($data, true);
         if (!is_array($data)) {
@@ -303,21 +542,24 @@ switch ($action) {
         if (empty($data['url'])) fail(400, 'Geen receptgegevens ontvangen.');
         $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
         if (strlen($json) > 3 * 1024 * 1024) fail(413, 'Pagina is te groot.');
-        $count = (int) db()->query('SELECT COUNT(*) FROM recepten_inbox')->fetchColumn();
-        if ($count >= 50) fail(429, 'Het postvak is vol. Open eerst Ricetta.');
-        db()->prepare('INSERT INTO recepten_inbox (created_at, data) VALUES (?, ?)')->execute([now_ms(), $json]);
+        $st = $pdo->prepare('SELECT COUNT(*) FROM recepten_inbox WHERE user_id = ?');
+        $st->execute([$userId]);
+        if ((int) $st->fetchColumn() >= 50) fail(429, 'Het postvak is vol. Open eerst Ricetta.');
+        $pdo->prepare('INSERT INTO recepten_inbox (user_id, created_at, data) VALUES (?, ?, ?)')->execute([$userId, now_ms(), $json]);
         $msg = !empty($data['blocked']) ? 'Doorgestuurd, maar de website blokkeerde het ophalen. Open Ricetta om de tekst te plakken.' : 'Recept naar Ricetta gestuurd';
         out(['ok' => true, 'message' => $msg]);
     }
 
-    case 'inbox_list':
-        require_token();
-        $rows = db()->query('SELECT id, created_at, data FROM recepten_inbox ORDER BY id')->fetchAll();
-        out(array_map(fn($r) => ['id' => (int) $r['id'], 'created_at' => (int) $r['created_at'], 'data' => json_decode($r['data'], true)], $rows));
+    case 'inbox_list': {
+        $u = require_user();
+        $st = db()->prepare('SELECT id, created_at, data FROM recepten_inbox WHERE user_id = ? ORDER BY id');
+        $st->execute([$u['id']]);
+        out(array_map(fn($r) => ['id' => (int) $r['id'], 'created_at' => (int) $r['created_at'], 'data' => json_decode($r['data'], true)], $st->fetchAll()));
+    }
 
     case 'inbox_delete': {
-        require_token();
-        db()->prepare('DELETE FROM recepten_inbox WHERE id = ?')->execute([(int) (body()['id'] ?? 0)]);
+        $u = require_user();
+        db()->prepare('DELETE FROM recepten_inbox WHERE id = ? AND user_id = ?')->execute([(int) (body()['id'] ?? 0), $u['id']]);
         out(['ok' => true]);
     }
 

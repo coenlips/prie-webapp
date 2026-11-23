@@ -6,10 +6,12 @@
 // per recept wint de versie die het laatst is gewijzigd.
 const Sync = (() => {
   const LS = {
-    session: 'recepten-sync-session',
+    session: 'recepten-sync-session',   // { token, user: { id, name, admin, mustChange } }
     deletes: 'recepten-sync-deletes',   // verwijderde ids die nog online weg moeten
     last: 'recepten-sync-last',
     error: 'recepten-sync-error',
+    owner: 'recepten-sync-owner',       // van welke gebruiker de recepten op dit toestel zijn
+    me: 'recepten-sync-me',             // laatst bekende accountgegevens (aantal recepten, deelsleutel)
   };
   const read = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } };
   const write = (k, v) => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, JSON.stringify(v)); } catch { /* geen opslag */ } };
@@ -18,7 +20,7 @@ const Sync = (() => {
   const cfg = read('recepten-sync-config-override', null) || (typeof SYNC_CONFIG !== 'undefined' ? SYNC_CONFIG : {});
   const configured = () => !!cfg.api;
 
-  let session = read(LS.session, null); // { token }
+  let session = read(LS.session, null);
   let running = null, again = false, timer = null;
   const listeners = new Set();
   const notify = () => [...listeners].forEach(fn => { try { fn(); } catch { /* */ } });
@@ -37,22 +39,67 @@ const Sync = (() => {
       throw new Error(navigator.onLine === false ? 'Geen internet; de back-up volgt later.' : 'Geen verbinding met de server.');
     }
     const data = await res.json().catch(() => null);
-    if (res.status === 401 && auth) { signOut(); throw new Error('Je bent uitgelogd. Log opnieuw in.'); }
+    if (res.status === 401 && auth) { expire(); throw new Error('Je bent uitgelogd. Log opnieuw in.'); }
     if (!res.ok || !data) throw new Error((data && data.error) || `Serverfout ${res.status}`);
     return data;
   }
 
-  async function signIn(password) {
-    const d = await api('login', { password }, { auth: false });
-    session = { token: d.token };
+  /* ---------- Account ---------- */
+
+  async function signIn(name, password) {
+    const d = await api('login', { name, password }, { auth: false });
+    if (!d.user) throw new Error('De server moet nog worden bijgewerkt: upload eerst de nieuwe api.php.');
+    // Staan hier nog recepten van iemand anders? Die horen niet in dit account.
+    const owner = read(LS.owner, null);
+    if (owner != null && owner !== d.user.id) {
+      await DB.clear();
+      [LS.deletes, LS.last, LS.error, LS.me].forEach(k => write(k, null));
+    }
+    write(LS.owner, d.user.id);   // recepten zonder eigenaar (uitproberen) gaan mee naar het account
+    session = { token: d.token, user: d.user };
     write(LS.session, session);
+    notify();
     await syncNow();
+    refreshMe().catch(() => {});
+    return d.user;
   }
 
-  function signOut() {
-    if (session) api('logout', {}, { auth: true }).catch(() => {});
+  // Sessie verlopen of ingetrokken: uitloggen, maar de recepten laten staan (ze zijn van 'owner')
+  function expire() {
     session = null;
-    [LS.session, LS.deletes, LS.last, LS.error].forEach(k => write(k, null));
+    [LS.session, LS.error, LS.me].forEach(k => write(k, null));
+    notify();
+  }
+
+  // Zelf uitloggen: eerst een laatste back-up, dan alles van dit toestel halen zodat een volgende
+  // gebruiker niets van jou ziet. Lukt de back-up niet, dan geeft dit false (tenzij force).
+  async function signOut({ force = false } = {}) {
+    if (session && !force) {
+      await syncNow();
+      if (read(LS.error, null) || read(LS.deletes, []).length) return false;
+    }
+    if (session) api('logout', {}).catch(() => {});
+    session = null;
+    [LS.session, LS.deletes, LS.last, LS.error, LS.owner, LS.me].forEach(k => write(k, null));
+    await DB.clear();
+    notify();
+    return true;
+  }
+
+  async function refreshMe() {
+    if (!configured() || !session) return null;
+    const m = await api('me');
+    write(LS.me, m);
+    session.user = { id: m.id, name: m.name, admin: m.admin, mustChange: m.mustChange };
+    write(LS.session, session);
+    notify();
+    return m;
+  }
+
+  async function changePassword(current, next) {
+    await api('change_password', { current, new: next });
+    session.user = { ...session.user, mustChange: false };
+    write(LS.session, session);
     notify();
   }
 
@@ -166,7 +213,7 @@ const Sync = (() => {
   function status() {
     if (!configured()) return { state: 'off' };
     if (!session) return { state: 'loggedout' };
-    return { state: 'on', last: read(LS.last, null), error: read(LS.error, null), busy: !!running };
+    return { state: 'on', user: session.user || null, me: read(LS.me, null), last: read(LS.last, null), error: read(LS.error, null), busy: !!running };
   }
 
   function when(ts) {
@@ -177,25 +224,60 @@ const Sync = (() => {
     return `${d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })} om ${time}`;
   }
 
-  function cardHtml() {
-    const s = status();
-    if (s.state === 'off') return `
-      <p>Nog niet ingesteld. Hiervoor is de back-upserver op je eigen website nodig.</p>`;
-    if (s.state === 'loggedout') return `
-      <p>Log in om je recepten automatisch online te bewaren. Op een nieuwe iPhone log je met hetzelfde wachtwoord in en komen al je recepten terug.</p>
-      <form class="sync-form" id="syncForm" autocomplete="on">
-        <input type="text" name="username" value="recepten" autocomplete="username" hidden>
-        <input type="password" name="password" placeholder="Wachtwoord" autocomplete="current-password" required>
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+  // Inlogformulier (in Instellingen en op het welkomstscherm)
+  const loginFormHtml = () => `
+      <form class="acc-form" id="syncForm" autocomplete="on">
+        <label>Naam<input type="text" name="username" autocomplete="username" autocapitalize="words" autocorrect="off" spellcheck="false" required></label>
+        <label>Wachtwoord<input type="password" name="password" autocomplete="current-password" required></label>
         <button class="btn" type="submit">Inloggen</button>
         <p class="sync-msg" id="syncMsg" hidden></p>
       </form>`;
+
+  function bindLoginForm(form, onDone) {
+    const msg = form.querySelector('#syncMsg');
+    form.addEventListener('submit', async e => {
+      e.preventDefault();
+      const name = form.username.value.trim();
+      const password = form.password.value.trim(); // geplakte spaties of enters negeren
+      if (!name || !password) return;
+      const btn = form.querySelector('button');
+      btn.disabled = true;
+      msg.hidden = false; msg.textContent = 'Inloggen…';
+      try {
+        const user = await signIn(name, password);
+        onDone(user);
+      } catch (err) {
+        msg.textContent = err.message;
+        btn.disabled = false;
+      }
+    });
+  }
+
+  function cardHtml() {
+    const s = status();
+    if (s.state === 'off') return `
+      <p>Nog niet ingesteld. Hiervoor is de server op je eigen website nodig.</p>`;
+    if (s.state === 'loggedout') return `
+      <p>Log in met je naam en wachtwoord. Je recepten worden dan automatisch online bewaard, en op een ander toestel log je in en zijn ze er weer.</p>
+      ${loginFormHtml()}
+      <p class="small-note">Nog geen account? Vraag degene die je deze app gaf om er een te maken.</p>`;
+    const u = s.user || { name: '' }, me = s.me;
     return `
-      <p class="sync-state ${s.error ? 'bad' : 'good'}">
-        ${s.busy ? 'Bezig met back-up…' : s.error ? `⚠️ ${esc(s.error)}` : `✓ Automatische back-up staat aan`}
-      </p>
-      <p>Laatste back-up: ${when(s.last)}</p>
-      <button class="btn ghost" id="syncNowBtn">Nu back-up maken</button>
-      <button class="link" id="signOutBtn">Uitloggen</button>`;
+      <div class="acc-who">
+        <div class="acc-avatar" aria-hidden="true">${esc((u.name || '?').charAt(0).toUpperCase())}</div>
+        <div><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}</b>
+          <small>${me ? `${me.recipes} ${me.recipes === 1 ? 'recept' : 'recepten'} · ` : ''}${s.busy ? 'bezig met back-up…' : `back-up ${when(s.last)}`}</small></div>
+      </div>
+      ${s.error ? `<p class="sync-state bad">⚠️ ${esc(s.error)}</p>` : ''}
+      <div class="acc-actions">
+        <button class="btn ghost" id="pwBtn">Wachtwoord wijzigen</button>
+        ${u.admin ? `<button class="btn ghost" id="usersBtn">Gebruikers beheren</button>` : ''}
+      </div>
+      <button class="link" id="syncNowBtn">Nu back-up maken</button>
+      <button class="link" id="signOutBtn">Uitloggen</button>
+      <p class="small-note">Bij uitloggen worden je recepten van dit toestel gehaald. Online blijven ze bewaard: log weer in en ze komen terug.</p>`;
   }
 
   function bindCard(el) {
@@ -211,32 +293,18 @@ const Sync = (() => {
 
   function bindButtons(el, render) {
     const form = el.querySelector('#syncForm');
-    if (form) {
-      const msg = el.querySelector('#syncMsg');
-      form.addEventListener('submit', async e => {
-        e.preventDefault();
-        const password = form.password.value.trim(); // geplakte spaties of enters negeren
-        if (!password) return;
-        const btn = form.querySelector('button');
-        btn.disabled = true;
-        msg.hidden = false; msg.textContent = 'Inloggen…';
-        try {
-          await signIn(password);
-          render();
-        } catch (err) {
-          // Bij een fout wachtwoord tonen hoeveel tekens er zijn ingevuld (helpt bij plakfouten)
-          msg.textContent = /klopt niet/.test(err.message)
-            ? `${err.message} Je hebt ${password.length} tekens ingevuld, beginnend met "${password.slice(0, 2)}".`
-            : err.message;
-          btn.disabled = false;
-        }
-      });
-    }
+    if (form) bindLoginForm(form, user => { render(); if (typeof Sync.onSignIn === 'function') Sync.onSignIn(user); });
     el.querySelector('#syncNowBtn')?.addEventListener('click', () => syncNow());
-    el.querySelector('#signOutBtn')?.addEventListener('click', () => {
-      if (confirm('Uitloggen? Je recepten blijven op deze iPhone staan, maar er wordt geen back-up meer gemaakt.')) { signOut(); render(); }
+    el.querySelector('#pwBtn')?.addEventListener('click', () => Sync.onPasswordButton && Sync.onPasswordButton());
+    el.querySelector('#usersBtn')?.addEventListener('click', () => { location.hash = '#/gebruikers'; });
+    el.querySelector('#signOutBtn')?.addEventListener('click', async () => {
+      if (!confirm('Uitloggen? Je recepten worden van dit toestel gehaald. Online blijven ze bewaard.')) return;
+      let done = await signOut();
+      if (!done && confirm('De laatste back-up lukte niet, dus wijzigingen van dit toestel kunnen verloren gaan. Toch uitloggen?')) done = await signOut({ force: true });
+      if (done && typeof Sync.onSignOut === 'function') Sync.onSignOut();
     });
   }
+
 
   // Waarschuwingsstipje op het tandwiel als de back-up niet lukt
   listeners.add(() => document.body.classList.toggle('sync-problem', !!(session && read(LS.error, null))));
@@ -253,9 +321,10 @@ const Sync = (() => {
 
   // Voor andere onderdelen (bijv. recepten importeren) die de server nodig hebben
   function call(action, body) {
-    if (!configured() || !session) return Promise.reject(new Error('Log eerst in bij Online back-up (tandwiel) om recepten van websites te kunnen ophalen.'));
+    if (!configured() || !session) return Promise.reject(new Error('Log eerst in (tandwiel → Account) om recepten van websites te kunnen ophalen.'));
     return api(action, body);
   }
 
-  return { syncNow, cardHtml, bindCard, status, onChange, call, onRemoteChange: null };
+  return { syncNow, cardHtml, bindCard, status, onChange, call, signIn, signOut, refreshMe, changePassword, loginFormHtml, bindLoginForm,
+    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null };
 })();

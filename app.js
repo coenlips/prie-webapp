@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '71 · 23 november 2026';
+const APP_VERSION = '72 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -218,7 +218,8 @@ $('#backBtn').addEventListener('click', () => {
   // in de kookstand: terug naar het gewone receptscherm
   if (state.cookMode) { setCookMode(false); return; }
   const page = (location.hash || '#/').split('/')[1];
-  if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
+  if (page === 'gebruikers') location.hash = '#/settings';
+  else if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
 });
 $('#addBtn').addEventListener('click', () => Importer.openSheet());
@@ -1242,7 +1243,7 @@ function syncBadge() {
   if (s.state === 'off') return '<span class="badge-muted">uit</span>';
   if (s.state === 'loggedout') return '<span class="badge-muted">niet ingelogd</span>';
   if (s.error) return '<span class="badge-bad">⚠️ probleem</span>';
-  return '<span class="badge-good">✓ aan</span>';
+  return `<span class="badge-good">✓ ${esc(s.user?.name || 'aan')}</span>`;
 }
 
 function renderSettings() {
@@ -1258,6 +1259,8 @@ function renderSettings() {
           <li>Tik op de deelknop ${ICONS.share}.</li>
           <li>Kies <strong>Zet op beginscherm</strong>.</li>
         </ol>`, { open: true, icon: ICONS.phone })}
+
+      ${fold('account', 'Account', `<div id="syncCard">${Sync.cardHtml()}</div>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.people })}
 
       ${fold('courses', 'Gangen', `<div id="courseSettings"></div>`, { badge: `<span class="badge-muted">${courseList().length}</span>`, icon: ICONS.plate })}
 
@@ -1284,16 +1287,18 @@ function renderSettings() {
         </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>`, icon: ICONS.timer })}
 
       ${fold('share', 'Delen', `
-        <p>Recepten vanuit Chrome of Safari importeren. Met een opdracht zet je een recept met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet ingelogd zijn bij de online back-up.</p>
+        <p>Recepten vanuit Chrome of Safari importeren. Met een opdracht zet je een recept met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet hiervoor ingelogd zijn.</p>
         <ol class="howto">
           <li>Open de app <strong>Opdrachten</strong>, tik op <strong>+</strong> en noem de opdracht <strong>Ricetta importeren</strong>.</li>
           <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten <strong>URL's</strong> en <strong>Safari-webpagina's</strong>.</li>
           <li>Voeg de taak <strong>Haal inhoud op van URL</strong> toe, met als URL de <em>Opdrachtinvoer</em>. Zo haalt je iPhone de receptpagina op.</li>
           <li>Voeg nog een keer <strong>Haal inhoud op van URL</strong> toe. Plak als URL het adres van de knop hieronder. Tik op het pijltje: <strong>Methode POST</strong>, <strong>Verzoekhoofdtekst Formulier</strong>. Voeg drie velden toe:
-            <code>key</code> (tekst) = je app-wachtwoord, <code>url</code> (tekst) = <em>Opdrachtinvoer</em>, en <code>html</code> (<strong>bestand</strong>) = de <em>Inhoud van URL</em> van stap 3.</li>
+            <code>key</code> (tekst) = je <strong>persoonlijke deelsleutel</strong> (knop hieronder), <code>url</code> (tekst) = <em>Opdrachtinvoer</em>, en <code>html</code> (<strong>bestand</strong>) = de <em>Inhoud van URL</em> van stap 3.</li>
           <li>Voeg de taak <strong>Toon melding</strong> toe, met de variabele <em>Inhoud van URL</em> van stap 4.</li>
         </ol>
         <button class="btn ghost" id="copyShareUrl">Kopieer het adres</button>
+        <button class="btn ghost" id="copyShareKey">Kopieer je deelsleutel</button>
+        <p class="small-note">Je deelsleutel hoort bij jouw account, zodat gedeelde recepten in jouw verzameling komen. Deel hem niet met anderen.</p>
         <p class="small-note">In Chrome vind je <strong>Deel</strong> via het deelicoon of het menu <strong>⋯</strong>. De eerste keer vraagt je iPhone of de opdracht de website en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>
         <details class="howto-box">
           <summary>Alleen Safari: werkt ook bij delicious.</summary>
@@ -1301,22 +1306,19 @@ function renderSettings() {
           <ol class="howto">
             <li>Nieuwe opdracht <strong>Ricetta (Safari)</strong>, <strong>Toon in deelpaneel</strong> aan, soort alleen <strong>Safari-webpagina's</strong>.</li>
             <li>Taak <strong>Voer JavaScript uit op webpagina</strong> met de code van de knop hieronder.</li>
-            <li>Taak <strong>Haal inhoud op van URL</strong> met het adres hierboven: <strong>POST</strong>, <strong>JSON</strong>, velden <code>key</code> = je app-wachtwoord en <code>data</code> = <em>Resultaat JavaScript</em>.</li>
+            <li>Taak <strong>Haal inhoud op van URL</strong> met het adres hierboven: <strong>POST</strong>, <strong>JSON</strong>, velden <code>key</code> = je deelsleutel en <code>data</code> = <em>Resultaat JavaScript</em>.</li>
             <li>Taak <strong>Toon melding</strong> met <em>Inhoud van URL</em>.</li>
             <li>iPhone-instellingen → <strong>Apps → Opdrachten → Geavanceerd</strong> → <strong>Sta uitvoeren scripts toe</strong> aan.</li>
           </ol>
           <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
         </details>`, { icon: ICONS.share })}
 
-      ${fold('backup', 'Back-up', `
-        <h4 class="sub-head">Online back-up</h4>
-        <div id="syncCard">${Sync.cardHtml()}</div>
-        <h4 class="sub-head">Back-up als bestand</h4>
-        <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Met de online back-up is dit niet nodig.</p>
+      ${fold('backup', 'Back-up als bestand', `
+        <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Ben je ingelogd, dan worden je recepten ook al automatisch online bewaard.</p>
         <button class="btn" id="exportBtn">Back-up exporteren</button>
         <label class="btn ghost file-btn">Back-up importeren
           <input type="file" accept="application/json,.json" id="importInput" hidden>
-        </label>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.cloud })}
+        </label>`, { icon: ICONS.cloud })}
 
       <p class="version">Versie ${APP_VERSION}</p>
     </section>`;
@@ -1329,7 +1331,8 @@ function renderSettings() {
   }));
 
   Sync.bindCard($('#syncCard'));
-  const badge = $('#badge-backup');
+  const badge = $('#badge-account');
+  Sync.refreshMe().catch(() => {});   // actueel aantal recepten en deelsleutel
   Sync.onChange(function update() {
     if (!badge.isConnected) return false; // kaart weg: ontvanger opruimen
     badge.innerHTML = syncBadge();
@@ -1348,6 +1351,12 @@ function renderSettings() {
     try { await navigator.clipboard.writeText(text); b.textContent = '✓ Gekopieerd'; setTimeout(() => { b.textContent = label; }, 1500); } catch { toast('Kopiëren lukte niet'); }
   }; };
   copyBtn('#copyShareJs', Importer.SHARE_JS, 'Kopieer de code');
+  const keyBtn = $('#copyShareKey');
+  if (keyBtn) keyBtn.onclick = async () => {
+    const key = Sync.status().me?.shareKey;
+    if (!key) { toast('Log eerst in (Account) om je deelsleutel te zien'); return; }
+    try { await navigator.clipboard.writeText(key); keyBtn.textContent = '✓ Gekopieerd'; setTimeout(() => { keyBtn.textContent = 'Kopieer je deelsleutel'; }, 1500); } catch { toast('Kopiëren lukte niet'); }
+  };
   copyBtn('#copyShareUrl', (typeof SYNC_CONFIG !== 'undefined' && SYNC_CONFIG.api ? SYNC_CONFIG.api : '') + '?action=inbox_add', 'Kopieer het adres');
 }
 
@@ -1540,6 +1549,226 @@ async function addSample() {
   renderList();
 }
 
+/* ---------- Account: welkom, wachtwoord, gebruikers ---------- */
+
+// 'Eerst zonder account proberen': dan geen welkomstscherm meer (tot iemand uitlogt)
+const TRY_KEY = 'ricetta-try';
+const tryMode = () => { try { return localStorage.getItem(TRY_KEY) === '1'; } catch { return true; } };
+const setTryMode = on => { try { on ? localStorage.setItem(TRY_KEY, '1') : localStorage.removeItem(TRY_KEY); } catch { /* */ } };
+
+// Hoeft deze gebruiker eerst iets te doen (inloggen of een eigen wachtwoord kiezen)?
+function accountGate() {
+  const s = Sync.status();
+  if (s.state === 'loggedout' && !tryMode()) return renderWelcome;
+  if (s.state === 'on' && s.user && s.user.mustChange) return renderSetPassword;
+  return null;
+}
+
+function bareHeader() {
+  setHeader({ title: 'Ricetta', back: false, timer: false });
+  $('#addBtn').hidden = true;
+  document.body.classList.add('no-fab');
+}
+
+const flagHtml = text => `<div class="acc-flag"><span>${esc(text)}</span></div>`;
+
+function renderWelcome() {
+  document.body.dataset.page = 'welcome';
+  bareHeader();
+  view.innerHTML = `
+    <section class="acc-welcome">
+      ${flagHtml('Ricetta')}
+      <p class="acc-lead">Log in om je eigen receptenverzameling te openen.</p>
+      ${Sync.loginFormHtml()}
+      <p class="acc-note">Nog geen account? Vraag degene die je deze app gaf om er een te maken.<br>
+        <button class="link" id="tryBtn">Eerst zonder account proberen</button></p>
+    </section>`;
+  Sync.bindLoginForm($('#syncForm'), user => Sync.onSignIn(user));
+  $('#tryBtn').onclick = () => { setTryMode(true); route(); };
+}
+
+// Na een tijdelijk wachtwoord van de beheerder: zelf een wachtwoord kiezen
+function renderSetPassword() {
+  document.body.dataset.page = 'welcome';
+  bareHeader();
+  const name = Sync.status().user?.name || '';
+  view.innerHTML = `
+    <section class="acc-welcome">
+      ${flagHtml('Welkom')}
+      <p class="acc-lead">Hoi ${esc(name)}! Kies een eigen wachtwoord, dan kun je beginnen.</p>
+      <form class="acc-form" id="setPwForm" autocomplete="on">
+        <input type="text" name="username" value="${esc(name)}" autocomplete="username" hidden>
+        <label>Nieuw wachtwoord<input type="password" name="pw" autocomplete="new-password" minlength="8" required></label>
+        <label>Nog een keer<input type="password" name="pw2" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn" type="submit">Opslaan en beginnen</button>
+        <p class="sync-msg" id="pwMsg" hidden></p>
+      </form>
+      <p class="acc-note">Minstens 8 tekens.<br><button class="link" id="outBtn">Uitloggen</button></p>
+    </section>`;
+  const form = $('#setPwForm'), msg = $('#pwMsg');
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const pw = form.pw.value, pw2 = form.pw2.value;
+    msg.hidden = false;
+    if (pw.length < 8) { msg.textContent = 'Kies minstens 8 tekens.'; return; }
+    if (pw !== pw2) { msg.textContent = 'De twee wachtwoorden zijn niet hetzelfde.'; return; }
+    const btn = form.querySelector('button'); btn.disabled = true; msg.textContent = 'Opslaan…';
+    try { await Sync.changePassword(null, pw); toast('Je wachtwoord is opgeslagen'); route(); }
+    catch (err) { msg.textContent = err.message; btn.disabled = false; }
+  };
+  $('#outBtn').onclick = async () => { await Sync.signOut({ force: true }); afterSignOut(); };
+}
+
+// Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
+function openAccSheet(html, label) {
+  const wrap = document.createElement('div');
+  wrap.className = 'sheet-backdrop';
+  wrap.innerHTML = `<div class="sheet acc-sheet" role="dialog" aria-label="${esc(label)}">${html}</div>`;
+  document.body.appendChild(wrap);
+  requestAnimationFrame(() => wrap.classList.add('open'));
+  const close = () => { wrap.classList.remove('open'); setTimeout(() => wrap.remove(), 200); };
+  wrap.addEventListener('click', e => { if (e.target === wrap || e.target.closest('[data-close]')) close(); });
+  return { el: wrap, close, $: s => wrap.querySelector(s) };
+}
+
+function openPasswordSheet() {
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Wachtwoord wijzigen</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <form id="pwForm" autocomplete="on">
+      <input type="text" name="username" value="${esc(Sync.status().user?.name || '')}" autocomplete="username" hidden>
+      <label class="sheet-label">Huidig wachtwoord<input type="password" name="cur" autocomplete="current-password" required></label>
+      <label class="sheet-label">Nieuw wachtwoord<input type="password" name="pw" autocomplete="new-password" minlength="8" required></label>
+      <label class="sheet-label">Nog een keer<input type="password" name="pw2" autocomplete="new-password" minlength="8" required></label>
+      <p class="sync-msg" id="pwMsg" hidden></p>
+      <button class="btn" type="submit">Opslaan</button>
+    </form>`, 'Wachtwoord wijzigen');
+  const form = s.$('#pwForm'), msg = s.$('#pwMsg');
+  form.onsubmit = async e => {
+    e.preventDefault();
+    msg.hidden = false;
+    if (form.pw.value.length < 8) { msg.textContent = 'Kies minstens 8 tekens.'; return; }
+    if (form.pw.value !== form.pw2.value) { msg.textContent = 'De twee nieuwe wachtwoorden zijn niet hetzelfde.'; return; }
+    const btn = form.querySelector('button[type=submit]'); btn.disabled = true; msg.textContent = 'Opslaan…';
+    try { await Sync.changePassword(form.cur.value, form.pw.value); s.close(); toast('Je wachtwoord is gewijzigd'); }
+    catch (err) { msg.textContent = err.message; btn.disabled = false; }
+  };
+}
+
+// Tijdelijk wachtwoord tonen (na aanmaken of opnieuw instellen)
+function showTempPassword(s, name, pw, title) {
+  s.el.querySelector('.sheet').innerHTML = `
+    <div class="sheet-head"><h3>${esc(title)}</h3><button class="text-btn" data-close>Klaar</button></div>
+    <p class="acc-sheet-text">Geef ${esc(name)} deze naam en dit tijdelijke wachtwoord, bijvoorbeeld via een berichtje. Bij de eerste keer inloggen kiest ${esc(name)} zelf een nieuw wachtwoord.</p>
+    <div class="pw-box"><div><small>Naam</small><b>${esc(name)}</b></div></div>
+    <div class="pw-box"><div><small>Tijdelijk wachtwoord</small><b class="pw-mono">${esc(pw)}</b></div><button class="link" id="copyPw">Kopieer</button></div>
+    <button class="btn" data-close>Klaar</button>`;
+  s.$('#copyPw').onclick = async () => {
+    try { await navigator.clipboard.writeText(`Naam: ${name}\nWachtwoord: ${pw}`); s.$('#copyPw').textContent = '✓ Gekopieerd'; } catch { toast('Kopiëren lukte niet'); }
+  };
+}
+
+function lastSeenText(u) {
+  if (!u.lastSeen) return 'nog niet ingelogd';
+  const d = new Date(u.lastSeen), now = new Date();
+  const days = Math.round((new Date(now.toDateString()) - new Date(d.toDateString())) / 864e5);
+  if (days === 0) return 'vandaag actief';
+  if (days === 1) return 'gisteren actief';
+  if (days < 7) return `${days} dagen geleden actief`;
+  return `actief op ${d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}`;
+}
+
+async function renderUsers() {
+  const seq = routeSeq;
+  setHeader({ title: 'Gebruikers', back: true, timer: false });
+  const me = Sync.status().user;
+  if (!me || !me.admin) { location.hash = '#/settings'; return; }
+  view.innerHTML = `<section class="settings"><div class="card-box"><p>Laden…</p></div></section>`;
+  let users;
+  try { users = await Sync.call('users'); }
+  catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
+  if (isStale(seq)) return;
+  view.innerHTML = `
+    <section class="settings">
+      <div class="card-box">
+        <h3>Gebruikers</h3>
+        <p>Iedereen heeft een eigen receptenverzameling. Alleen jij als beheerder ziet deze lijst; wélke recepten iemand heeft, zie je niet.</p>
+        <ul class="users">
+          ${users.map(u => `
+            <li>
+              <div class="acc-avatar" aria-hidden="true">${esc(u.name.charAt(0).toUpperCase())}</div>
+              <div class="users-text"><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}</b>
+                <small>${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}${u.mustChange && u.lastSeen ? ' · moet nog een wachtwoord kiezen' : ''}</small></div>
+              ${u.id === me.id ? '' : `<button class="icon-btn users-more" data-id="${u.id}" aria-label="Opties voor ${esc(u.name)}">⋯</button>`}
+            </li>`).join('')}
+        </ul>
+        <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
+      </div>
+    </section>`;
+
+  $('#newUser').onclick = () => {
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>Nieuwe gebruiker</h3><button class="text-btn" data-close>Annuleer</button></div>
+      <form id="newForm" autocomplete="off">
+        <label class="sheet-label">Naam<input name="name" maxlength="40" autocapitalize="words" autocorrect="off" spellcheck="false" required></label>
+        <p class="acc-sheet-text">De app maakt een tijdelijk wachtwoord. Dat geef je door; bij de eerste keer inloggen kiest de nieuwe gebruiker zelf een wachtwoord.</p>
+        <p class="sync-msg" id="newMsg" hidden></p>
+        <button class="btn" type="submit">Account aanmaken</button>
+      </form>`, 'Nieuwe gebruiker');
+    setTimeout(() => s.$('input[name=name]')?.focus(), 250);
+    const form = s.$('#newForm'), msg = s.$('#newMsg');
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type=submit]'); btn.disabled = true;
+      try {
+        const r = await Sync.call('user_create', { name: form.name.value });
+        showTempPassword(s, r.name, r.password, `Account voor ${r.name}`);
+        renderUsers();
+      } catch (err) { msg.hidden = false; msg.textContent = err.message; btn.disabled = false; }
+    };
+  };
+
+  view.querySelectorAll('.users-more').forEach(b => b.onclick = () => {
+    const u = users.find(x => x.id === +b.dataset.id);
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>${esc(u.name)}</h3><button class="text-btn" data-close>Annuleer</button></div>
+      <p class="acc-sheet-text">${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}</p>
+      <button class="btn ghost" id="resetPw">Nieuw tijdelijk wachtwoord geven</button>
+      <p class="acc-sheet-text small-note">Handig als ${esc(u.name)} het wachtwoord kwijt is. ${esc(u.name)} wordt dan overal uitgelogd.</p>
+      <button class="btn danger" id="delUser">Account verwijderen</button>
+      <p class="sync-msg" id="optMsg" hidden></p>`, `Opties voor ${u.name}`);
+    const msg = s.$('#optMsg');
+    s.$('#resetPw').onclick = async () => {
+      try { const r = await Sync.call('user_reset', { id: u.id }); showTempPassword(s, r.name, r.password, 'Nieuw wachtwoord'); renderUsers(); }
+      catch (err) { msg.hidden = false; msg.textContent = err.message; }
+    };
+    s.$('#delUser').onclick = async () => {
+      if (!confirm(`${u.name} en ${u.recipes === 1 ? 'het recept' : `alle ${u.recipes} recepten`} van ${u.name} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
+      try { await Sync.call('user_delete', { id: u.id }); s.close(); toast(`${u.name} is verwijderd`); renderUsers(); }
+      catch (err) { msg.hidden = false; msg.textContent = err.message; }
+    };
+  });
+}
+
+// Na in- of uitloggen: alles opnieuw laden en naar het overzicht
+async function reloadAll() {
+  await loadRecipes();
+  await Shopping.load();
+  await AppSettings.load();
+}
+async function afterSignOut() {
+  setTryMode(false);   // volgende gebruiker ziet weer het welkomstscherm
+  await reloadAll();
+  toast('Je bent uitgelogd');
+  if ((location.hash || '#/') !== '#/') location.hash = '#/'; else route();
+}
+Sync.onSignIn = async user => {
+  await reloadAll();
+  if (!user.mustChange) toast(`Welkom, ${user.name}`);
+  if ((location.hash || '#/') !== '#/' && !user.mustChange) location.hash = '#/'; else route();
+};
+Sync.onSignOut = afterSignOut;
+Sync.onPasswordButton = openPasswordSheet;
+
 /* ---------- Router ---------- */
 
 // Elk schermwissel krijgt een nummer; trage schermen tekenen niet meer als er al een nieuwer is.
@@ -1554,12 +1783,17 @@ async function route() {
 
   if (page !== 'r' && state.cookMode) setCookMode(false);
   document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
-  document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', boodschappen: 'shop' })[page] || 'list';
+  document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop' })[page] || 'list';
+
+  // Nog niet ingelogd (en niet aan het uitproberen), of eerst een eigen wachtwoord kiezen?
+  const gate = accountGate();
+  if (gate) return gate();
 
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);
   if (page === 'settings') return renderSettings();
+  if (page === 'gebruikers') return renderUsers();
   if (page === 'boodschappen') {
     setHeader({ title: 'Boodschappen', back: true, timer: false });
     return Shopping.render(view);

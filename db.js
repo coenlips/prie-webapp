@@ -34,6 +34,7 @@ const DB = (() => {
     get: id => tx('readonly', s => s.get(id)),
     put: recipe => tx('readwrite', s => s.put(recipe)),
     remove: id => tx('readwrite', s => s.delete(id)),
+    clear: () => tx('readwrite', s => s.clear()),   // alles van dit toestel (bij uitloggen)
     async putMany(list) {
       const db = await open();
       return new Promise((resolve, reject) => {

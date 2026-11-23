@@ -8,7 +8,9 @@ const DB_NAME = 'naam_van_je_database';
 const DB_USER = 'gebruikersnaam';
 const DB_PASS = 'database-wachtwoord';
 
-// Het wachtwoord waarmee je in de receptenapp inlogt. Kies iets lang en uniek.
+// Hiermee log je de eerste keer in de app in (met je eigen naam); dat account wordt de beheerder.
+// Daarna werkt het ook nog als deelsleutel van de beheerder voor de opdracht op de iPhone.
+// Kies iets lang en uniek.
 const APP_PASSWORD = 'kies-hier-een-wachtwoord';
 
 // Vanaf welke websites de app de API mag gebruiken
