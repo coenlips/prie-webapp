@@ -850,7 +850,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   .mag-filler button:active { background: var(--accent-soft); }
 }
 
-/* iPad en laptop: zoekbalk en filters blijven bovenaan staan; op de iPhone scrollen ze mee */
+/* iPad en laptop: zoekbalk en filters blijven bovenaan staan */
 @media (min-width: 700px) {
   body[data-page=list] .list-head {
     position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5;   /* 2px onder de kop schuiven: geen kier */
@@ -867,7 +867,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 
 /* Zoeken en filters in- en uitklappen */
 .list-head { display: grid; grid-template-rows: 1fr; transition: grid-template-rows .25s ease, padding .25s ease; }
-.list-head.closed { grid-template-rows: 0fr; padding-top: 0 !important; padding-bottom: 0 !important; }
+.list-head.closed { grid-template-rows: 0fr; padding-top: 2px !important; padding-bottom: 0 !important; }
 .lh-inner { min-height: 0; overflow: hidden; padding: 2px 16px; margin: -2px -16px; }   /* ruimte voor focusranden en de veegbalk tot de rand */
 @media (min-width: 700px) { .lh-inner { padding: 2px; margin: -2px; } }
 .list-head.closed .lh-inner { visibility: hidden; transition: visibility 0s .25s; }
@@ -879,3 +879,13 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 
 /* Mooiere regelval in titels (regels ongeveer even lang) */
 .flag a, .mc-label h3 { text-wrap: balance; }
+
+/* iPhone: zoeken en filters blijven nu ook bovenaan staan (in te klappen met het filtericoon) */
+@media (max-width: 699.98px) {
+  body[data-page=list] .topbar { border-bottom: 0; background-color: var(--bg); }
+  body[data-page=list] .list-head {
+    position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5;
+    margin: -12px -16px 12px; padding: 14px 16px 10px;
+    background: var(--bg); border-bottom: 4px double var(--teal);
+  }
+}
