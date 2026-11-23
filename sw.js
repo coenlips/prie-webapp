@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js.
-const VERSION = 'v56';
+const VERSION = 'v57';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -20,6 +20,7 @@ const FILES = [
   'fonts/bebas-neue-400.woff2',
   'fonts/oswald-500.woff2',
   'fonts/oswald-600.woff2',
+  'images/bolognese.jpg',
 ];
 
 self.addEventListener('install', e => {

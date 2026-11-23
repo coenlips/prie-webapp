@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '56 · 23 november 2026';
+const APP_VERSION = '57 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1352,6 +1352,8 @@ async function importBackup(file) {
 /* ---------- Voorbeeld ---------- */
 
 async function addSample() {
+  // De foto staat bij de app; als data-URL opslaan zodat hij net als je eigen foto's meesynct
+  const photo = await resizeImage('images/bolognese.jpg').catch(() => '');
   await DB.put({
     id: uid(),
     title: 'Ragù alla Bolognese',
@@ -1405,7 +1407,7 @@ async function addSample() {
       'Buon appetito!',
     ].join('\n'),
     notes: '',
-    photo: '',
+    photo,
     favorite: false,
     createdAt: Date.now(),
     updatedAt: Date.now(),
