@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '55 · 23 november 2026';
+const APP_VERSION = '56 · 23 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1359,20 +1359,20 @@ async function addSample() {
     categories: ['Italiaans'],
     courses: ['Hoofdgerecht'],
     tags: ['klassieker'],
-    servings: 13,
+    servings: 8,
     prepTime: 30,
     cookTime: 180,
     ingredients: [
       '# Saus',
-      '406 g pancetta (alternatief: spekblokjes)',
-      '3,25 st winterpeen (in kleine blokjes gesneden)',
-      '6,5 stengels bleekselderij (in kleine blokjes gesneden)',
-      '3,25 st ui (fijn gesnipperd)',
-      '650 g rundergehakt',
-      '650 g kalfsgehakt (optioneel, anders 400g rundergehakt in totaal gebruiken)',
-      '488 ml witte wijn',
-      '1625 g gepelde tomaten (kan ook uit blik)',
-      '3,25 blokje runderbouillon',
+      '250 g pancetta (alternatief: spekblokjes)',
+      '2 st winterpeen (in kleine blokjes gesneden)',
+      '4 stengels bleekselderij (in kleine blokjes gesneden)',
+      '2 st ui (fijn gesnipperd)',
+      '400 g rundergehakt',
+      '400 g kalfsgehakt (optioneel, anders 800 g rundergehakt in totaal gebruiken)',
+      '300 ml witte wijn',
+      '1000 g gepelde tomaten (kan ook uit blik)',
+      '2 blokjes runderbouillon',
       'peper',
       'zout',
       'olijfolie',
@@ -1391,7 +1391,7 @@ async function addSample() {
       'Zodra de olie heet is, voeg je er de fijngesneden groente aan toe samen met de pancetta (of spekblokjes). Bak alles samen ongeveer 10 minuten op laag vuur, zodat de groenten zacht worden.',
       'Voeg het runder- en kalfsgehakt toe en bak het geheel nog eens tien minuten op zacht vuur, totdat het vlees gaar is. Rul het gehakt door regelmatig met een houten lepel te roeren. Breng het geheel op smaak met wat peper en zout.',
       'Giet de witte wijn erbij. Laat alles rustig koken op laag vuur tot het vocht is ingedampt.',
-      'Snij de tomaten in stukjes en voeg ze toe aan de pan. Verkruimel nu ook het bouillonblokje en voeg deze ook toe.',
+      'Snij de tomaten in stukjes en voeg ze toe aan de pan. Verkruimel nu ook de bouillonblokjes en voeg deze ook toe.',
       'Breng het geheel aan de kook en laat het geheel inkoken. Vergeet niet om regelmatig te roeren om aanbranden van de saus te voorkomen.',
       'Je kunt nu de pan met de saus het beste in een oven op 150 graden (Celsius) plaatsen. De saus kan zo rustig doorsudderen en dit is erg belangrijk voor het ontwikkelen van de juiste smaak.',
       'Haal na 2 á 3 uur de pan uit de oven. Indien het nodig is kun je de saus nog enigszins inkoken op een medium vuur. Roer hierna een scheut melk door de saus en laat deze nog even zachtjes koken.',
