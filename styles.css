@@ -942,3 +942,11 @@ body[data-page=list] .list-head.closed { box-shadow: none; }
   body[data-page=detail]:not(.cook) .detail { padding: 44px clamp(32px, 4vw, 64px) 96px; max-width: 760px; }
   body[data-page=detail]:not(.cook) .part-steps { margin-top: 36px; }
 }
+
+/* Receptpagina iPad/laptop: kop staat (net als de foto) vast aan het scherm, zodat hij bij het
+   omlaagtrekken van de pagina (rubberband op de iPad) niet over de foto schuift. */
+@media (min-width: 900px) {
+  html:has(body[data-page=detail]:not(.cook)), body[data-page=detail]:not(.cook) { overscroll-behavior-y: none; }
+  body[data-page=detail]:not(.cook) .topbar { position: fixed; left: 0; right: 0; top: 0; }
+  body[data-page=detail]:not(.cook) main { margin-top: var(--topbar-h); }
+}
