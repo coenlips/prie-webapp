@@ -1393,3 +1393,14 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .install-card .install-now[hidden] { display: none; }
 .install-card .install-now svg { width: 20px; height: 20px; }
 .install-later { display: block; margin: 12px auto 0; font-size: 14px; }
+/* Geen kader; in te klappen. Kop 'Inloggen' boven de velden. */
+.install-card { background: none; outline: 0; padding: 0; margin: 0 0 18px; border-bottom: 1px dashed var(--line); }
+.install-card > summary { list-style: none; display: flex; align-items: center; gap: 10px; padding: 10px 0; cursor: pointer; }
+.install-card > summary::-webkit-details-marker { display: none; }
+.install-card > summary h3 { flex: 1; margin: 0; font: 400 24px/1 var(--font-title); letter-spacing: .04em; }
+.install-card .fold-chevron svg { width: 20px; height: 20px; transition: transform .2s; color: var(--accent); }
+.install-card[open] .fold-chevron svg { transform: rotate(180deg); }
+.install-body { padding: 2px 0 18px; }
+.install-head { margin-bottom: 10px; }
+.login-title { margin: 4px 0 4px; font: 400 32px/1 var(--font-title); letter-spacing: .04em; text-align: center; }
+.login-title + .acc-lead { margin-top: 4px; }

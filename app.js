@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '106 · 24 november 2026';
+const APP_VERSION = '107 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2004,12 +2004,13 @@ addEventListener('beforeinstallprompt', e => {
   document.querySelectorAll('.install-now').forEach(b => { b.hidden = false; });
 });
 addEventListener('appinstalled', () => { document.querySelectorAll('.install-card').forEach(c => c.remove()); });
-const INSTALL_LATER = 'ricetta-install-later';
+const INSTALL_OPEN = 'ricetta-install-open';   // in- of uitgeklapt (onthouden)
 
 function installCardHtml() {
   if (isStandalone() || !(isIOS || isAndroid)) return '';
-  try { if (localStorage.getItem(INSTALL_LATER)) return ''; } catch { /* */ }
-  return `<div class="install-card" id="installCard" data-os="${isAndroid ? 'android' : 'ios'}"></div>`;
+  let open = true;
+  try { open = localStorage.getItem(INSTALL_OPEN) !== '0'; } catch { /* */ }
+  return `<details class="install-card" id="installCard" data-os="${isAndroid ? 'android' : 'ios'}"${open ? ' open' : ''}></details>`;
 }
 function bindInstallCard() {
   const card = $('#installCard');
@@ -2018,7 +2019,9 @@ function bindInstallCard() {
   const draw = () => {
     const os = card.dataset.os, ios = os === 'ios';
     card.innerHTML = `
-      <div class="install-head"><h3>Op je ${ios ? 'beginscherm' : 'startscherm'}</h3>
+      <summary><h3>Op je ${ios ? 'beginscherm' : 'startscherm'} zetten</h3><span class="fold-chevron" aria-hidden="true">${ICONS.chevron}</span></summary>
+      <div class="install-body">
+      <div class="install-head">
         <div class="os-tabs" role="tablist">
           <button type="button" role="tab" data-os="ios" class="${ios ? 'on' : ''}" aria-selected="${ios}">${OS_ICONS.apple}iPhone</button>
           <button type="button" role="tab" data-os="android" class="${ios ? '' : 'on'}" aria-selected="${!ios}">${OS_ICONS.android}Android</button>
@@ -2035,7 +2038,7 @@ function bindInstallCard() {
           <li><span>Tik rechtsboven op ${key('dots')} <b>Menu</b></span></li>
           <li><span>Kies ${key('install')} <b>App installeren</b> of <b>Toevoegen aan startscherm</b></span></li>
         </ol>`}
-      <button type="button" class="link install-later">Later</button>`;
+      </div>`;
     card.querySelectorAll('[data-os]').forEach(b => b.onclick = () => { card.dataset.os = b.dataset.os; draw(); });
     const now = card.querySelector('.install-now');
     if (now) now.onclick = async () => {
@@ -2045,9 +2048,9 @@ function bindInstallCard() {
       installPrompt = null;
       if (choice && choice.outcome === 'accepted') card.remove(); else draw();
     };
-    card.querySelector('.install-later').onclick = () => { try { localStorage.setItem(INSTALL_LATER, '1'); } catch { /* */ } card.remove(); };
   };
   draw();
+  card.addEventListener('toggle', () => { try { localStorage.setItem(INSTALL_OPEN, card.open ? '1' : '0'); } catch { /* */ } });
 }
 
 function renderWelcome() {
@@ -2057,6 +2060,7 @@ function renderWelcome() {
     <section class="acc-welcome">
       ${flagHtml('Ricetta')}
       ${installCardHtml()}
+      <h2 class="login-title">Inloggen</h2>
       <p class="acc-lead">Log in om je eigen receptenverzameling te openen.</p>
       ${Sync.loginFormHtml()}
       <div class="acc-request">
