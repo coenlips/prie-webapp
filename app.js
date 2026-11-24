@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '98 · 24 november 2026';
+const APP_VERSION = '99 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -514,11 +514,14 @@ function renderList() {
 // het menu schuift onder de kopbalk weg en de recepten schuiven mee. De echte opmaak
 // verandert maar één keer (bij dichtklappen aan het eind, bij openklappen aan het begin),
 // zodat het raster met grote foto's niet elk beeldje opnieuw berekend hoeft te worden.
-function foldFilters(head, open) {
+// clip: het menu staat niet direct onder de kopbalk (bijv. onder het vaandel van een kookboek).
+// Dan blijft het staan en wordt het van onderaf dichtgeschoven, als een rolgordijn.
+function foldFilters(head, open, { clip = false } = {}) {
   const els = [head];
   for (let n = head.nextElementSibling; n; n = n.nextElementSibling) els.push(n);
   // halverwege een animatie omgedraaid? dan verder vanaf waar het menu nu is
-  const y = head._fold ? new DOMMatrix(getComputedStyle(head).transform).m42 : null;
+  const probe = clip ? els[1] : head;
+  const y = head._fold && probe ? new DOMMatrix(getComputedStyle(probe).transform).m42 : null;
   (head._fold || []).forEach(a => a.cancel());
   head._fold = null;
   if (!open && head.contains(document.activeElement)) document.activeElement.blur();
@@ -533,13 +536,15 @@ function foldFilters(head, open) {
   const from = y ?? (open ? -d : 0), to = open ? 0 : -d;
   const opts = { duration: 280 * Math.max(.3, Math.abs(to - from) / d), easing: 'cubic-bezier(.3, .7, .2, 1)', fill: 'forwards' };
   const frames = [{ transform: `translateY(${from}px)` }, { transform: `translateY(${to}px)` }];
+  const headFrames = clip ? [{ clipPath: `inset(0 0 ${-from}px 0)` }, { clipPath: `inset(0 0 ${-to}px 0)` }] : frames;
+  const run = () => els.map((el, i) => el.animate(i === 0 ? headFrames : frames, opts));
   if (open) {
     // nu al open in de opmaak; schuift vanonder de kopbalk tevoorschijn
-    head._fold = els.map(el => el.animate(frames, opts));
+    head._fold = run();
     head._fold[0].finished.then(() => { head._fold.forEach(a => a.cancel()); head._fold = null; }, () => {});
   } else {
     // nog even open laten staan, onder de kopbalk wegschuiven, en dan pas echt dichtklappen
-    head._fold = els.map(el => el.animate(frames, opts));
+    head._fold = run();
     head._fold[0].finished.then(() => {
       head.classList.add('closed');
       head._fold.forEach(a => a.cancel());
@@ -2537,7 +2542,7 @@ async function renderBook(ownerId) {
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open);
     try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
-    foldFilters($('#bookHead'), open);
+    foldFilters($('#bookHead'), open, { clip: true });
   };
   draw();
 }
