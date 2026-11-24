@@ -21,7 +21,7 @@ const Sync = (() => {
   const configured = () => !!cfg.api;
 
   let session = read(LS.session, null);
-  let running = null, again = false, timer = null;
+  let running = null, again = false, timer = null, lastMe = 0;
   const listeners = new Set();
   const notify = () => [...listeners].forEach(fn => { try { fn(); } catch { /* */ } });
 
@@ -104,6 +104,12 @@ const Sync = (() => {
     return m;
   }
 
+  // Account aanvragen vanaf het inlogscherm (zonder in te loggen)
+  async function requestAccount(name, email, website) {
+    try { return await api('request_account', { name, email, website }, { auth: false }); }
+    catch (e) { throw /Onbekende actie/.test(e.message) ? new Error('Aanvragen kan nog niet: de server moet nog worden bijgewerkt. Vraag het de beheerder.') : e; }
+  }
+
   async function changePassword(current, next) {
     await api('change_password', { current, new: next });
     session.user = { ...session.user, mustChange: false };
@@ -182,6 +188,8 @@ const Sync = (() => {
       try {
         const changed = await run();
         if (changed && typeof Sync.onRemoteChange === 'function') await Sync.onRemoteChange();
+        // Beheerder: af en toe kijken of er nieuwe accountaanvragen zijn
+        if (session && session.user && session.user.admin && Date.now() - lastMe > 60000) { lastMe = Date.now(); refreshMe().catch(() => {}); }
       } catch (e) {
         if (session) write(LS.error, e.message);
       } finally {
@@ -270,7 +278,7 @@ const Sync = (() => {
     if (s.state === 'loggedout') return `
       <p>Log in met je naam en wachtwoord. Je recepten worden dan automatisch online bewaard, en op een ander toestel log je in en zijn ze er weer.</p>
       ${loginFormHtml()}
-      <p class="small-note">Nog geen account? Vraag degene die je deze app gaf om er een te maken.</p>`;
+      <p class="small-note">Nog geen account? <button class="link" id="requestBtn">Vraag een account aan</button></p>`;
     const u = s.user || { name: '' }, me = s.me;
     return `
       <div class="acc-who">
@@ -281,7 +289,7 @@ const Sync = (() => {
       ${s.error ? `<p class="sync-state bad">⚠️ ${esc(s.error)}</p>` : ''}
       <div class="acc-actions">
         <button class="btn ghost" id="pwBtn">Wachtwoord wijzigen</button>
-        ${u.admin ? `<button class="btn ghost" id="usersBtn">Gebruikers beheren</button>` : ''}
+        ${u.admin ? `<button class="btn ghost" id="usersBtn">Gebruikers beheren${me && me.requests ? ` <span class="req-count">${me.requests} ${me.requests === 1 ? 'aanvraag' : 'aanvragen'}</span>` : ''}</button>` : ''}
       </div>
       <button class="link" id="syncNowBtn">Nu back-up maken</button>
       <button class="link" id="signOutBtn">Uitloggen</button>
@@ -305,6 +313,7 @@ const Sync = (() => {
     el.querySelector('#syncNowBtn')?.addEventListener('click', () => syncNow());
     el.querySelector('#pwBtn')?.addEventListener('click', () => Sync.onPasswordButton && Sync.onPasswordButton());
     el.querySelector('#usersBtn')?.addEventListener('click', () => { location.hash = '#/gebruikers'; });
+    el.querySelector('#requestBtn')?.addEventListener('click', () => Sync.onRequestButton && Sync.onRequestButton());
     el.querySelector('#signOutBtn')?.addEventListener('click', async () => {
       if (!confirm('Uitloggen? Je recepten worden van dit toestel gehaald. Online blijven ze bewaard.')) return;
       let done = await signOut();
@@ -333,6 +342,6 @@ const Sync = (() => {
     return api(action, body);
   }
 
-  return { syncNow, cardHtml, bindCard, status, onChange, call, signIn, signOut, refreshMe, changePassword, loginFormHtml, bindLoginForm,
-    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null };
+  return { syncNow, cardHtml, bindCard, status, onChange, call, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
+    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onRequestButton: null };
 })();

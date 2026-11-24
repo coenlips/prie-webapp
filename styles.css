@@ -1154,3 +1154,21 @@ body.cook .links-box { display: none; }
 .link-suggest { display: inline-flex; align-items: center; gap: 6px; border-style: dashed; border-color: #008C44; color: #008C44; text-transform: none; letter-spacing: 0; font: 600 15px -apple-system, system-ui, sans-serif; }
 .link-suggest i { font-style: normal; font-weight: 400; color: var(--muted); }
 .link-suggest, .link-chip { flex: 0 1 auto; max-width: 100%; white-space: normal; text-align: left; flex-wrap: wrap; row-gap: 2px; }
+
+/* ---------- Account aanvragen ---------- */
+.acc-request { margin-top: 22px; padding-top: 18px; border-top: 1px dashed var(--line); text-align: center; display: grid; gap: 10px; }
+.acc-request p { margin: 0; color: var(--muted); }
+.req-form .btn { margin-top: 14px; }
+.req-form .small-note { margin-top: 10px; }
+.hp { position: absolute !important; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+/* Beheerder: stipje op het tandwiel bij een nieuwe aanvraag */
+body.has-requests:not(.sync-problem) .settings-btn::after {
+  content: ''; position: absolute; top: 7px; right: 7px; width: 9px; height: 9px;
+  border-radius: 50%; background: var(--accent); border: 2px solid var(--bg);
+}
+.req-count { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; background: var(--accent); color: #fff; font-size: .8em; letter-spacing: .04em; vertical-align: 1px; }
+.req-box { border-color: var(--accent); }
+.req-avatar { background: var(--mustard); }
+.users li.req-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-bottom: 1px dashed var(--line); padding-top: 0; }
+.card-box .req-actions .btn + .btn { margin-top: 0; }
+.acc-sheet-text.warn { color: var(--accent); }

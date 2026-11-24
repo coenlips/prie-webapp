@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '83 · 24 november 2026';
+const APP_VERSION = '84 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1864,10 +1864,14 @@ function renderWelcome() {
       ${flagHtml('Ricetta')}
       <p class="acc-lead">Log in om je eigen receptenverzameling te openen.</p>
       ${Sync.loginFormHtml()}
-      <p class="acc-note">Nog geen account? Vraag degene die je deze app gaf om er een te maken.<br>
-        <button class="link" id="tryBtn">Eerst zonder account proberen</button></p>
+      <div class="acc-request">
+        <p>Nog geen account?</p>
+        <button class="btn ghost" id="requestBtn">Account aanvragen</button>
+      </div>
+      <p class="acc-note"><button class="link" id="tryBtn">Eerst zonder account proberen</button></p>
     </section>`;
   Sync.bindLoginForm($('#syncForm'), user => Sync.onSignIn(user));
+  $('#requestBtn').onclick = openRequestSheet;
   $('#tryBtn').onclick = () => { setTryMode(true); route(); };
 }
 
@@ -1938,6 +1942,47 @@ function openPasswordSheet() {
   };
 }
 
+// Account aanvragen: naam en e-mailadres naar de beheerder
+function openRequestSheet() {
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Account aanvragen</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <form id="reqForm" class="req-form" autocomplete="on">
+      <p class="acc-sheet-text">Vul je naam en e-mailadres in. Zodra je aanvraag is goedgekeurd, krijg je een mail met je inloggegevens.</p>
+      <label class="sheet-label">Naam<input name="name" maxlength="40" autocomplete="name" autocapitalize="words" required></label>
+      <label class="sheet-label">E-mailadres<input name="email" type="email" inputmode="email" autocomplete="email" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
+      <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
+      <p class="sync-msg" id="reqMsg" hidden></p>
+      <button class="btn" type="submit">Aanvraag versturen</button>
+      <p class="small-note">Je e-mailadres wordt alleen gebruikt om je de inloggegevens te sturen, en daarna niet bewaard.</p>
+    </form>`, 'Account aanvragen');
+  const form = s.$('#reqForm'), msg = s.$('#reqMsg');
+  form.name.focus({ preventScroll: true });
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type=submit]');
+    btn.disabled = true; msg.hidden = false; msg.textContent = 'Versturen…';
+    try {
+      await Sync.requestAccount(form.name.value.trim(), form.email.value.trim(), form.website.value);
+      s.el.querySelector('.sheet').innerHTML = `
+        <div class="sheet-head"><h3>Aanvraag verstuurd</h3><button class="text-btn" data-close>Klaar</button></div>
+        <p class="acc-sheet-text">Dank je, ${esc(form.name.value.trim())}! Zodra je aanvraag is goedgekeurd, krijg je een mail op <strong>${esc(form.email.value.trim())}</strong> met je naam en een tijdelijk wachtwoord.</p>
+        <p class="acc-sheet-text small-note">Geen mail gekregen? Kijk ook even in je map met ongewenste mail.</p>
+        <button class="btn" data-close>Klaar</button>`;
+    } catch (err) { msg.textContent = err.message; btn.disabled = false; }
+  };
+}
+Sync.onRequestButton = openRequestSheet;
+
+// Beheerder: melding bij nieuwe accountaanvragen (stipje op het tandwiel en een berichtje)
+Sync.onChange(() => {
+  const s = Sync.status(), n = (s.user && s.user.admin && s.me && s.me.requests) || 0;
+  document.body.classList.toggle('has-requests', n > 0);
+  let seen = 0;
+  try { seen = +localStorage.getItem('ricetta-requests-seen') || 0; } catch { /* */ }
+  if (n > seen) toast(n === 1 ? 'Er is een nieuw account aangevraagd' : `Er zijn ${n} accounts aangevraagd`);
+  if (n !== seen) try { localStorage.setItem('ricetta-requests-seen', String(n)); } catch { /* */ }
+});
+
 // Tijdelijk wachtwoord tonen (na aanmaken of opnieuw instellen)
 function showTempPassword(s, name, pw, title) {
   s.el.querySelector('.sheet').innerHTML = `
@@ -1967,12 +2012,26 @@ async function renderUsers() {
   const me = Sync.status().user;
   if (!me || !me.admin) { location.hash = '#/settings'; return; }
   view.innerHTML = `<section class="settings"><div class="card-box"><p>Laden…</p></div></section>`;
-  let users;
-  try { users = await Sync.call('users'); }
+  let users, requests = [];
+  try {
+    users = await Sync.call('users');
+    requests = await Sync.call('requests').catch(() => []);   // oudere server: geen aanvragen
+  }
   catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
   if (isStale(seq)) return;
   view.innerHTML = `
     <section class="settings">
+      ${requests.length ? `<div class="card-box req-box">
+        <h3>${requests.length === 1 ? 'Nieuwe aanvraag' : `${requests.length} nieuwe aanvragen`}</h3>
+        <ul class="users">
+          ${requests.map(q => `
+            <li>
+              <div class="acc-avatar req-avatar" aria-hidden="true">${esc(q.name.charAt(0).toUpperCase())}</div>
+              <div class="users-text"><b>${esc(q.name)}</b><small>${esc(q.email)} · ${lastSeenText({ lastSeen: q.created }).replace('actief', 'aangevraagd').replace('vandaag aangevraagd', 'vandaag aangevraagd')}</small></div>
+            </li>
+            <li class="req-actions"><button class="btn" data-approve="${q.id}">Goedkeuren</button><button class="btn ghost" data-reject="${q.id}">Afwijzen</button></li>`).join('')}
+        </ul>
+      </div>` : ''}
       <div class="card-box">
         <h3>Gebruikers</h3>
         <p>Iedereen heeft een eigen receptenverzameling. Alleen jij als beheerder ziet deze lijst; wélke recepten iemand heeft, zie je niet.</p>
@@ -1988,6 +2047,38 @@ async function renderUsers() {
         <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
       </div>
     </section>`;
+
+  view.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => {
+    const q = requests.find(x => x.id === +b.dataset.approve);
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>Aanvraag goedkeuren</h3><button class="text-btn" data-close>Annuleer</button></div>
+      <form id="apForm" autocomplete="off">
+        <label class="sheet-label">Naam<input name="name" maxlength="40" value="${esc(q.name)}" required></label>
+        ${q.taken ? `<p class="acc-sheet-text warn">Er is al iemand met de naam ${esc(q.name)}. Pas de naam aan, bijvoorbeeld met de achternaam erbij.</p>` : ''}
+        <p class="acc-sheet-text">Er wordt een account aangemaakt met een tijdelijk wachtwoord. De inloggegevens gaan per mail naar <strong>${esc(q.email)}</strong>.</p>
+        <p class="sync-msg" id="apMsg" hidden></p>
+        <button class="btn" type="submit">Goedkeuren en mailen</button>
+      </form>`, 'Aanvraag goedkeuren');
+    const form = s.$('#apForm'), msg = s.$('#apMsg');
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const btn = form.querySelector('button[type=submit]'); btn.disabled = true; msg.hidden = false; msg.textContent = 'Bezig…';
+      try {
+        const res = await Sync.call('request_approve', { id: q.id, name: form.name.value.trim(), appUrl: location.origin + location.pathname });
+        showTempPassword(s, res.name, res.password, `Account voor ${res.name}`);
+        s.$('.acc-sheet-text').innerHTML = res.mailed
+          ? `✓ De inloggegevens zijn gemaild naar <strong>${esc(res.email)}</strong>. Hieronder staan ze ook, voor als de mail niet aankomt.`
+          : `⚠️ De mail naar <strong>${esc(res.email)}</strong> kon niet worden verstuurd. Geef deze gegevens zelf door, bijvoorbeeld via een berichtje.`;
+        renderUsers(); Sync.refreshMe().catch(() => {});
+      } catch (err) { msg.textContent = err.message; btn.disabled = false; }
+    };
+  });
+  view.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => {
+    const q = requests.find(x => x.id === +b.dataset.reject);
+    if (!confirm(`De aanvraag van ${q.name} afwijzen? Er wordt geen mail verstuurd en de gegevens worden verwijderd.`)) return;
+    try { await Sync.call('request_reject', { id: q.id }); toast('Aanvraag afgewezen'); renderUsers(); Sync.refreshMe().catch(() => {}); }
+    catch (err) { toast(err.message); }
+  });
 
   $('#newUser').onclick = () => {
     const s = openAccSheet(`

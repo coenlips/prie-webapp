@@ -101,6 +101,14 @@ function db(): PDO {
         created_at BIGINT NOT NULL,
         last_seen BIGINT NOT NULL DEFAULT 0
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Aanvragen voor een account (van het inlogscherm). Wordt verwijderd na goedkeuren of afwijzen.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_requests (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(40) NOT NULL,
+        email VARCHAR(190) NOT NULL,
+        ip VARCHAR(45) NOT NULL,
+        created_at BIGINT NOT NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     // Mislukte inlogpogingen (om het raden van wachtwoorden te remmen)
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_fails (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -215,6 +223,48 @@ function throttle(string $key): void {
         fail(429, 'Te vaak een verkeerd wachtwoord. Probeer het over een kwartier opnieuw.');
     }
 }
+function name_taken(string $name): bool {
+    $st = db()->prepare('SELECT 1 FROM recepten_users WHERE name_key = ?');
+    $st->execute([name_key($name)]);
+    return (bool) $st->fetchColumn();
+}
+
+// Nieuwe gebruiker met een tijdelijk wachtwoord (moet bij de eerste keer inloggen een eigen kiezen)
+function create_user(string $name): array {
+    if (name_taken($name)) fail(409, "Er is al iemand met de naam $name.");
+    $pw = temp_password();
+    db()->prepare('INSERT INTO recepten_users (name, name_key, pw_hash, is_admin, must_change, share_key, created_at, last_seen)
+        VALUES (?, ?, ?, 0, 1, ?, ?, 0)')
+        ->execute([$name, name_key($name), password_hash($pw, PASSWORD_DEFAULT), bin2hex(random_bytes(16)), now_ms()]);
+    return ['id' => (int) db()->lastInsertId(), 'name' => $name, 'password' => $pw];
+}
+
+function clean_email(string $email): string {
+    $email = strtolower(trim($email));
+    if (strlen($email) > 190 || !filter_var($email, FILTER_VALIDATE_EMAIL)) fail(400, 'Vul een geldig e-mailadres in.');
+    return $email;
+}
+
+// Mail versturen via de mailfunctie van de hoster. Afzender: MAIL_FROM uit config.php,
+// anders noreply@ het eigen domein. Antwoorden gaan naar ADMIN_EMAIL als die is ingesteld.
+function send_mail(string $to, string $subject, string $body): bool {
+    if (!function_exists('mail')) return false;
+    $host = preg_replace(['/^www\./', '/:\d+$/'], '', strtolower((string) ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+    $from = defined('MAIL_FROM') ? MAIL_FROM : 'noreply@' . $host;
+    $headers = ['From: Ricetta <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: 8bit'];
+    if (defined('ADMIN_EMAIL') && ADMIN_EMAIL) $headers[] = 'Reply-To: ' . ADMIN_EMAIL;
+    return @mail($to, mb_encode_mimeheader($subject, 'UTF-8'), $body, implode("\r\n", $headers), '-f' . $from);
+}
+
+// Adres van de app voor in de mail: alleen een adres dat bij ALLOWED_ORIGINS hoort
+function app_url(string $given): string {
+    $given = preg_replace('/[?#].*$/', '', trim($given));
+    foreach (ALLOWED_ORIGINS as $o) {
+        if ($given === $o || str_starts_with($given, rtrim($o, '/') . '/')) return $given;
+    }
+    return ALLOWED_ORIGINS[0] ?? '';
+}
+
 function login_failed(string $key): void {
     db()->prepare('INSERT INTO recepten_fails (name_key, ip, at) VALUES (?, ?, ?)')->execute([$key, client_ip(), now_ms()]);
     sleep(1);
@@ -371,7 +421,9 @@ switch ($action) {
         $u = require_user();
         $st = db()->prepare("SELECT COUNT(*) FROM recepten WHERE user_id = ? AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
         $st->execute([$u['id']]);
-        out(user_out($u) + ['recipes' => (int) $st->fetchColumn(), 'shareKey' => $u['share_key']]);
+        $extra = [];
+        if ($u['is_admin']) $extra['requests'] = (int) db()->query('SELECT COUNT(*) FROM recepten_requests')->fetchColumn();
+        out(user_out($u) + ['recipes' => (int) $st->fetchColumn(), 'shareKey' => $u['share_key']] + $extra);
     }
 
     case 'change_password': {
@@ -406,15 +458,66 @@ switch ($action) {
 
     case 'user_create': {
         require_admin();
-        $name = clean_name((string) (body()['name'] ?? ''));
-        $st = db()->prepare('SELECT 1 FROM recepten_users WHERE name_key = ?');
-        $st->execute([name_key($name)]);
-        if ($st->fetchColumn()) fail(409, "Er is al iemand met de naam $name.");
-        $pw = temp_password();
-        db()->prepare('INSERT INTO recepten_users (name, name_key, pw_hash, is_admin, must_change, share_key, created_at, last_seen)
-            VALUES (?, ?, ?, 0, 1, ?, ?, 0)')
-            ->execute([$name, name_key($name), password_hash($pw, PASSWORD_DEFAULT), bin2hex(random_bytes(16)), now_ms()]);
-        out(['id' => (int) db()->lastInsertId(), 'name' => $name, 'password' => $pw]);
+        out(create_user(clean_name((string) (body()['name'] ?? ''))));
+    }
+
+    /* ---------- Account aanvragen (vanaf het inlogscherm) ---------- */
+
+    case 'request_account': {
+        $b = body();
+        if (!empty($b['website'])) out(['ok' => true]);   // onzichtbaar veld: alleen robots vullen dat in
+        $name = clean_name((string) ($b['name'] ?? ''));
+        $email = clean_email((string) ($b['email'] ?? ''));
+        $pdo = db();
+        $st = $pdo->prepare('SELECT COUNT(*) FROM recepten_requests WHERE ip = ? AND created_at > ?');
+        $st->execute([client_ip(), now_ms() - 3600 * 1000]);
+        if ((int) $st->fetchColumn() >= 3) fail(429, 'Je hebt net al een aanvraag gedaan. Probeer het later nog eens.');
+        if ((int) $pdo->query('SELECT COUNT(*) FROM recepten_requests')->fetchColumn() >= 50) fail(429, 'Er liggen al veel aanvragen klaar. Probeer het later nog eens.');
+        if (name_taken($name)) fail(409, "Er is al iemand met de naam $name. Kies een andere naam, bijvoorbeeld met je achternaam erbij.");
+        $st = $pdo->prepare('SELECT id FROM recepten_requests WHERE email = ?');
+        $st->execute([$email]);
+        if ($id = $st->fetchColumn()) {
+            $pdo->prepare('UPDATE recepten_requests SET name = ?, created_at = ?, ip = ? WHERE id = ?')->execute([$name, now_ms(), client_ip(), $id]);
+        } else {
+            $pdo->prepare('INSERT INTO recepten_requests (name, email, ip, created_at) VALUES (?, ?, ?, ?)')->execute([$name, $email, client_ip(), now_ms()]);
+            if (defined('ADMIN_EMAIL') && ADMIN_EMAIL) {
+                send_mail(ADMIN_EMAIL, 'Nieuwe aanvraag voor Ricetta', "$name ($email) vraagt een account aan voor Ricetta.\n\nOpen de app en ga naar Instellingen → Account → Gebruikers beheren om de aanvraag goed te keuren.\n");
+            }
+        }
+        out(['ok' => true]);
+    }
+
+    case 'requests': {
+        require_admin();
+        $rows = db()->query('SELECT id, name, email, created_at FROM recepten_requests ORDER BY created_at')->fetchAll();
+        out(array_map(fn($r) => ['id' => (int) $r['id'], 'name' => $r['name'], 'email' => $r['email'], 'created' => (int) $r['created_at'], 'taken' => name_taken($r['name'])], $rows));
+    }
+
+    // Goedkeuren: account aanmaken en de inloggegevens mailen. De aanvraag (met het e-mailadres) wordt daarna verwijderd.
+    case 'request_approve': {
+        $admin = require_admin();
+        $b = body();
+        $st = db()->prepare('SELECT * FROM recepten_requests WHERE id = ?');
+        $st->execute([(int) ($b['id'] ?? 0)]);
+        $req = $st->fetch();
+        if (!$req) fail(404, 'Deze aanvraag bestaat niet (meer).');
+        $name = clean_name((string) (($b['name'] ?? '') !== '' ? $b['name'] : $req['name']));
+        $user = create_user($name);
+        $url = app_url((string) ($b['appUrl'] ?? ''));
+        $body = "Hoi $name,\n\nJe account voor Ricetta, het receptenboek, is klaar.\n\n"
+            . "Open de app: $url\nNaam: $name\nTijdelijk wachtwoord: {$user['password']}\n\n"
+            . "Bij de eerste keer inloggen kies je zelf een nieuw wachtwoord.\n"
+            . "Tip: op de iPhone open je de app in Safari en kies je Deel → Zet op beginscherm.\n\n"
+            . "Eet smakelijk!\n{$admin['name']}\n";
+        $mailed = send_mail($req['email'], 'Je account voor Ricetta', $body);
+        db()->prepare('DELETE FROM recepten_requests WHERE id = ?')->execute([$req['id']]);
+        out($user + ['email' => $req['email'], 'mailed' => $mailed]);
+    }
+
+    case 'request_reject': {
+        require_admin();
+        db()->prepare('DELETE FROM recepten_requests WHERE id = ?')->execute([(int) (body()['id'] ?? 0)]);
+        out(['ok' => true]);
     }
 
     case 'user_reset': {

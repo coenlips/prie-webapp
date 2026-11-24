@@ -15,3 +15,9 @@ const APP_PASSWORD = 'kies-hier-een-wachtwoord';
 
 // Vanaf welke websites de app de API mag gebruiken
 const ALLOWED_ORIGINS = ['https://ricetta.coenlips.nl', 'https://coenlips.github.io'];
+
+// Optioneel: mail bij account aanvragen.
+// Afzender van de mail met inloggegevens (standaard noreply@ je eigen domein):
+// const MAIL_FROM = 'ricetta@coenlips.nl';
+// Jouw e-mailadres: je krijgt dan ook een mail bij een nieuwe aanvraag, en antwoorden op de mail komen bij jou:
+// const ADMIN_EMAIL = 'jij@voorbeeld.nl';
