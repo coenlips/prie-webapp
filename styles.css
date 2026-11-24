@@ -1053,7 +1053,10 @@ body[data-page=welcome] #title { visibility: hidden; }
 /* ---------- Vegetarisch en vegan: logo met tekst ---------- */
 /* Tekst in dezelfde letter als de labels (Hoofdgerecht, Soep…), alleen in het groen */
 .diet { display: inline-flex; align-items: center; gap: .4em; vertical-align: middle; white-space: nowrap; line-height: 1; margin-right: .7em; cursor: help; }
-.diet svg { width: 1.4em; height: 1.4em; flex: none; fill: initial; }
+.diet svg { width: 1.5em; height: 1.5em; flex: none; fill: initial; overflow: visible; }
+.diet svg use, symbol[id^=diet-] { overflow: visible; }
+/* Alleen het logo (in de overzichten): iets omhoog, optisch midden van de hoofdletters ernaast */
+.diet:not(:has(.diet-text)) svg { transform: translateY(-.12em); }
 .diet svg, .diet svg * { stroke: none !important; }   /* geen lichte rand van de andere iconen */
 .diet-text { font-family: var(--font-label); font-weight: 500; text-transform: uppercase; letter-spacing: .12em; color: #008C44; }
 .diet .diet-text { color: #008C44; }
@@ -1082,4 +1085,9 @@ body[data-page=welcome] #title { visibility: hidden; }
 .form .diet-check input[type=checkbox] {
   -webkit-appearance: auto; appearance: auto; width: 22px; height: 22px; min-width: 0; padding: 0; margin: 0;
   border: 0; border-radius: 0; background: none; box-shadow: none; flex: none; accent-color: #008C44;
+}
+
+/* Bewerken op iPad/laptop: Vegetarisch en Vegan naast elkaar */
+@media (min-width: 700px) {
+  .diet-pick { display: flex; align-items: flex-end; gap: 24px; padding-bottom: 10px; }
 }
