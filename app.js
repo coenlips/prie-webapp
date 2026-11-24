@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '94 · 24 november 2026';
+const APP_VERSION = '95 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1088,7 +1088,7 @@ async function renderDetail(id, opts = {}) {
         <div class="part-ingr">
         <div class="section-head">
           <h3>Ingrediënten</h3>
-          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op boodschappenlijst zetten en kopiëren">${ICONS.basket}</button>
+          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op de boodschappenlijst zetten" title="Op de boodschappenlijst">${ICONS.basket}</button>
           <div class="stepper" aria-label="Aantal porties">
             <button id="minus" aria-label="Minder porties">−</button>
             <span>${ICONS.people} ${servings}</span>
@@ -1219,7 +1219,7 @@ async function renderDetail(id, opts = {}) {
     if ($('#shareBtn')) $('#shareBtn').onclick = () => openShareSheet(r, servings, factor);
     if ($('#saveCopy')) $('#saveCopy').onclick = async e => { e.currentTarget.disabled = true; try { await opts.onSave(); } catch (err) { toast(err.message); e.currentTarget.disabled = false; } };
     if ($('#discardCopy')) $('#discardCopy').onclick = () => opts.onDiscard();
-    $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor, r);
+    $('#copyBtn').onclick = () => openShopSheet(r, ingr, done, factor);
   }
 
   draw();
@@ -1233,55 +1233,95 @@ async function renderDetail(id, opts = {}) {
   };
 }
 
-// Kopieert de afgevinkte ingrediënten (of alles als er niets is afgevinkt).
-// Kopieert de afgevinkte ingrediënten (of alle) naar het klembord én zet ze op de boodschappenlijst.
-async function copyIngredients(ingr, done, factor, r) {
-  const title = r.title;
-  const tmp = document.createElement('div');
-  const items = ingr
-    .map((l, i) => ({ l, i }))
-    .filter(({ l }) => !l.startsWith('#'));
-  const picked = items.filter(({ i }) => done.has('i' + i));
-  const chosen = picked.length ? picked : items;
-  const text = chosen
-    .map(({ l }) => { tmp.innerHTML = scaleLine(l, factor); return tmp.textContent; })
-    .join('\n') + '\n';
-  const btn = $('#copyBtn');
-  // Eerst het klembord: iOS staat dat alleen direct na een tik toe
-  let copied = true;
-  try { await navigator.clipboard.writeText(text); } catch { copied = false; }
-  // Gebruikt dit recept andere recepten (zoals pizzadeeg)? Vraag of die ingrediënten er ook bij moeten.
-  const parts = relatedOf(r).parts;
-  const extra = parts.length ? await askParts(r, parts) : [];
-  const linked = ingredientLinks(ingr, extra);
-  await Shopping.addFromRecipe(chosen.filter(({ i }) => !linked.has(i)).map(({ l }) => l), factor, title);
-  for (const p of extra) await Shopping.addFromRecipe(lines(p.ingredients).filter(l => !l.startsWith('#')), 1, p.title);
-  if (extra.length) toast(`Op de boodschappenlijst, met ${extra.map(p => p.title).join(' en ')}`);
-  if (!copied) toast('Op de boodschappenlijst gezet (kopiëren lukte niet)');
-  btn.innerHTML = ICONS.check;
-  btn.classList.add('copied');
-  clearTimeout(copyIngredients._t);
-  copyIngredients._t = setTimeout(() => {
-    btn.innerHTML = ICONS.basket;
-    btn.classList.remove('copied');
-  }, 1200);
+// Mandje bij een recept: venster met alle ingrediënten om op de boodschappenlijst te zetten.
+// Een vinkje op de receptpagina betekent overal 'geregeld' (gebruikt / al in huis): die staan hier uit.
+// De app onthoudt wat je vaak wegtikt (zout, peper…) en zet dat de volgende keer al uit.
+const PANTRY_MIN = 2;   // zo vaak achter elkaar weggetikt = 'meestal in huis'
+const pantryKey = line => { const p = Shopping.parse(line); return (p.name || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, '').trim(); };
+const pantry = () => AppSettings.data.pantry || {};
+const inPantry = line => (pantry()[pantryKey(line)] || 0) >= PANTRY_MIN;
+async function rememberPantry(rows) {
+  const p = { ...pantry() };
+  // per ingrediënt één keer tellen (zout kan in recept én onderdeel staan); één keer kopen = vergeten
+  const buy = new Map();
+  for (const r of rows) { const k = pantryKey(r.line); if (k) buy.set(k, (buy.get(k) || false) || r.buy); }
+  for (const [k, b] of buy) { if (b) delete p[k]; else p[k] = Math.min(9, (p[k] || 0) + 1); }
+  AppSettings.data.pantry = p;
+  await AppSettings.save();
 }
 
-// Vraagt welke onderdelen ook op de boodschappenlijst moeten; geeft de gekozen recepten terug
-function askParts(r, parts) {
-  return new Promise(resolve => {
-    let answered = false;
-    const finish = list => { if (!answered) { answered = true; resolve(list); } };
-    const s = openAccSheet(`
-      <div class="sheet-head"><h3>Ook de onderdelen?</h3><button class="text-btn" data-close>Sluit</button></div>
-      <p class="acc-sheet-text">${esc(r.title)} gebruikt ${parts.length === 1 ? 'dit recept' : 'deze recepten'}. Zet de ingrediënten ervan er ook op:</p>
-      <div class="parts-pick">${parts.map(p => `<label class="parts-check"><input type="checkbox" value="${esc(p.id)}" checked><span>${esc(p.title)}</span></label>`).join('')}</div>
-      <button class="btn" id="partsYes">Toevoegen</button>
-      <button class="btn ghost" id="partsNo">Alleen ${esc(r.title)}</button>`, 'Ook de onderdelen op de boodschappenlijst?');
-    s.$('#partsYes').onclick = () => { finish(parts.filter(p => s.el.querySelector(`input[value="${CSS.escape(p.id)}"]`).checked)); s.close(); };
-    s.$('#partsNo').onclick = () => { finish([]); s.close(); };
-    s.el.addEventListener('click', e => { if (e.target === s.el || e.target.closest('[data-close]')) finish([]); });
+function openShopSheet(r, ingr, done, factor) {
+  const tmp = document.createElement('div');
+  const show = (l, f) => { tmp.innerHTML = scaleLine(l, f); return tmp.textContent; };
+  const parts = relatedOf(r).parts;
+  const partOfLine = ingredientLinks(ingr, parts);   // regelnummer → onderdeel (bijv. '1 portie pizzadeeg')
+  // Alle regels: hoofdrecept (g = 'main') en per onderdeel (g = id van het onderdeel)
+  const rows = [];
+  ingr.forEach((l, i) => {
+    if (l.startsWith('#')) { rows.push({ g: 'main', sub: l.replace(/^#+\s*/, '') }); return; }
+    const used = done.has('i' + i), home = !used && inPantry(l);
+    rows.push({ g: 'main', key: 'm' + i, line: l, f: factor, text: show(l, factor), buy: !used && !home, used, home, part: partOfLine.get(i)?.recipe });
   });
+  const partOn = new Set(parts.map(p => p.id));
+  for (const p of parts) {
+    lines(p.ingredients).forEach((l, j) => {
+      if (l.startsWith('#')) { rows.push({ g: p.id, sub: l.replace(/^#+\s*/, '') }); return; }
+      const home = inPantry(l);
+      rows.push({ g: p.id, key: p.id + ':' + j, line: l, f: 1, text: show(l, 1), buy: !home, home });
+    });
+  }
+  // Is een onderdeel aan, dan hoeft de regel '1 portie pizzadeeg' zelf niet op de lijst
+  const syncPartLines = () => rows.forEach(x => { if (x.part) x.buy = !partOn.has(x.part.id) && !x.used && !x.home; });
+  syncPartLines();
+
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Op de boodschappenlijst</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <p class="acc-sheet-text">Tik weg wat je al in huis hebt.</p>
+    <div class="shop-pick" id="shopPick"></div>
+    <button class="btn" id="shopAdd"></button>`, 'Op de boodschappenlijst');
+  const draw = () => {
+    const row = x => x.sub != null
+      ? `<p class="shop-sub">${esc(x.sub)}</p>`
+      : `<button type="button" class="shop-row${x.buy ? ' on' : ''}" data-k="${esc(x.key)}" role="checkbox" aria-checked="${x.buy}">
+          <span class="tick" aria-hidden="true">${x.buy ? '✓' : ''}</span><span class="shop-text"><span class="shop-name">${esc(x.text)}</span>
+          ${x.used ? '<small>afgestreept</small>' : x.home && !x.buy ? '<small>meestal in huis</small>' : x.part && partOn.has(x.part.id) ? `<small>via ${esc(x.part.title)} hieronder</small>` : ''}</span></button>`;
+    const group = g => rows.filter(x => x.g === g);
+    const allBtn = g => { const list = group(g).filter(x => x.key); const all = list.every(x => x.buy); return `<button type="button" class="link shop-all" data-all="${esc(g)}">${all ? 'Niets' : 'Alles'}</button>`; };
+    s.$('#shopPick').innerHTML = `
+      <div class="shop-group"><div class="shop-head"><b>${esc(r.title)}</b>${allBtn('main')}</div>${group('main').map(row).join('')}</div>
+      ${parts.map(p => `<div class="shop-group${partOn.has(p.id) ? '' : ' off'}">
+        <div class="shop-head"><label class="shop-part"><input type="checkbox" data-part="${esc(p.id)}"${partOn.has(p.id) ? ' checked' : ''}><b>Onderdeel: ${esc(p.title)}</b></label>${partOn.has(p.id) ? allBtn(p.id) : ''}</div>
+        ${partOn.has(p.id) ? group(p.id).map(row).join('') : ''}</div>`).join('')}`;
+    const n = rows.filter(x => x.key && x.buy && (x.g === 'main' || partOn.has(x.g))).length;
+    s.$('#shopAdd').textContent = n ? `Toevoegen (${n})` : 'Niets toevoegen';
+    s.$('#shopAdd').disabled = !n;
+    s.el.querySelectorAll('.shop-row').forEach(b => b.onclick = () => { const x = rows.find(y => y.key === b.dataset.k); x.buy = !x.buy; draw(); });
+    s.el.querySelectorAll('[data-all]').forEach(b => b.onclick = () => {
+      const list = group(b.dataset.all).filter(x => x.key), all = list.every(x => x.buy);
+      list.forEach(x => { x.buy = !all; }); draw();
+    });
+    s.el.querySelectorAll('[data-part]').forEach(c => c.onchange = () => { c.checked ? partOn.add(c.dataset.part) : partOn.delete(c.dataset.part); syncPartLines(); draw(); });
+  };
+  draw();
+  s.$('#shopAdd').onclick = async () => {
+    const active = rows.filter(x => x.key && (x.g === 'main' || partOn.has(x.g)));
+    const pick = active.filter(x => x.buy);
+    await Shopping.addFromRecipe(pick.filter(x => x.g === 'main').map(x => x.line), factor, r.title);
+    for (const p of parts.filter(p => partOn.has(p.id))) {
+      const ls = pick.filter(x => x.g === p.id).map(x => x.line);
+      if (ls.length) await Shopping.addFromRecipe(ls, 1, p.title);
+    }
+    // Onthouden wat je wegtikt (niet wat je tijdens het koken hebt afgestreept, en niet de onderdeel-regel zelf)
+    await rememberPantry(active.filter(x => !x.used && !(x.part && partOn.has(x.part.id))).map(x => ({ line: x.line, buy: x.buy })));
+    s.close();
+    Shopping.updateBadge();
+    toast(`${pick.length} ${pick.length === 1 ? 'boodschap' : 'boodschappen'} op de lijst`);
+    const btn = $('#copyBtn');
+    if (btn) {
+      btn.innerHTML = ICONS.check; btn.classList.add('copied');
+      setTimeout(() => { btn.innerHTML = ICONS.basket; btn.classList.remove('copied'); }, 1200);
+    }
+  };
 }
 
 function recipeAsText(r, servings, factor) {

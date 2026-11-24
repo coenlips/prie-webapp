@@ -1281,3 +1281,21 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 .book-flag .acc-flag { max-width: calc(100% - 56px); }
 .book-flag .acc-flag span { text-align: center; font-size: 38px; line-height: 1; overflow-wrap: anywhere; text-wrap: balance; }
 .book-flag .acc-flag small { display: block; font-size: .5em; letter-spacing: .14em; margin-bottom: 4px; opacity: .9; }
+
+/* ---------- Mandje: kiezen wat op de boodschappenlijst komt ---------- */
+.shop-pick { margin: 4px 0 14px; }
+.shop-group { margin-top: 10px; }
+.shop-group.off { opacity: .75; }
+.shop-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 0; border-bottom: 1.5px solid var(--text); }
+.shop-head b { font: 500 13px var(--font-label); letter-spacing: .12em; text-transform: uppercase; }
+.shop-all { font-size: 14px; }
+.shop-part { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.sheet .shop-part input[type=checkbox] { width: 22px; height: 22px; min-width: 0; padding: 0; margin: 0; border: 0; border-radius: 0; background: none; -webkit-appearance: auto; appearance: auto; accent-color: var(--accent); flex: none; }
+.shop-sub { margin: 10px 0 2px; font: 500 11px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); }
+.shop-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 2px; border-bottom: 1px dashed var(--line); text-align: left; font-size: 16px; color: var(--muted); }
+.shop-row.on { color: var(--text); }
+.shop-row:not(.on) .shop-name { text-decoration: line-through; text-decoration-color: var(--muted); }
+.shop-row .tick { width: 24px; height: 24px; flex: none; border: 1.5px solid var(--text); border-radius: 3px; display: grid; place-items: center; color: #fff; font-weight: 700; }
+.shop-row.on .tick { background: var(--accent); border-color: var(--accent); }
+.shop-text { flex: 1; min-width: 0; }
+.shop-text small { display: block; font-size: 12px; color: var(--mustard); text-decoration: none; }
