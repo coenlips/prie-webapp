@@ -1097,3 +1097,7 @@ body[data-page=welcome] #title { visibility: hidden; }
 @media (min-width: 700px) {
   .diet-pick { display: flex; align-items: flex-end; gap: 24px; padding-bottom: 10px; }
 }
+
+/* Uitgelicht recept: VEGAN/VEGETARISCH en de gang/categorieën op precies dezelfde hoogte */
+.mag-hero .mag-kicker:has(.diet) { display: inline-flex; align-items: center; flex-wrap: wrap; row-gap: 4px; }
+.mag-hero .mag-kicker .diet-text { letter-spacing: inherit; }
