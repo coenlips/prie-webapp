@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '99 · 24 november 2026';
+const APP_VERSION = '100 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -516,9 +516,10 @@ function renderList() {
 // zodat het raster met grote foto's niet elk beeldje opnieuw berekend hoeft te worden.
 // clip: het menu staat niet direct onder de kopbalk (bijv. onder het vaandel van een kookboek).
 // Dan blijft het staan en wordt het van onderaf dichtgeschoven, als een rolgordijn.
-function foldFilters(head, open, { clip = false } = {}) {
+function foldFilters(head, open, { clip = false, also = [] } = {}) {
   const els = [head];
   for (let n = head.nextElementSibling; n; n = n.nextElementSibling) els.push(n);
+  els.push(...also.filter(Boolean));
   // halverwege een animatie omgedraaid? dan verder vanaf waar het menu nu is
   const probe = clip ? els[1] : head;
   const y = head._fold && probe ? new DOMMatrix(getComputedStyle(probe).transform).m42 : null;
@@ -794,10 +795,13 @@ const detailWideMQ = matchMedia('(min-width: 900px)');   // receptpagina: foto l
 const isWide = () => wideMQ.matches;
 // Hoogte van de kopbalk bijhouden, zodat de zoekbalk (iPad/laptop) er precies onder blijft staan
 new ResizeObserver(([e]) => document.documentElement.style.setProperty('--topbar-h', e.target.getBoundingClientRect().height + 'px')).observe($('.topbar'), { box: 'border-box' });
-wideMQ.addEventListener('change', () => { if (document.body.dataset.page === 'list') renderList(); });
+wideMQ.addEventListener('change', () => { if (document.body.dataset.page === 'list') renderList(); if (document.body.dataset.page === 'book' && state.bookDraw) state.bookDraw(); });
 const colsMQ = [matchMedia('(min-width: 1000px)'), matchMedia('(min-width: 1380px)')];
 const magCols = () => colsMQ[1].matches ? 4 : colsMQ[0].matches ? 3 : 2;
-colsMQ.forEach(mq => mq.addEventListener('change', () => { if (document.body.dataset.page === 'list' && isWide()) renderCards(); }));
+colsMQ.forEach(mq => mq.addEventListener('change', () => {
+  if (document.body.dataset.page === 'list' && isWide()) renderCards();
+  if (document.body.dataset.page === 'book' && isWide() && state.bookDraw) state.bookDraw();
+}));
 
 const Mag = (() => {
   let rank = new Map();   // id → willekeurig getal; blijft staan tot 'Verras me' of opnieuw openen
@@ -807,10 +811,10 @@ const Mag = (() => {
   const order = list => [...list].sort((a, b) => (!!b.photo - !!a.photo) || rnd(a.id) - rnd(b.id));
   const shuffle = () => { rank = new Map(); heroId = null; };
 
-  function pickHero(all) {
+  function pickHero(all, wanted = heroId) {
     const withPhoto = order(all).filter(r => r.photo);
     if (!withPhoto.length) return null;
-    return withPhoto.find(r => r.id === heroId) || withPhoto[0];
+    return withPhoto.find(r => r.id === wanted) || withPhoto[0];
   }
   function nextHero() {
     const withPhoto = order(state.recipes).filter(r => r.photo);
@@ -826,18 +830,24 @@ const Mag = (() => {
     return first.length > 170 ? first.slice(0, 165).replace(/\s+\S*$/, '') + '…' : first;
   }
 
+  // Standaard: je eigen recepten. Voor andermans kookboek geeft render() andere opties mee.
+  let O = {};
+  const hrefOf = r => (O.href ? O.href(r) : `#/r/${esc(r.id)}`);
+  const coursesOfR = r => (O.courses ? O.courses(r) : coursesOf(r));
+  const catsOfR = r => (O.cats ? O.cats(r) : catsOf(r));
+
   function heroHtml(r, many) {
-    const tags = [...coursesOf(r), ...catsOf(r)];
+    const tags = [...coursesOfR(r), ...catsOfR(r)];
     return `
       <li class="mag-hero" style="grid-row:1">
-        <a class="mh-photo" href="#/r/${esc(r.id)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
+        <a class="mh-photo" href="${hrefOf(r)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
         <div class="mh-text">
           ${tags.length || dietOf(r) ? `<span class="mag-kicker">${dietBadge(dietOf(r))}${tags.map(esc).join(' · ')}</span>` : ''}
-          <h2 class="flag"><a href="#/r/${esc(r.id)}">${esc(r.title)}</a></h2>
+          <h2 class="flag"><a href="${hrefOf(r)}">${esc(r.title)}</a></h2>
           ${leadOf(r) ? `<p class="mh-lead">${esc(leadOf(r))}</p>` : ''}
           ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
           <div class="mh-actions">
-            <a class="btn mh-open" href="#/r/${esc(r.id)}">Bekijk recept</a>
+            <a class="btn mh-open" href="${hrefOf(r)}">Bekijk recept</a>
           </div>
         </div>
       </li>`;
@@ -901,31 +911,34 @@ const Mag = (() => {
     { id: 'fillShop', icon: 'basket', title: 'Boodschappen', sub: 'Naar je lijstje' },
   ];
 
-  function render(el, list) {
+  // opts (andermans kookboek): all, browsing, href, courses, cats, fillers [{id, icon, title, sub, on}], hero ({ id })
+  function render(el, list, opts = {}) {
+    O = opts;
+    const all = opts.all || state.recipes;
     // Uitgelicht recept alleen als je niet zoekt of filtert
-    const browsing = !state.query.trim() && state.filter === 'all' && !state.course;
-    const hero = browsing ? pickHero(state.recipes) : null;
-    if (hero) heroId = hero.id;
+    const browsing = opts.browsing ?? (!state.query.trim() && state.filter === 'all' && !state.course);
+    const hero = browsing ? pickHero(all, opts.hero ? opts.hero.id : heroId) : null;
+    if (hero) { if (opts.hero) opts.hero.id = hero.id; else heroId = hero.id; }
     const rest = order(list).filter(r => r !== hero);
-    const many = state.recipes.filter(r => r.photo).length > 1;
+    const many = all.filter(r => r.photo).length > 1;
     const start = hero ? 2 : 1, row0 = hero ? 2 : 1;
     const cells = plan(rest, magCols());
     let nr = 0;
     el.innerHTML = (hero ? heroHtml(hero, many) : '') + cells.map(cell => {
       const pos = `grid-row:${row0 + cell.row}${cell.big ? ' / span 2' : ''};grid-column:${cell.col + 1}${cell.big ? ' / span 2' : ''}`;
       if (cell.filler !== undefined) {
-        const f = FILLERS[cell.filler];
+        const f = (opts.fillers || FILLERS)[cell.filler];
         return `<li class="mag-filler" style="${pos}"><button id="${f.id}">${ICONS[f.icon]}<b>${f.title}</b><small>${f.sub}</small></button></li>`;
       }
       const r = cell.r, zone = cell.big ? .22 : .36;
-      const kicker = coursesOf(r)[0] || catsOf(r)[0] || '';
+      const kicker = coursesOfR(r)[0] || catsOfR(r)[0] || '';
       const f = r.photo && PhotoFocus.peek(r, 1, zone);
       const cls = (cell.big ? ' big' : '') + (r.photo && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
       const img = r.photo
         ? `<img src="${r.photo}" alt="" loading="lazy"${f ? ` class="cropped" style="${PhotoFocus.style(f)}"` : ''}>`
         : `<span class="mag-nophoto">${ICONS.plate}</span>`;
       return `
-        <li class="mag-card${cls}" data-id="${esc(r.id)}" data-zone="${zone}" style="${pos}"><a href="#/r/${esc(r.id)}">
+        <li class="mag-card${cls}" data-id="${esc(r.id)}" data-zone="${zone}" style="${pos}"><a href="${hrefOf(r)}">
           <div class="mc-photo">${img}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
           <div class="mc-label">
             <span class="mag-kicker">N° ${String(start + nr++).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
@@ -947,9 +960,12 @@ const Mag = (() => {
     const next = el.querySelector('#heroNext');
     if (next) next.onclick = () => { nextHero(); render(el, list); };
     const on = (id, fn) => { const b = el.querySelector('#' + id); if (b) b.onclick = fn; };
-    on('fillSurprise', () => { shuffle(); render(el, list); window.scrollTo({ top: 0, behavior: 'smooth' }); });
-    on('fillNew', () => Importer.openSheet());
-    on('fillShop', () => { location.hash = '#/boodschappen'; });
+    if (opts.fillers) opts.fillers.forEach(f => on(f.id, f.on));
+    else {
+      on('fillSurprise', () => { shuffle(); render(el, list); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      on('fillNew', () => Importer.openSheet());
+      on('fillShop', () => { location.hash = '#/boodschappen'; });
+    }
     // Titel niet over het eten: per foto de uitsnede bepalen
     const byId = new Map(list.map(r => [r.id, r]));
     el.querySelectorAll('.mag-card.focusing').forEach(async li => {
@@ -965,6 +981,7 @@ const Mag = (() => {
       const img = el.querySelector('.mh-photo img');
       const box = img.parentElement.clientWidth / Math.max(1, img.parentElement.clientHeight);
       PhotoFocus.get(hero, box).then(f => PhotoFocus.apply(img, f)).catch(() => {});
+      if (opts.onHero) opts.onHero(hero, img);
     }
   }
 
@@ -1562,6 +1579,7 @@ async function renderEdit(id) {
       links: links.filter(l => recipeById(l.id)),
       photo,
       thumb: photo === r.photo ? r.thumb : '',   // nieuwe foto: nieuwe kleine versie maken
+      thumbV: photo === r.photo ? r.thumbV : 0,
       createdAt: r.createdAt || Date.now(),
       updatedAt: Date.now(),
     };
@@ -2300,8 +2318,8 @@ async function ensureThumbs() {
   if (thumbsBusy) return;
   thumbsBusy = true;
   try {
-    for (const r of state.recipes.filter(x => x.shared && x.photo && !x.thumb)) {
-      try { await DB.put({ ...r, thumb: await resizeImage(r.photo, 240) }); } catch { /* volgende keer */ }
+    for (const r of state.recipes.filter(x => x.shared && x.photo && (!x.thumb || x.thumbV !== 2))) {
+      try { await DB.put({ ...r, thumb: await resizeImage(r.photo, 640), thumbV: 2 }); } catch { /* volgende keer */ }
     }
     await loadRecipes();
   } finally { thumbsBusy = false; }
@@ -2483,6 +2501,7 @@ async function renderBook(ownerId) {
   if (f.course && !courseNames.includes(f.course)) f.course = null;
 
   view.innerHTML = `<section class="book-page">
+    <div class="book-top" id="bookTop">
     <div class="book-flag"><div class="acc-flag"><span><small>Kookboek van</small>${esc(d.owner.name)}</span></div></div>
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
       <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit kookboek" value="${esc(f.q)}" autocomplete="off"></div>
@@ -2491,6 +2510,7 @@ async function renderBook(ownerId) {
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
         : `<button class="chip${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
     </div></div>
+    </div>
     <ul class="cards book-cards" id="bookCards"></ul>
   </section>`;
   const draw = () => {
@@ -2504,7 +2524,29 @@ async function renderBook(ownerId) {
       if (f.filter !== 'all' && !f.filter.startsWith('diet:') && !rCats(r).includes(f.filter)) return false;
       return !q || [r.title, r.ingredients, ...rCourses(r), ...rCats(r)].join(' ').toLowerCase().includes(q);
     });
-    $('#bookCards').innerHTML = list.length ? list.map(r => {
+    const el = $('#bookCards');
+    el.classList.toggle('mag', isWide());
+    // iPad en laptop: als magazine, net als je eigen overzicht
+    if (isWide()) {
+      if (!list.length) { el.innerHTML = `<li class="none">Geen recepten gevonden.</li>`; return; }
+      const withPhoto = r => ({ ...r, photo: r.thumb || '' });
+      return Mag.render(el, list.map(withPhoto), {
+        all: all.map(withPhoto), hero: f.hero || (f.hero = {}),
+        browsing: !q && f.filter === 'all' && !f.course,
+        href: r => `#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}`,
+        courses: rCourses, cats: rCats,
+        fillers: [
+          { id: 'bkSurprise', icon: 'dice', title: 'Verras me', sub: 'Dit kookboek husselen', on: () => { Mag.shuffle(); f.hero = {}; draw(); window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+          { id: 'bkBooks', icon: 'book', title: 'Kookboeken', sub: 'Andere kookboeken bekijken', on: () => { location.hash = '#/kookboeken'; } },
+          { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen kookboek', on: () => { location.hash = '#/'; } },
+        ],
+        // Uitgelicht recept: de volle foto ophalen (de kleine is te klein voor zo'n grote plaat)
+        onHero: async (hero, img) => {
+          try { const full = await Sync.call('book_recipe', { owner: d.owner.id, id: hero.id }); if (full.photo && img.isConnected) img.src = full.photo; } catch { /* kleine foto blijft */ }
+        },
+      });
+    }
+    el.innerHTML = list.length ? list.map(r => {
       const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
       return `<li><a class="card" href="#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}">
         <div class="thumb">${r.thumb ? `<img src="${r.thumb}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
@@ -2524,6 +2566,7 @@ async function renderBook(ownerId) {
       } catch (err) { toast(shareErr(err)); bt.disabled = false; bt.textContent = '+ bewaar'; }
     });
   };
+  state.bookDraw = draw;
   $('#bookQ').oninput = e => { f.q = e.target.value; draw(); };
   view.querySelectorAll('[data-bcourse]').forEach(b => b.onclick = () => {
     f.course = f.course === b.dataset.bcourse ? null : b.dataset.bcourse;
@@ -2542,7 +2585,7 @@ async function renderBook(ownerId) {
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open);
     try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
-    foldFilters($('#bookHead'), open, { clip: true });
+    foldFilters($('#bookHead'), open, { clip: true, also: [$('#bookCards')] });
   };
   draw();
 }

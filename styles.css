@@ -1313,3 +1313,29 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 .book-head .book-search { margin-bottom: 0; }
 .book-head .chips { margin-top: 10px; }
 @media (min-width: 700px) { .book-head .chips { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding: 0; } }
+
+/* ---------- Kookboek van een ander: vaste kop (vaandel, zoeken, filters), recepten scrollen eronder ---------- */
+body[data-page=book] .topbar { background-color: var(--bg); }
+.book-top {
+  position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5;
+  margin: -12px -16px 0; padding: 12px 16px 10px; background: var(--bg);
+  box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28);
+}
+.book-top .book-flag { margin: 0 0 10px; }
+.book-top .book-head { margin-bottom: 0; }
+.book-page .book-cards { margin-top: 6px; }
+@media (max-width: 699.98px) {
+  .book-top .book-flag .acc-flag span { font-size: 28px; padding: 10px 24px 7px; }
+  .book-top .book-flag .acc-flag::before, .book-top .book-flag .acc-flag::after { top: 10px; }
+}
+@media (min-width: 700px) {
+  body[data-page=book] { --page-w: 1320px; --gutter: max(32px, calc((100% - var(--page-w)) / 2 + 32px)); }
+  body[data-page=book] main { max-width: none; padding: 0 0 64px; }
+  body[data-page=book] .topbar { padding-left: max(24px, calc((100% - var(--page-w)) / 2 + 24px)); padding-right: max(24px, calc((100% - var(--page-w)) / 2 + 32px)); }
+  .book-page { max-width: none; }
+  .book-top { margin: 0; padding: 18px var(--gutter) 14px; }
+  .book-top .book-search { max-width: 620px; }
+  .book-head .chips .chip { cursor: pointer; }
+  .book-page .book-cards { margin-left: var(--gutter); margin-right: var(--gutter); }
+  .book-page .book-cards:not(.mag) { max-width: 720px; margin-left: auto; margin-right: auto; }
+}
