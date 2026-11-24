@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '81 · 24 november 2026';
+const APP_VERSION = '82 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1420,6 +1420,8 @@ async function renderEdit(id) {
     };
     s.$('#linkSearch').oninput = drawPick;
     drawPick();
+    // Meteen kunnen typen. Direct (niet later) focussen: alleen dan opent de iPhone het toetsenbord.
+    s.$('#linkSearch').focus({ preventScroll: true });
   };
   drawLinks();
 
