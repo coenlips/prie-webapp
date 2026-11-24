@@ -138,6 +138,12 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_sends (
         id INT AUTO_INCREMENT PRIMARY KEY, from_id INT NOT NULL, to_id INT NOT NULL, at BIGINT NOT NULL, INDEX (from_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Foutmeldingen en ideeën van gebruikers (de beheerder ziet ze bij Instellingen → Wat is er nieuw)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_feedback (
+        id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, kind VARCHAR(8) NOT NULL, text TEXT NOT NULL,
+        done TINYINT(1) NOT NULL DEFAULT 0, app_version VARCHAR(40) NOT NULL DEFAULT '', device VARCHAR(255) NOT NULL DEFAULT '',
+        created_at BIGINT NOT NULL, INDEX (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     return $pdo;
 }
 
@@ -531,7 +537,10 @@ switch ($action) {
         $st = db()->prepare("SELECT COUNT(*) FROM recepten WHERE user_id = ? AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
         $st->execute([$u['id']]);
         $extra = [];
-        if ($u['is_admin']) $extra['requests'] = (int) db()->query('SELECT COUNT(*) FROM recepten_requests')->fetchColumn();
+        if ($u['is_admin']) {
+            $extra['requests'] = (int) db()->query('SELECT COUNT(*) FROM recepten_requests')->fetchColumn();
+            $extra['feedback'] = (int) db()->query('SELECT COUNT(*) FROM recepten_feedback WHERE done = 0')->fetchColumn();
+        }
         out(user_out($u) + ['recipes' => (int) $st->fetchColumn(), 'shareKey' => $u['share_key']] + $extra);
     }
 
@@ -632,6 +641,42 @@ switch ($action) {
         }
         $sent = send_mail($to, 'Testmail van Ricetta', "Hoi {$admin['name']},\n\nDit is een testmail van Ricetta. Komt deze aan, dan kan de server mail versturen.\n");
         out(['sent' => $sent, 'to' => $to, 'from' => mail_from(), 'method' => mail_method(), 'error' => $GLOBALS['mail_error'] ?? '']);
+    }
+
+    // Fout melden of een idee insturen (iedere ingelogde gebruiker)
+    case 'feedback_send': {
+        $u = require_user();
+        $b = body();
+        $kind = ($b['kind'] ?? '') === 'idee' ? 'idee' : 'fout';
+        $text = trim((string) ($b['text'] ?? ''));
+        if (mb_strlen($text) < 3) fail(400, 'Schrijf even wat er aan de hand is.');
+        $text = mb_substr($text, 0, 4000);
+        $st = db()->prepare('SELECT COUNT(*) FROM recepten_feedback WHERE user_id = ? AND created_at > ?');
+        $st->execute([$u['id'], now_ms() - 24 * 3600 * 1000]);
+        if ((int) $st->fetchColumn() >= 20) fail(429, 'Je hebt vandaag al veel ingestuurd. Probeer het morgen nog eens.');
+        db()->prepare('INSERT INTO recepten_feedback (user_id, kind, text, app_version, device, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+            ->execute([$u['id'], $kind, $text, mb_substr((string) ($b['version'] ?? ''), 0, 40), mb_substr((string) ($b['device'] ?? ''), 0, 255), now_ms()]);
+        if (defined('ADMIN_EMAIL') && ADMIN_EMAIL && !$u['is_admin']) {
+            send_mail(ADMIN_EMAIL, $kind === 'idee' ? 'Nieuw idee voor Ricetta' : 'Foutmelding in Ricetta',
+                "{$u['name']} stuurde " . ($kind === 'idee' ? 'een idee' : 'een foutmelding') . ":\n\n$text\n\nJe vindt alle meldingen in de app bij Instellingen → Wat is er nieuw.\n");
+        }
+        out(['ok' => true]);
+    }
+
+    case 'feedback_list': {
+        require_admin();
+        $rows = db()->query('SELECT f.*, u.name FROM recepten_feedback f LEFT JOIN recepten_users u ON u.id = f.user_id ORDER BY f.done, f.created_at DESC LIMIT 200')->fetchAll();
+        out(array_map(fn($r) => ['id' => (int) $r['id'], 'kind' => $r['kind'], 'text' => $r['text'], 'done' => (bool) $r['done'],
+            'name' => $r['name'] ?? 'Verwijderde gebruiker', 'version' => $r['app_version'], 'device' => $r['device'], 'created' => (int) $r['created_at']], $rows));
+    }
+
+    case 'feedback_set': {
+        require_admin();
+        $b = body();
+        $id = (int) ($b['id'] ?? 0);
+        if (!empty($b['delete'])) db()->prepare('DELETE FROM recepten_feedback WHERE id = ?')->execute([$id]);
+        else db()->prepare('UPDATE recepten_feedback SET done = ? WHERE id = ?')->execute([empty($b['done']) ? 0 : 1, $id]);
+        out(['ok' => true]);
     }
 
     case 'request_reject': {

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.2.3 · 24 november 2026';
+const APP_VERSION = '1.3.0 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -15,6 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 const ICONS = {
+  bug: '<svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5 9 3M14 5l1-2"/></svg>',
   news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -1677,6 +1678,75 @@ function fold(id, title, body, { badge = '', open = false, icon = '' } = {}) {
     </details>`;
 }
 
+// Beheerder: openstaande meldingen (fouten en ideeën)
+function feedbackBadge() {
+  const s = Sync.status(), n = (s.user?.admin && s.me?.feedback) || 0;
+  return n ? `<span class="badge-bad">${n} ${n === 1 ? 'melding' : 'meldingen'}</span>` : '';
+}
+const FB_KINDS = { fout: { label: 'Er gaat iets mis', short: 'Fout', q: 'Wat ging er mis?', ph: 'Bijv. wat je deed, wat je verwachtte en wat er gebeurde.' },
+  idee: { label: 'Idee voor iets nieuws', short: 'Idee', q: 'Wat zou je graag willen?', ph: 'Bijv. wat je zou willen kunnen en waarom.' } };
+function deviceInfo() {
+  const os = isIOS ? (/iPad/.test(ua) || navigator.maxTouchPoints > 1 && !/iPhone/.test(ua) ? 'iPad' : 'iPhone') : isAndroid ? 'Android' : isMac ? 'Mac' : /Windows/.test(ua) ? 'Windows' : 'Computer';
+  const br = /CriOS|Chrome/.test(ua) ? (/Edg\//.test(ua) ? 'Edge' : 'Chrome') : /FxiOS|Firefox/.test(ua) ? 'Firefox' : /Safari/.test(ua) ? 'Safari' : '';
+  return `${os}${br ? ` · ${br}` : ''}${isStandalone() ? ' · geïnstalleerd' : ''} · ${innerWidth}×${innerHeight}`;
+}
+function openFeedbackSheet() {
+  let kind = 'fout';
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Fout of idee</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <div class="fb-kinds" role="radiogroup">${Object.entries(FB_KINDS).map(([k, d]) => `<button type="button" role="radio" data-kind="${k}">${k === 'fout' ? ICONS.bug : ICONS.news}${d.label}</button>`).join('')}</div>
+    <label class="sheet-label"><span id="fbQ"></span><textarea id="fbText" rows="6" maxlength="4000"></textarea></label>
+    <p class="small-note">We sturen je naam, de versie van Ricetta (${esc(APP_VERSION.split(' ')[0])}) en je soort toestel mee.</p>
+    <p class="sync-msg" id="fbMsg" hidden></p>
+    <button class="btn" id="fbSend">Versturen</button>`, 'Fout of idee');
+  const draw = () => {
+    s.el.querySelectorAll('[data-kind]').forEach(b => { b.classList.toggle('on', b.dataset.kind === kind); b.setAttribute('aria-checked', b.dataset.kind === kind); });
+    s.$('#fbQ').textContent = FB_KINDS[kind].q;
+    s.$('#fbText').placeholder = FB_KINDS[kind].ph;
+  };
+  s.el.querySelectorAll('[data-kind]').forEach(b => b.onclick = () => { kind = b.dataset.kind; draw(); s.$('#fbText').focus(); });
+  s.$('#fbText').oninput = () => { s.$('#fbMsg').hidden = true; };
+  draw();
+  s.$('#fbSend').onclick = async () => {
+    const text = s.$('#fbText').value.trim(), msg = s.$('#fbMsg');
+    if (text.length < 3) { msg.hidden = false; msg.textContent = 'Schrijf even wat er aan de hand is.'; s.$('#fbText').focus(); return; }
+    s.$('#fbSend').disabled = true;
+    try {
+      await Sync.call('feedback_send', { kind, text, version: APP_VERSION.split(' ')[0], device: deviceInfo() });
+      s.close(); toast(kind === 'idee' ? 'Bedankt voor je idee!' : 'Bedankt, je melding is verstuurd');
+      if (Sync.status().user?.admin) { Sync.refreshMe().catch(() => {}); drawFeedbackAdmin(); }
+    } catch (err) {
+      msg.hidden = false; msg.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
+      s.$('#fbSend').disabled = false;
+    }
+  };
+}
+// Beheerder: alle meldingen in Instellingen → Wat is er nieuw
+async function drawFeedbackAdmin() {
+  const box = $('#fbAdmin');
+  if (!box || !Sync.status().user?.admin) return;
+  let list;
+  try { list = await Sync.call('feedback_list'); } catch { box.innerHTML = ''; return; }
+  if (!box.isConnected) return;
+  const open = list.filter(f => !f.done).length;
+  const day = t => new Date(t).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short', year: new Date(t).getFullYear() === new Date().getFullYear() ? undefined : 'numeric' });
+  box.innerHTML = `<h4 class="fb-head">Meldingen <small>${list.length ? `${open} open · ${list.length - open} afgehandeld` : 'nog geen'}</small></h4>
+    ${list.length ? `<ul class="fb-list">${list.map(f => `
+      <li class="fb-item${f.done ? ' done' : ''}">
+        <div class="fb-meta"><span class="fb-tag fb-${f.kind}">${FB_KINDS[f.kind]?.short || f.kind}</span><b>${esc(f.name)}</b><span>${day(f.created)}${f.version ? ` · ${esc(f.version)}` : ''}</span></div>
+        <p>${esc(f.text).replace(/\n/g, '<br>')}</p>
+        ${f.device ? `<small class="fb-device">${esc(f.device)}</small>` : ''}
+        <div class="fb-actions"><button type="button" class="link" data-fb-done="${f.id}" data-v="${f.done ? 0 : 1}">${f.done ? 'Weer open zetten' : 'Afgehandeld'}</button>
+          <button type="button" class="link danger" data-fb-del="${f.id}">Verwijderen</button></div>
+      </li>`).join('')}</ul>` : ''}`;
+  const after = () => { Sync.refreshMe().catch(() => {}); drawFeedbackAdmin(); };
+  box.querySelectorAll('[data-fb-done]').forEach(b => b.onclick = async () => { await Sync.call('feedback_set', { id: +b.dataset.fbDone, done: b.dataset.v === '1' }).catch(e => toast(e.message)); after(); });
+  box.querySelectorAll('[data-fb-del]').forEach(b => b.onclick = async () => {
+    if (!confirm('Deze melding verwijderen?')) return;
+    await Sync.call('feedback_set', { id: +b.dataset.fbDel, delete: true }).catch(e => toast(e.message)); after();
+  });
+}
+
 // Beheerder: openstaande accountaanvragen
 function usersBadge() {
   const n = Sync.status().me?.requests || 0;
@@ -1766,7 +1836,13 @@ function renderSettings() {
           <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
         </details>`, { icon: ICONS.share })}
 
-      ${fold('news', 'Wat is er nieuw', `<div class="changelog">${changelogHtml()}</div>`, { icon: ICONS.news })}
+      ${fold('news', 'Wat is er nieuw', `
+        <div class="fb-box">
+          ${loggedIn() ? `<button type="button" class="btn ghost fb-open" id="fbOpen">${ICONS.bug} Fout melden of idee insturen</button>`
+            : '<p class="small-note">Log in om een fout te melden of een idee in te sturen.</p>'}
+          <div id="fbAdmin"></div>
+        </div>
+        <div class="changelog">${changelogHtml()}</div>`, { icon: ICONS.news, badge: feedbackBadge() })}
 
       ${fold('backup', 'Back-up als bestand', `
         <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Ben je ingelogd, dan worden je recepten ook al automatisch online bewaard.</p>
@@ -1793,7 +1869,11 @@ function renderSettings() {
     badge.innerHTML = syncBadge();
     const ub = $('#badge-users');
     if (ub) ub.innerHTML = usersBadge();
+    const nb = $('#badge-news');
+    if (nb) nb.innerHTML = feedbackBadge();
   });
+  if ($('#fbOpen')) $('#fbOpen').onclick = openFeedbackSheet;
+  drawFeedbackAdmin();
   bindShareSettings();
   const openUsers = $('#openUsers');
   if (openUsers) openUsers.onclick = () => { location.hash = '#/gebruikers'; };
@@ -2191,6 +2271,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.3.0', date: '24 november 2026', sections: [{ items: [
+    'Fout gezien of een idee? Bovenaan dit onderdeel staat nu een knop om een fout te melden of een idee in te sturen.',
+  ] }] },
   { v: '1.2.0', date: '24 november 2026', sections: [{ items: [
     'Het scherm om een recept te bewerken is overzichtelijker: alles staat in groepen, zoals porties en tijd, soort gerecht, ingrediënten en bereiding.',
     'Categorieën en vegetarisch/vegan kies je met knopjes; een nieuwe categorie voeg je toe met + Nieuwe.',
