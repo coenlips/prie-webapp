@@ -1452,3 +1452,5 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .change[open] .fold-chevron svg { transform: rotate(180deg); }
 .change-body { padding: 0 0 12px; }
 .change-body h4:first-child { margin-top: 0; }
+.nowrap { white-space: nowrap; }
+.news-intro, .news-later { text-wrap: pretty; }

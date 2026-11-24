@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.1.0 · 24 november 2026';
+const APP_VERSION = '1.1.1 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2145,12 +2145,15 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.1.1', date: '24 november 2026', sections: [{ items: [
+    'Betere regelafbreking in de melding over wat er nieuw is.',
+  ] }] },
   { v: '1.1.0', date: '24 november 2026', sections: [{ items: [
     'Na een grote update zie je bij het openen één keer wat er nieuw is.',
     'Bij Instellingen staat nu dit overzicht van alle wijzigingen.',
   ] }] },
   { v: '1.0.0', date: '24 november 2026', title: 'Nieuw in Ricetta', news: '2026-11-27',
-    intro: 'Er is flink wat veranderd in Ricetta. Dit is er nieuw:',
+    intro: '<span class="nowrap">Er is flink wat veranderd in Ricetta.</span><br>Dit is er nieuw:',
     sections: [
       { h: 'Recepten delen met elkaar', items: [
         '<b>Kijk in elkaars receptenboek.</b> Bij Instellingen → Delen met anderen kies je wie in jouw receptenboek mag kijken en welke recepten erin staan. Per recept kun je dat later nog aan- of uitzetten.',
@@ -2204,7 +2207,7 @@ function maybeShowNews() {
       <div class="sheet-head"><h3>${c.title}</h3><button class="text-btn" data-close>Sluit</button></div>
       <div class="news">${changeHtml(c)}</div>
       <button class="btn" data-close>Aan de slag</button>
-      <p class="small-note news-later">Dit overzicht vind je later terug bij Instellingen → Wat is er nieuw.</p>`, c.title);
+      <p class="small-note news-later">Dit overzicht vind je later terug bij <span class="nowrap">Instellingen → Wat is er nieuw.</span></p>`, c.title);
     s.el.classList.add('news-sheet');
   }, 600);
 }
