@@ -40,6 +40,14 @@ const Sync = (() => {
     }
     const data = await res.json().catch(() => null);
     if (res.status === 401 && auth) { expire(); throw new Error('Je bent uitgelogd. Log opnieuw in.'); }
+    // Storing op de server (bijv. database even weg): begrijpelijke melding voor iedereen;
+    // de beheerder ziet er de technische oorzaak bij.
+    if (res.status >= 500 || (!res.ok && !data)) {
+      const detail = (data && data.error) || `serverfout ${res.status}`;
+      const admin = session && session.user && session.user.admin;
+      throw new Error('De server is tijdelijk niet bereikbaar. Je wijzigingen blijven op dit toestel bewaard; de back-up volgt vanzelf.'
+        + (admin ? ` (Voor de beheerder: ${detail})` : ''));
+    }
     if (!res.ok || !data) throw new Error((data && data.error) || `Serverfout ${res.status}`);
     return data;
   }
