@@ -289,7 +289,6 @@ const Sync = (() => {
       ${s.error ? `<p class="sync-state bad">⚠️ ${esc(s.error)}</p>` : ''}
       <div class="acc-actions">
         <button class="btn ghost" id="pwBtn">Wachtwoord wijzigen</button>
-        ${u.admin ? `<button class="btn ghost" id="usersBtn">Gebruikers beheren${me && me.requests ? ` <span class="req-count">${me.requests} ${me.requests === 1 ? 'aanvraag' : 'aanvragen'}</span>` : ''}</button>` : ''}
       </div>
       <button class="link" id="syncNowBtn">Nu back-up maken</button>
       <button class="link" id="signOutBtn">Uitloggen</button>

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '86 · 24 november 2026';
+const APP_VERSION = '87 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -32,6 +32,7 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>',
   people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
   camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
@@ -1522,6 +1523,12 @@ function fold(id, title, body, { badge = '', open = false, icon = '' } = {}) {
     </details>`;
 }
 
+// Beheerder: openstaande accountaanvragen
+function usersBadge() {
+  const n = Sync.status().me?.requests || 0;
+  return n ? `<span class="badge-bad">${n} ${n === 1 ? 'aanvraag' : 'aanvragen'}</span>` : '';
+}
+
 function syncBadge() {
   const s = Sync.status();
   if (s.state === 'off') return '<span class="badge-muted">uit</span>';
@@ -1544,7 +1551,11 @@ function renderSettings() {
           <li>Kies <strong>Zet op beginscherm</strong>.</li>
         </ol>`, { open: true, icon: ICONS.phone })}
 
-      ${fold('account', 'Account', `<div id="syncCard">${Sync.cardHtml()}</div>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.people })}
+      ${fold('account', 'Account', `<div id="syncCard">${Sync.cardHtml()}</div>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.user })}
+
+      ${sync.user?.admin ? fold('users', 'Gebruikers', `
+        <p>Accounts aanmaken, aanvragen goedkeuren, wachtwoorden opnieuw instellen en de mail testen.</p>
+        <button class="btn ghost" id="openUsers">Gebruikers beheren</button>`, { badge: usersBadge(), icon: ICONS.people }) : ''}
 
       ${fold('courses', 'Gangen', `<div id="courseSettings"></div>`, { badge: `<span class="badge-muted">${courseList().length}</span>`, icon: ICONS.plate })}
 
@@ -1620,7 +1631,11 @@ function renderSettings() {
   Sync.onChange(function update() {
     if (!badge.isConnected) return false; // kaart weg: ontvanger opruimen
     badge.innerHTML = syncBadge();
+    const ub = $('#badge-users');
+    if (ub) ub.innerHTML = usersBadge();
   });
+  const openUsers = $('#openUsers');
+  if (openUsers) openUsers.onclick = () => { location.hash = '#/gebruikers'; };
 
   $('#exportBtn').addEventListener('click', exportBackup);
   $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
