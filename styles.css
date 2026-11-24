@@ -1339,3 +1339,15 @@ body[data-page=book] .topbar { background-color: var(--bg); }
   .book-page .book-cards { margin-left: var(--gutter); margin-right: var(--gutter); }
   .book-page .book-cards:not(.mag) { max-width: 720px; margin-left: auto; margin-right: auto; }
 }
+
+/* Vaste kop van een kookboek: vaandel en filters elk met eigen achtergrond. Bij in-/uitklappen schuift
+   het filtermenu onder het vaandel door en schuiven de recepten direct mee (geen lege band, geen sprong). */
+.book-top { padding: 0 !important; background: none; box-shadow: none; pointer-events: none; }
+.book-top > * { pointer-events: auto; }
+.book-top .book-flag { position: relative; z-index: 2; margin: 0; padding: 12px 16px 10px; background: var(--bg); }
+.book-top .book-head { position: relative; z-index: 1; padding: 0 16px 10px; background: var(--bg); box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
+.book-top .book-head.closed { padding-bottom: 2px !important; }
+@media (min-width: 700px) {
+  .book-top .book-flag { padding: 18px var(--gutter) 12px; }
+  .book-top .book-head { padding: 0 var(--gutter) 14px; }
+}

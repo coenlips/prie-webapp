@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '100 · 24 november 2026';
+const APP_VERSION = '101 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2585,7 +2585,7 @@ async function renderBook(ownerId) {
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open);
     try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
-    foldFilters($('#bookHead'), open, { clip: true, also: [$('#bookCards')] });
+    foldFilters($('#bookHead'), open, { also: [$('#bookCards')] });   // schuift onder het vaandel door, net als onder de kopbalk
   };
   draw();
 }
