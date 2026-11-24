@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '75 · 24 november 2026';
+const APP_VERSION = '76 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -700,7 +700,7 @@ const Mag = (() => {
       <li class="mag-hero" style="grid-row:1">
         <a class="mh-photo" href="#/r/${esc(r.id)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
         <div class="mh-text">
-          ${tags.length || dietOf(r) ? `<span class="mag-kicker">${dietBadge(dietOf(r), { text: false })}${tags.map(esc).join(' · ')}</span>` : ''}
+          ${tags.length || dietOf(r) ? `<span class="mag-kicker">${dietBadge(dietOf(r))}${tags.map(esc).join(' · ')}</span>` : ''}
           <h2 class="flag"><a href="#/r/${esc(r.id)}">${esc(r.title)}</a></h2>
           ${leadOf(r) ? `<p class="mh-lead">${esc(leadOf(r))}</p>` : ''}
           ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
