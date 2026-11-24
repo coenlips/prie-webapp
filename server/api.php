@@ -128,7 +128,7 @@ function db(): PDO {
     if (!has_column($pdo, 'recepten_inbox', 'user_id')) {
         $pdo->exec("ALTER TABLE recepten_inbox ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER id");
     }
-    // Delen met andere gebruikers: wie mag in iemands receptenboek kijken, en wie wil recepten ontvangen
+    // Delen met andere gebruikers: wie mag iemands Ricette bekijken, en wie wil recepten ontvangen
     if (!has_column($pdo, 'recepten_users', 'book_vis')) {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN book_vis VARCHAR(8) NOT NULL DEFAULT 'none', ADD COLUMN accept_send TINYINT(1) NOT NULL DEFAULT 1");
     }
@@ -342,7 +342,7 @@ function app_url(string $given): string {
 
 /* ---------- Delen ---------- */
 
-// Mag $viewer in het receptenboek van $owner kijken?
+// Mag $viewer de Ricette van $owner bekijken?
 function can_view(array $owner, int $viewerId): bool {
     if ((int) $owner['id'] === $viewerId) return false;
     if ($owner['book_vis'] === 'all') return true;
@@ -613,7 +613,7 @@ switch ($action) {
         $name = clean_name((string) (($b['name'] ?? '') !== '' ? $b['name'] : $req['name']));
         $user = create_user($name);
         $url = app_url((string) ($b['appUrl'] ?? ''));
-        $body = "Hoi $name,\n\nJe account voor Ricetta, het receptenboek, is klaar.\n\n"
+        $body = "Hoi $name,\n\nJe account voor Ricetta is klaar.\n\n"
             . "Open de app: $url\nNaam: $name\nTijdelijk wachtwoord: {$user['password']}\n\n"
             . "Bij de eerste keer inloggen kies je zelf een nieuw wachtwoord.\n"
             . "Tip: op de iPhone open je de app in Safari en kies je Deel → Zet op beginscherm.\n\n"
@@ -795,7 +795,7 @@ switch ($action) {
         out(['sent' => $sent]);
     }
 
-    // Receptenboeken die met mij gedeeld zijn
+    // Ricette die met mij gedeeld zijn
     case 'books': {
         $u = require_user();
         $rows = db()->query("SELECT * FROM recepten_users WHERE book_vis <> 'none' ORDER BY name")->fetchAll();
@@ -818,7 +818,7 @@ switch ($action) {
     case 'book': {
         $u = require_user();
         $o = find_user((int) (body()['owner'] ?? 0));
-        if (!can_view($o, (int) $u['id'])) fail(403, 'Dit receptenboek wordt niet (meer) met je gedeeld.');
+        if (!can_view($o, (int) $u['id'])) fail(403, 'Deze Ricette worden niet (meer) met je gedeeld.');
         out(['owner' => ['id' => (int) $o['id'], 'name' => $o['name']], 'recipes' => array_map('recipe_light', shared_recipes((int) $o['id']))]);
     }
 
@@ -826,7 +826,7 @@ switch ($action) {
         $u = require_user();
         $b = body();
         $o = find_user((int) ($b['owner'] ?? 0));
-        if (!can_view($o, (int) $u['id'])) fail(403, 'Dit receptenboek wordt niet (meer) met je gedeeld.');
+        if (!can_view($o, (int) $u['id'])) fail(403, 'Deze Ricette worden niet (meer) met je gedeeld.');
         foreach (shared_recipes((int) $o['id']) as $r) {
             if ($r['id'] === (string) ($b['id'] ?? '')) { unset($r['links'], $r['favorite']); out($r); }
         }
