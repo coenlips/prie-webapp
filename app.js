@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '90 · 24 november 2026';
+const APP_VERSION = '92 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -388,15 +388,22 @@ async function loadRecipes() {
 
 /* ---------- Kopbalk ---------- */
 
-function setHeader({ title = 'Ricetta', back = false, actions = '', timer = true, timerLabel = '' } = {}) {
+// close: kruisje links om snel terug te gaan naar je eigen overzicht; lead: iconen vóór de wekker
+function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = true, timerLabel = '' } = {}) {
   $('#title').textContent = title;
   $('#backBtn').hidden = !back;
-  $('#topActions').innerHTML = (timer ? `<button class="icon-btn" id="timerBtn" aria-label="Kookwekker">${ICONS.timer}</button>` : '') + actions;
+  $('#closeBtn').hidden = !close;
+  $('#topActions').innerHTML = lead + (timer ? `<button class="icon-btn" id="timerBtn" aria-label="Kookwekker">${ICONS.timer}</button>` : '') + actions;
   if (timer) $('#timerBtn').onclick = () => Timers.openSheet(timerLabel);
-  document.body.classList.toggle('no-fab', !!back);
-  $('#addBtn').hidden = !!back;
+  document.body.classList.toggle('no-fab', !!(back || close));
+  $('#addBtn').hidden = !!(back || close);
   document.title = title === 'Ricetta' ? 'Ricetta' : `${title} · Ricetta`;
 }
+
+$('#closeBtn').addEventListener('click', () => {
+  if (state.cookMode) setCookMode(false);
+  location.hash = '#/';
+});
 
 $('#backBtn').addEventListener('click', () => {
   // in de kookstand: terug naar het gewone receptscherm
@@ -417,7 +424,7 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 
 function renderList() {
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open') !== '0'; } catch { return true; } })();
-  setHeader({ actions: `
+  setHeader({ lead: loggedIn() ? `<button class="icon-btn books-btn" data-go="#/kookboeken" aria-label="Kookboeken van anderen" title="Kookboeken van anderen">${ICONS.book}</button>` : '', actions: `
     <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
@@ -445,7 +452,7 @@ function renderList() {
     </div>
     ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
       `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
-    ${state.recipes.length ? `<div class="chips" id="catBar">${loggedIn() ? `<a class="chip chip-books" href="#/kookboeken">${ICONS.book}Kookboeken</a>` : ''}${chips.map(([k, l]) =>
+    ${state.recipes.length ? `<div class="chips" id="catBar">${chips.map(([k, l]) =>
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
         : k.startsWith('diet:')
@@ -1040,10 +1047,10 @@ async function renderDetail(id, opts = {}) {
   let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
 
   setHeader({
-    title: r.title, back: true, timerLabel: r.title,
+    title: r.title, back: !foreign || opts.back !== false, close: foreign, timerLabel: r.title,
     actions: `
       <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
-      ${foreign ? '' : `<button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
+      ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : `<button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
       <button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken">${ICONS.edit}</button>`}`,
   });
   Shopping.updateBadge();
@@ -2338,7 +2345,7 @@ async function renderReceived(inboxId) {
   if (!item || item.data.kind !== 'recipe') { location.hash = '#/'; return; }
   const d = item.data;
   return renderDetail(null, {
-    recipe: { ...d.recipe, id: 'ontvangen-' + inboxId },
+    recipe: { ...d.recipe, id: 'ontvangen-' + inboxId }, back: false,
     from: d.from?.name || '', message: d.message,
     onSave: async () => {
       const copy = await saveCopy(d.recipe, d.from?.name || '');
@@ -2358,7 +2365,7 @@ async function renderReceived(inboxId) {
 async function renderBooks() {
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
-  setHeader({ title: 'Kookboeken', back: true, timer: false });
+  setHeader({ title: 'Kookboeken', close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de kookboeken van anderen te bekijken.</p></div></section>`; return; }
   view.innerHTML = `<section class="settings">${loaderHtml('Kookboeken ophalen…')}</section>`;
   let books = [];
@@ -2388,12 +2395,12 @@ async function loadBook(ownerId) {
 async function renderBook(ownerId) {
   const seq = routeSeq;
   document.body.dataset.page = 'book';
-  setHeader({ title: 'Kookboek', back: true, timer: false });
+  setHeader({ title: 'Kookboek', back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   view.innerHTML = `<section class="book-page">${loaderHtml('Kookboek openen…')}</section>`;
   let d;
   try { d = await loadBook(ownerId); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
   if (isStale(seq)) return;
-  setHeader({ title: d.owner.name, back: true, timer: false });
+  setHeader({ title: d.owner.name, back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   const mine = r => state.recipes.some(x => x.fromUser === d.owner.name && x.title === r.title);
   view.innerHTML = `<section class="book-page">
     <div class="book-flag">${flagHtml(`Kookboek van ${d.owner.name}`)}</div>
@@ -2430,7 +2437,7 @@ async function renderBookRecipe(ownerId, recipeId) {
   const seq = routeSeq;
   let r, owner = bookCache.get(ownerId)?.owner;
   const name = bookCache.get(ownerId)?.recipes.find(x => x.id === recipeId)?.title;
-  setHeader({ title: name || 'Recept', back: true, timer: false });
+  setHeader({ title: name || 'Recept', back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   view.innerHTML = loaderHtml(name ? `${name} ophalen…` : 'Recept ophalen…');
   try {
     r = await Sync.call('book_recipe', { owner: ownerId, id: recipeId });
