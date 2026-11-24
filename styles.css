@@ -1172,3 +1172,6 @@ body.has-requests:not(.sync-problem) .settings-btn::after {
 .users li.req-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-bottom: 1px dashed var(--line); padding-top: 0; }
 .card-box .req-actions .btn + .btn { margin-top: 0; }
 .acc-sheet-text.warn { color: var(--accent); }
+.mail-result { margin: 12px 0 0 !important; color: var(--text) !important; font-size: 15px; line-height: 1.45; }
+.mail-result.good { color: #2e7d4f !important; }
+.mail-result code { font-size: 13px; background: var(--accent-soft); padding: 1px 5px; border-radius: 3px; }

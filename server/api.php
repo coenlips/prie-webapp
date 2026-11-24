@@ -253,7 +253,16 @@ function send_mail(string $to, string $subject, string $body): bool {
     $from = defined('MAIL_FROM') ? MAIL_FROM : 'noreply@' . $host;
     $headers = ['From: Ricetta <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: 8bit'];
     if (defined('ADMIN_EMAIL') && ADMIN_EMAIL) $headers[] = 'Reply-To: ' . ADMIN_EMAIL;
-    return @mail($to, mb_encode_mimeheader($subject, 'UTF-8'), $body, implode("\r\n", $headers), '-f' . $from);
+    $subject = mb_encode_mimeheader($subject, 'UTF-8');
+    $headers = implode("\r\n", $headers);
+    // Eerst met de afzender als envelop-afzender (-f); sommige hosters weigeren dat, dan zonder.
+    if (@mail($to, $subject, $body, $headers, '-f' . $from)) return true;
+    return @mail($to, $subject, $body, $headers);
+}
+
+function mail_from(): string {
+    $host = preg_replace(['/^www\./', '/:\d+$/'], '', strtolower((string) ($_SERVER['HTTP_HOST'] ?? 'localhost')));
+    return defined('MAIL_FROM') ? MAIL_FROM : 'noreply@' . $host;
 }
 
 // Adres van de app voor in de mail: alleen een adres dat bij ALLOWED_ORIGINS hoort
@@ -512,6 +521,17 @@ switch ($action) {
         $mailed = send_mail($req['email'], 'Je account voor Ricetta', $body);
         db()->prepare('DELETE FROM recepten_requests WHERE id = ?')->execute([$req['id']]);
         out($user + ['email' => $req['email'], 'mailed' => $mailed]);
+    }
+
+    // Testmail (beheerder): laat zien of de server mail kan versturen en vanaf welk adres
+    case 'mail_test': {
+        $admin = require_admin();
+        $to = (defined('ADMIN_EMAIL') && ADMIN_EMAIL) ? (string) ADMIN_EMAIL : '';
+        if ($to === '' || !filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            out(['sent' => false, 'to' => $to, 'from' => mail_from(), 'reason' => $to === '' ? 'no_admin_email' : 'bad_admin_email']);
+        }
+        $sent = send_mail($to, 'Testmail van Ricetta', "Hoi {$admin['name']},\n\nDit is een testmail van Ricetta. Komt deze aan, dan kan de server mail versturen.\n");
+        out(['sent' => $sent, 'to' => $to, 'from' => mail_from(), 'mailFunction' => function_exists('mail')]);
     }
 
     case 'request_reject': {

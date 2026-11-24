@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '84 · 24 november 2026';
+const APP_VERSION = '85 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2046,6 +2046,12 @@ async function renderUsers() {
         </ul>
         <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
       </div>
+      <div class="card-box">
+        <h3>Mail</h3>
+        <p>Controleer of de server mail kan versturen, bijvoorbeeld de inloggegevens bij een goedgekeurde aanvraag.</p>
+        <button class="btn ghost" id="mailTest">Testmail versturen</button>
+        <p class="mail-result" id="mailResult" hidden></p>
+      </div>
     </section>`;
 
   view.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => {
@@ -2079,6 +2085,21 @@ async function renderUsers() {
     try { await Sync.call('request_reject', { id: q.id }); toast('Aanvraag afgewezen'); renderUsers(); Sync.refreshMe().catch(() => {}); }
     catch (err) { toast(err.message); }
   });
+
+  $('#mailTest').onclick = async () => {
+    const out = $('#mailResult'), btn = $('#mailTest');
+    btn.disabled = true; out.hidden = false; out.className = 'mail-result'; out.textContent = 'Versturen…';
+    try {
+      const t = await Sync.call('mail_test');
+      if (t.reason === 'no_admin_email') out.innerHTML = '⚠️ In config.php staat geen <code>ADMIN_EMAIL</code> (of hij is leeg). Zet daar je eigen e-mailadres in.';
+      else if (t.reason === 'bad_admin_email') out.innerHTML = `⚠️ <code>ADMIN_EMAIL</code> in config.php is geen geldig e-mailadres: <strong>${esc(t.to)}</strong>.`;
+      else if (t.sent) { out.classList.add('good'); out.innerHTML = `✓ De server heeft een testmail verstuurd naar <strong>${esc(t.to)}</strong>, met als afzender <strong>${esc(t.from)}</strong>. Komt hij binnen een paar minuten niet aan (ook niet bij ongewenste mail), dan weigert je mailprovider waarschijnlijk deze afzender. Zet dan in config.php bij <code>MAIL_FROM</code> een e-mailadres dat bij Webreus echt bestaat.`; }
+      else out.innerHTML = `✗ De server kon geen mail versturen (afzender ${esc(t.from)}). Mailen vanuit PHP staat bij je hostingpakket waarschijnlijk uit of vraagt een bestaand afzenderadres. Zet bij <code>MAIL_FROM</code> een e-mailadres dat bij Webreus bestaat en probeer opnieuw; lukt het dan nog niet, dan is versturen via SMTP nodig.`;
+    } catch (err) {
+      out.textContent = /Onbekende actie/.test(err.message) ? 'Upload eerst de nieuwe api.php naar je server.' : err.message;
+    }
+    btn.disabled = false;
+  };
 
   $('#newUser').onclick = () => {
     const s = openAccSheet(`
