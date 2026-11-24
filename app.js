@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.1.3 · 24 november 2026';
+const APP_VERSION = '1.2.0 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -37,6 +37,7 @@ const ICONS = {
   user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>',
   people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
+  trash: '<svg viewBox="0 0 24 24"><path d="M5 7h14M10 7V5h4v2M7 7l1 13h8l1-13"/></svg>',
   camera: '<svg viewBox="0 0 24 24"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>',
 };
 
@@ -1422,58 +1423,75 @@ async function renderEdit(id) {
   const catChoices = used.length ? used : CATEGORIES;
 
   view.innerHTML = `
-    <form class="form" id="form" autocomplete="off">
-      <label class="photo-pick" id="photoPick">
-        <input type="file" accept="image/*" id="photoInput" hidden>
-        <div class="photo-preview" id="photoPreview"></div>
-      </label>
-      <button type="button" class="link danger" id="removePhoto" ${photo ? '' : 'hidden'}>Foto verwijderen</button>
-
-      <label>Naam<input name="title" required value="${esc(r.title)}" placeholder="Bijv. Oma's appeltaart"></label>
-      <label>Korte omschrijving<input name="description" value="${esc(r.description)}" placeholder="Optioneel"></label>
-
-      <div class="field">
-        <span class="field-label">Gang <small>tik er één of meer aan</small></span>
-        <div class="course-choices" id="courseChoices">
-          ${courseList().map(c => `<button type="button" class="chip chip-course${coursesOf(r).includes(c) ? ' on' : ''}" data-course-pick="${esc(c)}">${esc(c)}</button>`).join('')}
+    <form class="ed" id="form" autocomplete="off">
+      <div class="ed-side" id="edSide">
+        <label class="ed-photo" id="photoPick">
+          <input type="file" accept="image/*" id="photoInput" hidden>
+          <div class="ed-photo-img" id="photoPreview"></div>
+          <span class="ph-btns"><span class="ph-btn" id="photoChange">${ICONS.camera}<span>Wijzig</span></span><button type="button" class="ph-btn" id="removePhoto" aria-label="Foto verwijderen" title="Foto verwijderen">${ICONS.trash}</button></span>
+        </label>
+        <div class="ed-title">
+          <input name="title" required value="${esc(r.title)}" placeholder="Naam van het recept" aria-label="Naam">
+          <input name="description" class="desc" value="${esc(r.description)}" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving">
         </div>
+
+        <section class="ed-sec"><h3>Porties en tijd</h3>
+          <div class="stats">
+            <label class="stat"><span>Porties</span><input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
+            <label class="stat"><span>Voorbereiden</span><b><input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}" placeholder="0"><small>min</small></b></label>
+            <label class="stat"><span>Koken</span><b><input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}" placeholder="0"><small>min</small></b></label>
+          </div>
+        </section>
+
+        <section class="ed-sec"><h3>Soort gerecht</h3>
+          <span class="ed-sub">Gang</span>
+          <div class="chips" id="courseChoices">
+            ${courseList().map(c => `<button type="button" class="chip chip-course${coursesOf(r).includes(c) ? ' on' : ''}" data-course-pick="${esc(c)}">${esc(c)}</button>`).join('')}
+          </div>
+          <span class="ed-sub">Categorie</span>
+          <input type="hidden" name="category" value="${esc(catsOf(r).join(', '))}">
+          <div class="chips cat-choices" id="catChoices">
+            ${[...new Set([...catChoices, ...catsOf(r)])].map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+            <button type="button" class="chip chip-new" id="catNew">+ Nieuwe</button>
+          </div>
+          <span class="ed-sub">Dieet</span>
+          <div class="chips diet-pick" role="group" aria-label="Vegetarisch of vegan">
+            ${Object.keys(DIETS).map(k => `<label class="chip diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}</label>`).join('')}
+          </div>
+        </section>
+
+        ${loggedIn() ? `<section class="ed-sec"><h3>Delen</h3>
+          <label class="switch-row share-check"><span><b>Zichtbaar in mijn Ricette</b><small>${(shareCache().visibility || 'none') === 'none' ? 'Je Ricette zijn nu privé; dit telt zodra je ze deelt (Instellingen).' : 'Mensen met wie je je Ricette deelt, zien dit recept.'}</small></span>
+            <span class="switch"><input type="checkbox" name="shared" role="switch"${(id ? r.shared : (shareCache().visibility || 'none') !== 'none') ? ' checked' : ''}></span></label>
+        </section>` : ''}
       </div>
 
-      <label>Categorieën <small>tik er één of meer aan, of typ nieuwe, gescheiden door komma's</small>
-        <input name="category" value="${esc(catsOf(r).join(', '))}" placeholder="Bijv. Diner, Italiaans" autocapitalize="sentences">
-      </label>
-      <div class="cat-choices" id="catChoices">
-        ${catChoices.map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
-      </div>
-
-      <div class="row">
-        <label>Porties<input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
-        <div class="diet-pick" role="group" aria-label="Vegetarisch of vegan">
-          ${Object.keys(DIETS).map(k => `<label class="diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}</label>`).join('')}
+      <div class="ed-main">
+        <div class="ed-two">
+          <section class="ed-sec"><h3>Ingrediënten</h3>
+            <textarea name="ingredients" class="grow" rows="6" aria-label="Ingrediënten" placeholder="250 g bloem&#10;2 eieren&#10;# Voor de saus&#10;1/2 l melk">${esc(r.ingredients)}</textarea>
+            <p class="hint">Eén per regel. Begin met <code>#</code> voor een kopje.</p>
+          </section>
+          <section class="ed-sec"><h3>Bereiding</h3>
+            <textarea name="steps" class="grow" rows="6" aria-label="Bereiding" placeholder="Verwarm de oven voor op 180 °C.&#10;Meng de bloem met de eieren.&#10;# Voor de saus&#10;Smelt de boter in een pan.">${esc(r.steps)}</textarea>
+            <p class="hint">Eén stap per regel. Begin met <code>#</code> voor een kopje.</p>
+          </section>
         </div>
+
+        <section class="ed-sec field-links"><h3>Hoort bij dit recept</h3>
+          <div class="edit-links" id="editLinks"></div>
+          <p class="hint">Onderdelen, zoals de saus of het deeg, en recepten die er lekker bij passen.</p>
+        </section>
+
+        <section class="ed-sec"><h3>Extra</h3>
+          <label class="ed-sub" for="edNotes">Notities</label>
+          <textarea name="notes" id="edNotes" class="plain grow" rows="3" placeholder="Tips, variaties, bron…">${esc(r.notes)}</textarea>
+          <label class="ed-sub" for="edTags">Tags</label>
+          <input name="tags" id="edTags" class="plain" value="${esc((r.tags || []).join(', '))}" placeholder="Gescheiden door komma's, bijv. snel, feest">
+        </section>
+
+        ${id ? `<button type="button" class="ed-del" id="deleteBtn">Recept verwijderen</button>` : ''}
       </div>
-      ${loggedIn() ? `<label class="share-check"><input type="checkbox" name="shared"${(id ? r.shared : (shareCache().visibility || 'none') !== 'none') ? ' checked' : ''}>
-        <span>${ICONS.book}<span>Zichtbaar in mijn Ricette<small>${(shareCache().visibility || 'none') === 'none' ? 'Je Ricette zijn nu privé; dit telt zodra je ze deelt (Instellingen).' : 'Mensen met wie je je Ricette deelt, zien dit recept.'}</small></span></span></label>` : ''}
-
-      <div class="row">
-        <label>Voorbereiden (min)<input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}"></label>
-        <label>Kooktijd (min)<input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}"></label>
-      </div>
-
-      <div class="field-links"><span class="field-label">Bijbehorende recepten <small>onderdelen en wat er lekker bij past</small></span>
-        <div class="edit-links" id="editLinks"></div>
-      </div>
-
-      <label>Ingrediënten <small>één per regel · begin met # voor een kopje</small>
-        <textarea name="ingredients" rows="8" placeholder="250 g bloem&#10;2 eieren&#10;# Voor de saus&#10;1/2 l melk">${esc(r.ingredients)}</textarea>
-      </label>
-      <label>Bereiding <small>één stap per regel · begin met # voor een kopje</small>
-        <textarea name="steps" rows="8" placeholder="Verwarm de oven voor op 180 °C.&#10;Meng de bloem met de eieren.&#10;# Voor de saus&#10;Smelt de boter in een pan.">${esc(r.steps)}</textarea>
-      </label>
-      <label>Tags <small>gescheiden door komma's</small><input name="tags" value="${esc((r.tags || []).join(', '))}" placeholder="vegetarisch, snel"></label>
-      <label>Notities<textarea name="notes" rows="3" placeholder="Tips, variaties, bron…">${esc(r.notes)}</textarea></label>
-
-      ${id ? `<button type="button" class="btn danger" id="deleteBtn">Recept verwijderen</button>` : ''}
     </form>`;
 
   // Categorie kiezen met knopjes (de keuzelijst van iOS werkt niet betrouwbaar)
@@ -1481,7 +1499,24 @@ async function renderEdit(id) {
   view.querySelectorAll('[data-course-pick]').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
   // Vegetarisch of vegan: hooguit één van de twee
   const dietBoxes = [...view.querySelectorAll('input[name=diet]')];
-  dietBoxes.forEach(cb => cb.addEventListener('change', () => { if (cb.checked) dietBoxes.forEach(o => { if (o !== cb) o.checked = false; }); }));
+  const markDiet = () => dietBoxes.forEach(o => o.closest('.chip').classList.toggle('on', o.checked));
+  dietBoxes.forEach(cb => cb.addEventListener('change', () => { if (cb.checked) dietBoxes.forEach(o => { if (o !== cb) o.checked = false; }); markDiet(); }));
+  markDiet();
+  // Minuten: het vakje is zo breed als het getal, zodat 'min' er direct achter staat
+  view.querySelectorAll('.stat b input').forEach(i => { const fit = () => { i.style.width = `${Math.max(1, i.value.length) * 0.42 + 0.1}em`; }; i.addEventListener('input', fit); fit(); });
+
+  // Tekstvakken groeien mee met de tekst (geen scrollen binnen een vakje)
+  const grow = t => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 3}px`; };
+  view.querySelectorAll('textarea.grow').forEach(t => { t.addEventListener('input', () => grow(t)); requestAnimationFrame(() => grow(t)); });
+  // Linkerkolom (iPad/laptop) blijft staan; is hij hoger dan het scherm, dan blijft de onderkant staan
+  const side = $('#edSide');
+  const stick = () => { if (!side.isConnected) { removeEventListener('resize', stick); return; }
+    const top = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 72;
+    side.style.top = `${Math.min(top + 18, innerHeight - side.offsetHeight - 24)}px`;
+  };
+  addEventListener('resize', function g() { if (!side.isConnected) return removeEventListener('resize', g); view.querySelectorAll('textarea.grow').forEach(grow); });
+  addEventListener('resize', stick); requestAnimationFrame(stick);
+  if (window.ResizeObserver) new ResizeObserver(() => stick()).observe(side);
 
   // Bijbehorende recepten koppelen
   let links = linksOf(r).map(l => ({ id: l.id, kind: l.kind }));
@@ -1534,16 +1569,30 @@ async function renderEdit(id) {
     const chosen = splitCats(catInput.value).map(c => c.toLowerCase());
     view.querySelectorAll('[data-cat]').forEach(b => b.classList.toggle('on', chosen.includes(b.dataset.cat.toLowerCase())));
   };
-  view.querySelectorAll('[data-cat]').forEach(b => b.addEventListener('click', () => {
-    const key = b.dataset.cat.toLowerCase();
-    const list = splitCats(catInput.value);
-    catInput.value = (b.classList.contains('on')
-      ? list.filter(c => c.toLowerCase() !== key)
-      : [...list, b.dataset.cat]).join(', ');
+  const bindCat = b => b.addEventListener('click', () => {
+    const key = b.dataset.cat.toLowerCase(), list = splitCats(catInput.value);
+    catInput.value = (b.classList.contains('on') ? list.filter(c => c.toLowerCase() !== key) : [...list, b.dataset.cat]).join(', ');
     markCat();
-  }));
-  catInput.addEventListener('input', markCat);
+  });
+  view.querySelectorAll('[data-cat]').forEach(bindCat);
   markCat();
+  $('#catNew').addEventListener('click', () => {
+    const btn = $('#catNew');
+    const inp = Object.assign(document.createElement('input'), { className: 'chip-input', placeholder: 'Nieuwe categorie', enterKeyHint: 'done', autocapitalize: 'sentences' });
+    btn.replaceWith(inp); inp.focus();
+    let done = false;
+    const finish = () => {
+      if (done) return; done = true;
+      splitCats(inp.value).forEach(c => {
+        let chip = [...view.querySelectorAll('[data-cat]')].find(x => x.dataset.cat.toLowerCase() === c.toLowerCase());
+        if (!chip) { chip = Object.assign(document.createElement('button'), { type: 'button', className: 'chip', textContent: c }); chip.dataset.cat = c; inp.before(chip); bindCat(chip); }
+        if (!chip.classList.contains('on')) chip.click();
+      });
+      inp.replaceWith(btn);
+    };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); finish(); } if (e.key === 'Escape') { inp.value = ''; finish(); } });
+    inp.addEventListener('blur', finish);
+  });
 
   const preview = $('#photoPreview');
   const drawPhoto = () => {
@@ -1551,6 +1600,7 @@ async function renderEdit(id) {
       ? `<img src="${photo}" alt="">`
       : `<div class="photo-empty">${ICONS.camera}<span>Foto toevoegen</span></div>`;
     $('#removePhoto').hidden = !photo;
+    $('#photoChange').hidden = !photo;
   };
   drawPhoto();
 
@@ -1559,7 +1609,7 @@ async function renderEdit(id) {
     if (!f) return;
     try { photo = await resizeImage(f); drawPhoto(); } catch (err) { toast(err.message); }
   });
-  $('#removePhoto').addEventListener('click', () => { photo = ''; drawPhoto(); });
+  $('#removePhoto').addEventListener('click', e => { e.preventDefault(); e.stopPropagation(); photo = ''; $('#photoInput').value = ''; drawPhoto(); });
 
   const form = $('#form');
   const save = async () => {
@@ -2145,6 +2195,12 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.2.0', date: '24 november 2026', sections: [{ items: [
+    'Het scherm om een recept te bewerken is overzichtelijker: alles staat in groepen, zoals porties en tijd, soort gerecht, ingrediënten en bereiding.',
+    'Categorieën en vegetarisch/vegan kies je met knopjes; een nieuwe categorie voeg je toe met + Nieuwe.',
+    'De vakken voor ingrediënten en bereiding groeien mee met de tekst.',
+    'Op iPad en laptop staan ingrediënten en bereiding naast elkaar.',
+  ] }] },
   { v: '1.1.0', date: '24 november 2026', sections: [{ items: [
     'Na een grote update zie je bij het openen één keer wat er nieuw is.',
     'Bij Instellingen staat nu dit overzicht van alle wijzigingen.',
