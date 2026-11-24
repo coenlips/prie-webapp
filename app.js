@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.2.0 · 24 november 2026';
+const APP_VERSION = '1.2.1 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1579,7 +1579,7 @@ async function renderEdit(id) {
   $('#catNew').addEventListener('click', () => {
     const btn = $('#catNew');
     const inp = Object.assign(document.createElement('input'), { className: 'chip-input', placeholder: 'Nieuwe categorie', enterKeyHint: 'done', autocapitalize: 'sentences' });
-    btn.replaceWith(inp); inp.focus();
+    btn.style.display = 'none'; btn.before(inp); inp.focus();
     let done = false;
     const finish = () => {
       if (done) return; done = true;
@@ -1588,7 +1588,7 @@ async function renderEdit(id) {
         if (!chip) { chip = Object.assign(document.createElement('button'), { type: 'button', className: 'chip', textContent: c }); chip.dataset.cat = c; inp.before(chip); bindCat(chip); }
         if (!chip.classList.contains('on')) chip.click();
       });
-      inp.replaceWith(btn);
+      inp.remove(); btn.style.display = '';
     };
     inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); finish(); } if (e.key === 'Escape') { inp.value = ''; finish(); } });
     inp.addEventListener('blur', finish);

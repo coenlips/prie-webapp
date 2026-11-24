@@ -271,7 +271,6 @@ body.cook .detail-title { margin-top: 8px; }
 .photo-preview img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .photo-empty { height: 100%; display: grid; place-content: center; justify-items: center; gap: 6px; color: var(--muted); font-weight: 500; }
 .photo-empty svg { width: 32px; height: 32px; }
-#removePhoto { justify-self: start; margin-top: -8px; }
 
 /* Instellingen */
 .settings { display: grid; gap: 14px; }
@@ -1462,7 +1461,8 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .ed-photo { position: relative; display: block; margin: 0 -16px; aspect-ratio: 16/10; background: var(--surface); cursor: pointer; overflow: hidden; border-bottom: 1px dashed var(--line); }
 .ed-photo-img { position: absolute; inset: 0; }
 .ed-photo-img img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.ed-photo .ph-btns { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.ed-photo .ph-btns { position: absolute; right: 12px; bottom: 12px; display: flex; align-items: center; gap: 8px; line-height: 1; }
+.ed-photo .ph-btns > .ph-btn { box-sizing: border-box; height: 36px; margin: 0; vertical-align: top; -webkit-appearance: none; appearance: none; border: 0; line-height: 1; }
 .ed-photo .ph-btn > span { line-height: 1; padding-top: 2px; }
 .ed-photo .ph-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; height: 36px; min-width: 36px; padding: 0 14px; border-radius: 999px; background: rgba(30, 20, 12, .72); color: #fff; font: 500 13px var(--font-label); letter-spacing: .08em; text-transform: uppercase; -webkit-backdrop-filter: blur(6px); backdrop-filter: blur(6px); }
 .ed-photo button.ph-btn { padding: 0; width: 36px; margin: 0; }
@@ -1487,10 +1487,12 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .ed .stat b small { font: 500 12px var(--font-label); letter-spacing: .08em; color: var(--muted); }
 .ed .chips { display: flex; flex-wrap: wrap; gap: 7px; }
 .ed .chip-new { border-style: dashed; border-color: var(--accent); color: var(--accent); background: none; }
-.ed .chip-input { width: 170px; border: 1.5px solid var(--accent); background: var(--surface); padding: 6px 10px; font-size: 15px; border-radius: 3px; }
+.ed .chip-input { align-self: stretch; width: 170px; border: 1.5px solid var(--accent); background: var(--surface); padding: 6px 10px; font-size: 15px; border-radius: 3px; }
 .ed .diet-check { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
 .ed .diet-check input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.ed .diet-check.on { background: var(--accent-soft); border-color: var(--text); }
+.ed .diet-check.on { background: #008C44; border-color: #008C44; }
+.ed .diet-check.on .diet-text { color: #fff; }
+.ed .diet-check.on svg { border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
 .ed .diet-check:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ed .switch-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1.5px solid var(--line); cursor: pointer; }
 .ed .switch-row > span:first-child { flex: 1; display: grid; gap: 2px; }
