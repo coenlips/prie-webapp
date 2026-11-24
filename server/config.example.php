@@ -16,6 +16,14 @@ const APP_PASSWORD = 'kies-hier-een-wachtwoord';
 // Vanaf welke websites de app de API mag gebruiken
 const ALLOWED_ORIGINS = ['https://ricetta.coenlips.nl', 'https://coenlips.github.io'];
 
+// Mail versturen via SMTP (nodig bij Webreus: de gewone mailfunctie van PHP werkt daar niet).
+// Gebruik de gegevens van een bestaande mailbox, bijvoorbeeld ricetta@jouwdomein.nl.
+// const SMTP_HOST = 'mailserver-van-je-hoster';   // zie de helppagina van je hoster
+// const SMTP_PORT = 465;                          // 465 bij 'ssl', 587 bij 'tls'
+// const SMTP_SECURE = 'ssl';                      // 'ssl' (poort 465) of 'tls' (STARTTLS, poort 587)
+// const SMTP_USER = 'ricetta@jouwdomein.nl';
+// const SMTP_PASS = 'wachtwoord-van-die-mailbox';
+
 // Optioneel: mail bij account aanvragen.
 // Afzender van de mail met inloggegevens (standaard noreply@ je eigen domein):
 // const MAIL_FROM = 'ricetta@coenlips.nl';

@@ -247,22 +247,78 @@ function clean_email(string $email): string {
 
 // Mail versturen via de mailfunctie van de hoster. Afzender: MAIL_FROM uit config.php,
 // anders noreply@ het eigen domein. Antwoorden gaan naar ADMIN_EMAIL als die is ingesteld.
-function send_mail(string $to, string $subject, string $body): bool {
-    if (!function_exists('mail')) return false;
+// Mail versturen. Met SMTP_HOST in config.php via SMTP met inloggen (zoals Webreus vraagt),
+// anders via de mailfunctie van PHP. Afzender: MAIL_FROM, anders SMTP_USER, anders noreply@ het eigen domein.
+// Antwoorden gaan naar ADMIN_EMAIL als die is ingesteld. Bij een fout staat de reden in $GLOBALS['mail_error'].
+function mail_from(): string {
+    if (defined('MAIL_FROM') && MAIL_FROM) return MAIL_FROM;
+    if (defined('SMTP_USER') && SMTP_USER && filter_var(SMTP_USER, FILTER_VALIDATE_EMAIL)) return SMTP_USER;
     $host = preg_replace(['/^www\./', '/:\d+$/'], '', strtolower((string) ($_SERVER['HTTP_HOST'] ?? 'localhost')));
-    $from = defined('MAIL_FROM') ? MAIL_FROM : 'noreply@' . $host;
-    $headers = ['From: Ricetta <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: 8bit'];
+    return 'noreply@' . $host;
+}
+function mail_method(): string { return defined('SMTP_HOST') && SMTP_HOST ? 'smtp' : 'mail'; }
+
+function send_mail(string $to, string $subject, string $body): bool {
+    $GLOBALS['mail_error'] = '';
+    $from = mail_from();
+    $headers = ['From: Ricetta <' . $from . '>', 'MIME-Version: 1.0', 'Content-Type: text/plain; charset=UTF-8', 'Content-Transfer-Encoding: quoted-printable'];
     if (defined('ADMIN_EMAIL') && ADMIN_EMAIL) $headers[] = 'Reply-To: ' . ADMIN_EMAIL;
     $subject = mb_encode_mimeheader($subject, 'UTF-8');
-    $headers = implode("\r\n", $headers);
+    // Regeleinden als CRLF vóór het coderen, anders worden ze als =0A gecodeerd
+    $qp = quoted_printable_encode(str_replace("\n", "\r\n", str_replace(["\r\n", "\r"], "\n", $body)));
+    if (mail_method() === 'smtp') return smtp_send($from, $to, $subject, $qp, $headers);
+    if (!function_exists('mail')) { $GLOBALS['mail_error'] = 'De mailfunctie van PHP staat uit.'; return false; }
+    $h = implode("\r\n", $headers);
     // Eerst met de afzender als envelop-afzender (-f); sommige hosters weigeren dat, dan zonder.
-    if (@mail($to, $subject, $body, $headers, '-f' . $from)) return true;
-    return @mail($to, $subject, $body, $headers);
+    if (@mail($to, $subject, $qp, $h, '-f' . $from) || @mail($to, $subject, $qp, $h)) return true;
+    $GLOBALS['mail_error'] = 'De mailfunctie van PHP weigerde de mail. Stel SMTP in (zie config.example.php).';
+    return false;
 }
 
-function mail_from(): string {
-    $host = preg_replace(['/^www\./', '/:\d+$/'], '', strtolower((string) ($_SERVER['HTTP_HOST'] ?? 'localhost')));
-    return defined('MAIL_FROM') ? MAIL_FROM : 'noreply@' . $host;
+// Klein SMTP-programmaatje: SSL (poort 465) of STARTTLS (poort 587), inloggen met AUTH LOGIN.
+// Instellingen in config.php: SMTP_HOST, SMTP_PORT, SMTP_SECURE ('ssl', 'tls' of 'none'), SMTP_USER, SMTP_PASS.
+function smtp_send(string $from, string $to, string $subject, string $qpBody, array $headers): bool {
+    $host = SMTP_HOST;
+    $secure = defined('SMTP_SECURE') ? strtolower((string) SMTP_SECURE) : 'ssl';
+    $port = defined('SMTP_PORT') && SMTP_PORT ? (int) SMTP_PORT : ($secure === 'ssl' ? 465 : 587);
+    $err = function (string $m) { $GLOBALS['mail_error'] = $m; return false; };
+    $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $host]]);
+    $s = @stream_socket_client(($secure === 'ssl' ? 'ssl://' : 'tcp://') . $host . ':' . $port, $errno, $errstr, 15, STREAM_CLIENT_CONNECT, $ctx);
+    if (!$s) return $err("Geen verbinding met de mailserver $host:$port ($errstr).");
+    stream_set_timeout($s, 20);
+    $read = function () use ($s): string {
+        $data = '';
+        while (($line = fgets($s, 1024)) !== false) { $data .= $line; if (strlen($line) < 4 || $line[3] === ' ') break; }
+        return $data;
+    };
+    $cmd = function (string $c, array $ok) use ($s, $read): string|false {
+        if ($c !== '') fwrite($s, $c . "\r\n");
+        $r = $read();
+        return in_array((int) substr($r, 0, 3), $ok, true) ? $r : false;
+    };
+    $me = preg_replace('/:\d+$/', '', (string) ($_SERVER['HTTP_HOST'] ?? 'localhost'));
+    $close = function () use ($s) { @fwrite($s, "QUIT\r\n"); @fclose($s); };
+    if (!$cmd('', [220])) { $close(); return $err('De mailserver gaf geen welkom.'); }
+    if (!$cmd("EHLO $me", [250])) { $close(); return $err('De mailserver accepteerde EHLO niet.'); }
+    if ($secure === 'tls') {
+        if (!$cmd('STARTTLS', [220])) { $close(); return $err('De mailserver ondersteunt geen STARTTLS. Probeer SMTP_SECURE = \'ssl\' met poort 465.'); }
+        if (!@stream_socket_enable_crypto($s, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) { $close(); return $err('Beveiligde verbinding (TLS) met de mailserver mislukt.'); }
+        if (!$cmd("EHLO $me", [250])) { $close(); return $err('De mailserver accepteerde EHLO na STARTTLS niet.'); }
+    }
+    if (defined('SMTP_USER') && SMTP_USER !== '') {
+        if (!$cmd('AUTH LOGIN', [334]) || !$cmd(base64_encode(SMTP_USER), [334]) || !$cmd(base64_encode(defined('SMTP_PASS') ? SMTP_PASS : ''), [235])) {
+            $close(); return $err('Inloggen bij de mailserver mislukt. Controleer SMTP_USER en SMTP_PASS in config.php.');
+        }
+    }
+    if (!$cmd("MAIL FROM:<$from>", [250])) { $close(); return $err("De mailserver weigert afzender $from. Gebruik als MAIL_FROM hetzelfde adres als SMTP_USER."); }
+    if (!$cmd("RCPT TO:<$to>", [250, 251])) { $close(); return $err("De mailserver weigert ontvanger $to."); }
+    if (!$cmd('DATA', [354])) { $close(); return $err('De mailserver weigerde de mail (DATA).'); }
+    $msg = array_merge(["To: <$to>", "Subject: $subject", 'Date: ' . date('r'), 'Message-ID: <' . bin2hex(random_bytes(12)) . '@' . substr(strrchr($from, '@'), 1) . '>'], $headers);
+    $data = implode("\r\n", $msg) . "\r\n\r\n" . str_replace("\n", "\r\n", str_replace("\r\n", "\n", $qpBody));
+    $data = preg_replace('/^\./m', '..', $data);   // regels die met een punt beginnen
+    if (!$cmd($data . "\r\n.", [250])) { $close(); return $err('De mailserver heeft de mail niet aangenomen.'); }
+    $close();
+    return true;
 }
 
 // Adres van de app voor in de mail: alleen een adres dat bij ALLOWED_ORIGINS hoort
@@ -531,7 +587,7 @@ switch ($action) {
             out(['sent' => false, 'to' => $to, 'from' => mail_from(), 'reason' => $to === '' ? 'no_admin_email' : 'bad_admin_email']);
         }
         $sent = send_mail($to, 'Testmail van Ricetta', "Hoi {$admin['name']},\n\nDit is een testmail van Ricetta. Komt deze aan, dan kan de server mail versturen.\n");
-        out(['sent' => $sent, 'to' => $to, 'from' => mail_from(), 'mailFunction' => function_exists('mail')]);
+        out(['sent' => $sent, 'to' => $to, 'from' => mail_from(), 'method' => mail_method(), 'error' => $GLOBALS['mail_error'] ?? '']);
     }
 
     case 'request_reject': {

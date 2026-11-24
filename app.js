@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '85 · 24 november 2026';
+const APP_VERSION = '86 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2093,8 +2093,9 @@ async function renderUsers() {
       const t = await Sync.call('mail_test');
       if (t.reason === 'no_admin_email') out.innerHTML = '⚠️ In config.php staat geen <code>ADMIN_EMAIL</code> (of hij is leeg). Zet daar je eigen e-mailadres in.';
       else if (t.reason === 'bad_admin_email') out.innerHTML = `⚠️ <code>ADMIN_EMAIL</code> in config.php is geen geldig e-mailadres: <strong>${esc(t.to)}</strong>.`;
-      else if (t.sent) { out.classList.add('good'); out.innerHTML = `✓ De server heeft een testmail verstuurd naar <strong>${esc(t.to)}</strong>, met als afzender <strong>${esc(t.from)}</strong>. Komt hij binnen een paar minuten niet aan (ook niet bij ongewenste mail), dan weigert je mailprovider waarschijnlijk deze afzender. Zet dan in config.php bij <code>MAIL_FROM</code> een e-mailadres dat bij Webreus echt bestaat.`; }
-      else out.innerHTML = `✗ De server kon geen mail versturen (afzender ${esc(t.from)}). Mailen vanuit PHP staat bij je hostingpakket waarschijnlijk uit of vraagt een bestaand afzenderadres. Zet bij <code>MAIL_FROM</code> een e-mailadres dat bij Webreus bestaat en probeer opnieuw; lukt het dan nog niet, dan is versturen via SMTP nodig.`;
+      else if (t.sent) { out.classList.add('good'); out.innerHTML = `✓ De server heeft een testmail verstuurd${t.method === 'smtp' ? ' via SMTP' : ''} naar <strong>${esc(t.to)}</strong>, met als afzender <strong>${esc(t.from)}</strong>. Komt hij binnen een paar minuten niet aan (ook niet bij ongewenste mail), dan weigert je mailprovider waarschijnlijk deze afzender. Zet dan in config.php bij <code>MAIL_FROM</code> een e-mailadres dat bij Webreus echt bestaat.`; }
+      else if (t.method === 'smtp') out.innerHTML = `✗ Versturen via SMTP lukte niet (afzender ${esc(t.from)}).<br><strong>Reden:</strong> ${esc(t.error || 'onbekend')}`;
+      else out.innerHTML = `✗ De server kon geen mail versturen (afzender ${esc(t.from)}). Bij Webreus werkt de gewone mailfunctie van PHP niet: stel in config.php versturen via <strong>SMTP</strong> in (<code>SMTP_HOST</code>, <code>SMTP_PORT</code>, <code>SMTP_SECURE</code>, <code>SMTP_USER</code>, <code>SMTP_PASS</code>).`;
     } catch (err) {
       out.textContent = /Onbekende actie/.test(err.message) ? 'Upload eerst de nieuwe api.php naar je server.' : err.message;
     }
