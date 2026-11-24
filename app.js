@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '73 · 24 november 2026';
+const APP_VERSION = '74 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -76,15 +76,15 @@ const DIETS = {
 };
 const DIET_LEAF = 'M 142.765625 170.960938 C 142.765625 170.960938 143.359375 167.660156 143.570312 166.1875 C 144.9375 157.621094 145.78125 148.902344 147.960938 140.515625 C 150.542969 130.914062 153.304688 120.691406 157.824219 111.761719 C 158.652344 110.398438 159.984375 107.765625 161.953125 107.871094 C 167.117188 107.472656 172.328125 105.792969 176.566406 102.683594 C 179.730469 100.351562 182.222656 97.722656 183.988281 94.183594 C 185.347656 90.601562 185.925781 87.078125 185.90625 83.238281 C 185.964844 79.773438 186.503906 76.65625 187.847656 73.457031 C 188.136719 72.574219 188.480469 71.714844 188.414062 70.765625 C 186.445312 70.5625 183.910156 72.242188 182.097656 72.914062 C 177.804688 74.34375 173.097656 74.96875 168.675781 75.828125 C 165.082031 76.4375 161.800781 77.46875 158.828125 79.65625 C 153.953125 83.109375 151.515625 87.371094 149.691406 93.027344 C 148.917969 96.214844 148.269531 99.90625 148.496094 103.175781 L 148.667969 103.550781 C 149.492188 103.273438 150.917969 100.761719 151.378906 100.015625 C 154.289062 95.507812 157.160156 91.425781 161.5625 88.097656 C 162.289062 87.660156 166.445312 85.378906 166.964844 86.507812 C 166.894531 87.980469 164.511719 90.039062 163.558594 91.21875 C 154.984375 101.328125 149.953125 114.890625 145.472656 127.183594 C 143.007812 133.988281 141.472656 141.199219 138.574219 147.796875 C 138.4375 148.035156 138.230469 148.515625 137.972656 148.636719 C 137.175781 147.84375 136.71875 145.929688 136.390625 144.867188 C 135.074219 140.195312 133.921875 135.355469 132.585938 130.683594 C 129.308594 118.332031 125.429688 103.886719 117.890625 93.34375 C 112.113281 85.710938 104.347656 77.046875 95.0625 73.722656 C 94.945312 73.726562 94.707031 73.730469 94.589844 73.730469 C 94.246094 74.472656 95.0625 75.027344 95.519531 75.539062 C 106.679688 86.945312 115.65625 102.515625 120.496094 117.609375 C 125.515625 133.4375 130.246094 150.335938 133.046875 166.726562 C 133.285156 168.050781 133.582031 169.664062 133.910156 170.960938 C 133.910156 170.960938 136.917969 171.148438 138.324219 171.148438 C 139.726562 171.148438 142.765625 170.960938 142.765625 170.960938';
 document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${
-  Object.entries(DIETS).map(([k, d]) => `<symbol id="diet-${k}" viewBox="0 0 200 200"><circle cx="100" cy="100" r="100" fill="${d.bg}"/><path fill="${d.fg}" transform="translate(-76.875 -49.6875) scale(1.25)" d="${DIET_LEAF}"/></symbol>`).join('')
+  Object.entries(DIETS).map(([k, d]) => `<symbol id="diet-${k}" viewBox="-3 -3 206 206"><circle cx="100" cy="100" r="100" fill="${d.bg}"/><path fill="${d.fg}" transform="translate(-76.875 -49.6875) scale(1.25)" d="${DIET_LEAF}"/></symbol>`).join('')
 }</defs></svg>`);
 const dietOf = r => (r && DIETS[r.diet] ? r.diet : '');
 // Logo met tekst; met tip een uitleg bij aanwijzen (muis) of aantikken (iPhone)
-function dietBadge(kind, { tip = true } = {}) {
+function dietBadge(kind, { tip = true, text = true } = {}) {
   const d = DIETS[kind];
   if (!d) return '';
   const attrs = tip ? ` role="img" aria-label="${d.tip}" data-tip="${d.tip}" tabindex="0"` : '';
-  return `<span class="diet diet-${kind}"${attrs}><svg viewBox="0 0 200 200" aria-hidden="true"><use href="#diet-${kind}"/></svg><span class="diet-text">${d.label}</span></span>`;
+  return `<span class="diet diet-${kind}"${attrs}><svg viewBox="-3 -3 206 206" aria-hidden="true"><use href="#diet-${kind}"/></svg>${text ? `<span class="diet-text">${d.label}</span>` : ''}</span>`;
 }
 // Oude categorieën als 'Vega' worden omgezet naar het vinkje (en verdwijnen als categorie)
 const DIET_WORD_RE = /^(vega|veggie|vegetarisch|vegetarian|vegan|veganistisch|plantaardig)$/i;
@@ -463,7 +463,7 @@ function renderCards() {
         <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body">
           <div class="card-title">${esc(r.title)}${r.favorite ? ' <span class="fav">♥</span>' : ''}</div>
-          <div class="card-meta">${dietBadge(dietOf(r))}${[coursesOf(r).join(', '), catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[coursesOf(r).join(', '), catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
         </div>
         <span class="card-chevron">${ICONS.chevron}</span>
       </a></li>`;
@@ -700,7 +700,7 @@ const Mag = (() => {
       <li class="mag-hero" style="grid-row:1">
         <a class="mh-photo" href="#/r/${esc(r.id)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
         <div class="mh-text">
-          ${tags.length || dietOf(r) ? `<span class="mag-kicker">${dietBadge(dietOf(r))}${tags.map(esc).join(' · ')}</span>` : ''}
+          ${tags.length || dietOf(r) ? `<span class="mag-kicker">${dietBadge(dietOf(r), { text: false })}${tags.map(esc).join(' · ')}</span>` : ''}
           <h2 class="flag"><a href="#/r/${esc(r.id)}">${esc(r.title)}</a></h2>
           ${leadOf(r) ? `<p class="mh-lead">${esc(leadOf(r))}</p>` : ''}
           ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
@@ -799,7 +799,7 @@ const Mag = (() => {
           <div class="mc-label">
             <span class="mag-kicker">N° ${String(start + nr++).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
             <h3>${esc(r.title)}</h3>
-            ${metaOf(r) || dietOf(r) ? `<span class="mag-meta">${dietBadge(dietOf(r))}${metaOf(r) || ''}</span>` : ''}
+            ${metaOf(r) || dietOf(r) ? `<span class="mag-meta">${dietBadge(dietOf(r), { text: false })}${metaOf(r) || ''}</span>` : ''}
           </div>
         </a></li>`;
     }).join('');
