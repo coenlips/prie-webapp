@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.0.0 · 24 november 2026';
+const APP_VERSION = '1.1.0 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -15,6 +15,7 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 
 const ICONS = {
+  news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
@@ -1719,6 +1720,8 @@ function renderSettings() {
           <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
         </details>`, { icon: ICONS.share })}
 
+      ${fold('news', 'Wat is er nieuw', `<div class="changelog">${changelogHtml()}</div>`, { icon: ICONS.news })}
+
       ${fold('backup', 'Back-up als bestand', `
         <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Ben je ingelogd, dan worden je recepten ook al automatisch online bewaard.</p>
         <button class="btn" id="exportBtn">Back-up exporteren</button>
@@ -2140,6 +2143,72 @@ function renderSetPassword() {
 }
 
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
+/* Wijzigingsregister. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
+const CHANGELOG = [
+  { v: '1.1.0', date: '24 november 2026', sections: [{ items: [
+    'Na een grote update zie je bij het openen één keer wat er nieuw is.',
+    'Bij Instellingen staat nu dit overzicht van alle wijzigingen.',
+  ] }] },
+  { v: '1.0.0', date: '24 november 2026', title: 'Nieuw in Ricetta', news: '2026-11-27',
+    intro: 'Er is flink wat veranderd in Ricetta. Dit is er nieuw:',
+    sections: [
+      { h: 'Recepten delen met elkaar', items: [
+        '<b>Kijk in elkaars receptenboek.</b> Bij Instellingen → Delen met anderen kies je wie in jouw receptenboek mag kijken en welke recepten erin staan. Per recept kun je dat later nog aan- of uitzetten.',
+        '<b>Bekijk andere receptenboeken</b> via het boek-icoon linksboven. Je kunt erin zoeken en filteren, en met + Bewaar neem je een recept over in je eigen verzameling.',
+        '<b>Stuur een recept naar iemand.</b> Het komt bij de ander binnen als bericht.',
+      ] },
+      { h: 'Vegetarisch en vegan', items: [
+        'Vink bij een recept aan of het vegetarisch of vegan is. Je ziet het aan een groen logo, en je kunt er in het overzicht op filteren.',
+      ] },
+      { h: 'Recepten aan elkaar koppelen', items: [
+        '<b>Onderdelen:</b> koppel een recept als onderdeel van een ander, bijvoorbeeld de saus of het deeg.',
+        '<b>Lekker met:</b> koppel recepten die goed bij elkaar passen.',
+        'Een ingrediënt dat zelf een recept is, wordt een link. Ricetta herkent dat ook bij een typefout of meervoud en stelt voor om te koppelen.',
+      ] },
+      { h: 'Boodschappen', items: [
+        'Tik bij een recept op het mandje en kies zelf wat er op de lijst komt. Wat je al in huis hebt, streep je af; Ricetta onthoudt dat voor de volgende keer.',
+        'Kies per recept, en per onderdeel, voor hoeveel personen je kookt.',
+      ] },
+      { h: 'Account aanvragen', items: [
+        'Nog geen account? Op het inlogscherm kun je er nu zelf een aanvragen. Je krijgt een mail zodra het klaar is.',
+      ] },
+      { h: 'Ricetta installeren', items: [
+        'Op het inlogscherm staat stap voor stap hoe je Ricetta op je iPhone, Android, Windows-computer of Mac zet. Dan werkt hij als een gewone app, ook zonder internet.',
+      ] },
+      { h: 'Nieuw uiterlijk', items: [
+        'Een nieuw app-icoon. Zie je nog het oude? Verwijder Ricetta van je beginscherm en zet hem er opnieuw op.',
+        'Verder veel verfijnd: een rustigere menubalk, een nieuwe laadanimatie, een vaste schakelknop in de kookstand, een nieuwe weergave van het uitgelichte recept en receptenboeken als tijdschrift op iPad en laptop.',
+      ] },
+    ],
+    outro: 'Veel kookplezier!' },
+];
+const NEWS_SEEN = 'ricetta-news-seen';
+const changeHtml = c => `${c.intro ? `<p class="news-intro">${c.intro}</p>` : ''}${c.sections.map(s => `
+  ${s.h ? `<h4>${s.h}</h4>` : ''}<ul>${s.items.map(i => `<li>${i}</li>`).join('')}</ul>`).join('')}${c.outro ? `<p class="news-outro">${c.outro}</p>` : ''}`;
+function changelogHtml() {
+  return CHANGELOG.map((c, i) => `
+    <details class="change"${i === 0 ? ' open' : ''}><summary><b>Versie ${c.v}</b><small>${c.date}</small><span class="fold-chevron" aria-hidden="true">${ICONS.chevron}</span></summary>
+      <div class="change-body">${changeHtml({ ...c, intro: '', outro: '' })}</div></details>`).join('');
+}
+// Eén keer de nieuwsmelding tonen (alleen als je ingelogd bent of de app uitprobeert, tot en met de einddatum).
+let newsChecked = false;
+function maybeShowNews() {
+  if (newsChecked) return;
+  newsChecked = true;
+  const today = new Date().toLocaleDateString('sv');   // JJJJ-MM-DD, lokale tijd
+  const c = CHANGELOG.find(x => x.news && today <= x.news);
+  if (!c) return;
+  try { if (localStorage.getItem(NEWS_SEEN) === c.v) return; localStorage.setItem(NEWS_SEEN, c.v); } catch { return; }
+  setTimeout(() => {
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>${c.title}</h3><button class="text-btn" data-close>Sluit</button></div>
+      <div class="news">${changeHtml(c)}</div>
+      <button class="btn" data-close>Aan de slag</button>
+      <p class="small-note news-later">Dit overzicht vind je later terug bij Instellingen → Wat is er nieuw.</p>`, c.title);
+    s.el.classList.add('news-sheet');
+  }, 600);
+}
+
 function openAccSheet(html, label) {
   const wrap = document.createElement('div');
   wrap.className = 'sheet-backdrop';
@@ -2846,6 +2915,7 @@ async function route() {
   const gate = accountGate();
   if (gate) return gate();
 
+  maybeShowNews();
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);

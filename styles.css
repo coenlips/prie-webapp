@@ -1432,3 +1432,23 @@ body[data-page=book] .topbar { background-color: var(--bg); }
   .acc-split:has(.install-card[open]) .login-title { margin-top: 0; }
   .acc-split:has(.install-card[open]) .acc-request .btn { justify-self: start; }
 }
+
+/* Wat is er nieuw: melding en wijzigingsregister */
+.news h4, .change-body h4 { margin: 16px 0 4px; font: 500 13px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); }
+.news ul, .change-body ul { margin: 0; padding-left: 18px; display: grid; gap: 6px; }
+.news li, .change-body li { line-height: 1.45; font-size: 15px; }
+.news li::marker, .change-body li::marker { color: var(--accent); }
+.news-intro { margin: 6px 0 0; color: var(--muted); }
+.news-outro { margin: 16px 0 0; font-weight: 600; }
+.news-sheet .sheet { max-width: 560px; }
+.news-later { text-align: center; margin-top: 10px; }
+.changelog { display: grid; }
+.change { border-top: 1px dashed var(--line); }
+.change:first-child { border-top: 0; }
+.change > summary { list-style: none; display: flex; align-items: baseline; gap: 10px; padding: 10px 0; cursor: pointer; }
+.change > summary::-webkit-details-marker { display: none; }
+.change > summary small { flex: 1; color: var(--muted); font-size: 13px; }
+.change .fold-chevron svg { width: 18px; height: 18px; color: var(--accent); transition: transform .2s; }
+.change[open] .fold-chevron svg { transform: rotate(180deg); }
+.change-body { padding: 0 0 12px; }
+.change-body h4:first-child { margin-top: 0; }
