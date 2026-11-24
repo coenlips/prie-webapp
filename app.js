@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '107 · 24 november 2026';
+const APP_VERSION = '108 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1991,7 +1991,11 @@ const OS_ICONS = {
   plusSq: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/></svg>',
   dots: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none"/></svg>',
   install: '<svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v7M9 12.5l3 3 3-3"/></svg>',
+  monitor: '<svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1.5"/><path d="M8 20h8M12 16v4"/><path d="M12 7v5M9.5 9.5 12 12l2.5-2.5"/></svg>',
+  dotsH: '<svg viewBox="0 0 24 24"><circle cx="5.5" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="18.5" cy="12" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  windows: '<svg viewBox="0 0 24 24" class="os-logo" aria-hidden="true"><path fill="currentColor" stroke="none" d="M3 5.2l7.4-1v7.2H3zM11.4 4l9.6-1.4v8.8h-9.6zM3 12.6h7.4v7.2l-7.4-1zM11.4 12.6H21v8.8L11.4 20z"/></svg>',
 };
+OS_ICONS.dotsV = OS_ICONS.dots;
 const ua = navigator.userAgent;
 const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 const isAndroid = /Android/i.test(ua);
@@ -2006,38 +2010,64 @@ addEventListener('beforeinstallprompt', e => {
 addEventListener('appinstalled', () => { document.querySelectorAll('.install-card').forEach(c => c.remove()); });
 const INSTALL_OPEN = 'ricetta-install-open';   // in- of uitgeklapt (onthouden)
 
+const isMac = !isIOS && /Mac/.test(ua + ' ' + (navigator.platform || ''));
+const isDesktop = !isIOS && !isAndroid;
+const isSafariDesktop = isMac && /Safari/.test(ua) && !/Chrome|Chromium|Edg\//.test(ua);
 function installCardHtml() {
-  if (isStandalone() || !(isIOS || isAndroid)) return '';
+  if (isStandalone()) return '';
   let open = true;
   try { open = localStorage.getItem(INSTALL_OPEN) !== '0'; } catch { /* */ }
-  return `<details class="install-card" id="installCard" data-os="${isAndroid ? 'android' : 'ios'}"${open ? ' open' : ''}></details>`;
+  const os = isAndroid ? 'android' : isIOS ? 'ios' : isMac ? 'mac' : 'win';
+  return `<details class="install-card${isDesktop ? ' install-desktop' : ''}" id="installCard" data-os="${os}"${open ? ' open' : ''}></details>`;
 }
 function bindInstallCard() {
   const card = $('#installCard');
   if (!card) return;
   const key = s => `<span class="key" aria-hidden="true">${OS_ICONS[s]}</span>`;
+  const tab = (id, icon, label) => `<button type="button" role="tab" data-os="${id}" class="${card.dataset.os === id ? 'on' : ''}" aria-selected="${card.dataset.os === id}">${OS_ICONS[icon]}${label}</button>`;
+  const installBtn = label => `<button type="button" class="btn install-now"${installPrompt ? '' : ' hidden'}>${OS_ICONS[isDesktop ? 'monitor' : 'install']} ${label}</button>`;
   const draw = () => {
-    const os = card.dataset.os, ios = os === 'ios';
-    card.innerHTML = `
-      <summary><h3>Op je ${ios ? 'beginscherm' : 'startscherm'} zetten</h3><span class="fold-chevron" aria-hidden="true">${ICONS.chevron}</span></summary>
-      <div class="install-body">
-      <div class="install-head">
-        <div class="os-tabs" role="tablist">
-          <button type="button" role="tab" data-os="ios" class="${ios ? 'on' : ''}" aria-selected="${ios}">${OS_ICONS.apple}iPhone</button>
-          <button type="button" role="tab" data-os="android" class="${ios ? '' : 'on'}" aria-selected="${!ios}">${OS_ICONS.android}Android</button>
-        </div></div>
-      <p class="why"><strong>Ricetta werkt het beste als je hem op je ${ios ? 'beginscherm' : 'startscherm'} installeert:</strong> dan open je hem als een gewone app, schermvullend en ook zonder internet.</p>
-      ${ios ? `<ol class="install-steps">
+    const os = card.dataset.os;
+    const desktop = os === 'win' || os === 'mac';
+    const where = os === 'ios' ? 'beginscherm' : os === 'android' ? 'startscherm' : '';
+    const chromeSteps = `<ol class="install-steps">
+          <li><span>Klik rechts in de adresbalk op ${key('monitor')} <b>Installeren</b></span></li>
+          <li><span>Klik in het venster dat verschijnt op <b>Installeren</b></span></li>
+        </ol>
+        <p class="why install-more">Geen icoon in de adresbalk? Open het menu ${key(os === 'mac' ? 'dotsV' : 'dotsH')} en kies <b>Opslaan en delen → Ricetta installeren</b> (Chrome)${os === 'win' ? ' of <b>Apps → Deze site als app installeren</b> (Edge)' : ''}.</p>`;
+    let body;
+    if (os === 'ios') body = `<ol class="install-steps">
           <li><span>Tik ${iosOtherBrowser ? 'rechtsboven' : 'in Safari onderin'} op ${key('share')} <b>Deel</b></span></li>
           <li><span>Scroll omlaag en kies ${key('plusSq')} <b>Zet op beginscherm</b></span></li>
           <li><span>Tik rechtsboven op <b>Voeg toe</b></span></li>
-        </ol>`
-      : `<button type="button" class="btn install-now"${installPrompt ? '' : ' hidden'}>${OS_ICONS.install} Ricetta installeren</button>
+        </ol>`;
+    else if (os === 'android') body = `${installBtn('Ricetta installeren')}
         <p class="why install-or">${installPrompt ? 'Of zelf in Chrome:' : 'In Chrome:'}</p>
         <ol class="install-steps">
           <li><span>Tik rechtsboven op ${key('dots')} <b>Menu</b></span></li>
           <li><span>Kies ${key('install')} <b>App installeren</b> of <b>Toevoegen aan startscherm</b></span></li>
-        </ol>`}
+        </ol>`;
+    else if (os === 'win') body = `${installBtn('Ricetta installeren')}
+        <p class="why install-or">${installPrompt ? 'Of zelf in Chrome of Edge:' : 'In Chrome of Edge:'}</p>${chromeSteps}
+        <div class="addr" aria-hidden="true"><span>${esc(location.host || 'ricetta.coenlips.nl')}</span>${key('monitor')}</div>
+        <p class="addr-note">↑ zo ziet het icoon in de adresbalk eruit</p>`;
+    else body = `${installBtn('Ricetta installeren')}
+        <p class="why install-or">In Safari${isSafariDesktop ? '' : ' (vanaf macOS Sonoma)'}:</p>
+        <ol class="install-steps">
+          <li><span>Kies in de menubalk <b>Archief → Voeg toe aan Dock</b></span></li>
+          <li><span>Klik op <b>Voeg toe</b></span></li>
+        </ol>
+        <p class="why install-or">In Chrome:</p>${chromeSteps}`;
+    card.innerHTML = `
+      <summary><h3>${desktop ? 'Installeer Ricetta op je computer' : `Op je ${where} zetten`}</h3><span class="fold-chevron" aria-hidden="true">${ICONS.chevron}</span></summary>
+      <div class="install-body">
+      <div class="install-head"><div class="os-tabs" role="tablist">
+        ${desktop ? tab('win', 'windows', 'Windows') + tab('mac', 'apple', 'Mac') : tab('ios', 'apple', 'iPhone') + tab('android', 'android', 'Android')}
+      </div></div>
+      <p class="why"><strong>Ricetta werkt het beste als je hem ${desktop ? '' : `op je ${where} `}installeert:</strong> ${desktop
+        ? `dan staat hij ${os === 'mac' ? 'in je Dock en Launchpad' : 'in je Startmenu en op je taakbalk'} en opent hij in een eigen venster, net als een gewoon programma. Ook zonder internet.`
+        : 'dan open je hem als een gewone app, schermvullend en ook zonder internet.'}</p>
+      ${body}
       </div>`;
     card.querySelectorAll('[data-os]').forEach(b => b.onclick = () => { card.dataset.os = b.dataset.os; draw(); });
     const now = card.querySelector('.install-now');
@@ -2057,9 +2087,10 @@ function renderWelcome() {
   document.body.dataset.page = 'welcome';
   bareHeader();
   view.innerHTML = `
-    <section class="acc-welcome">
+    <section class="acc-welcome${isDesktop ? ' acc-split' : ''}">
       ${flagHtml('Ricetta')}
       ${installCardHtml()}
+      <div class="login-col">
       <h2 class="login-title">Inloggen</h2>
       <p class="acc-lead">Log in om je eigen receptenverzameling te openen.</p>
       ${Sync.loginFormHtml()}
@@ -2068,6 +2099,7 @@ function renderWelcome() {
         <button class="btn ghost" id="requestBtn">Account aanvragen</button>
       </div>
       <p class="acc-note"><button class="link" id="tryBtn">Eerst zonder account proberen</button></p>
+      </div>
     </section>`;
   Sync.bindLoginForm($('#syncForm'), user => Sync.onSignIn(user));
   $('#requestBtn').onclick = openRequestSheet;

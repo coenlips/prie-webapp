@@ -1404,3 +1404,30 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .install-head { margin-bottom: 10px; }
 .login-title { margin: 4px 0 4px; font: 400 32px/1 var(--font-title); letter-spacing: .04em; text-align: center; }
 .login-title + .acc-lead { margin-top: 4px; }
+
+/* Laptop: installatie-uitleg naast het inloggen */
+.install-desktop .install-more { margin-top: 12px !important; }
+.install-card .addr { display: flex; align-items: center; gap: 8px; margin: 18px 0 0; padding: 6px 8px 6px 14px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); font-size: 13px; color: var(--muted); max-width: 360px; }
+.install-card .addr > span:first-child { flex: 1; }
+.install-card .key { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); vertical-align: middle; margin: 0 2px; }
+.install-card .key svg { width: 19px; height: 19px; }
+.install-card .addr .key { width: 26px; height: 26px; flex: none; }
+.install-card .addr-note { font-size: 13px; color: var(--muted); margin: 6px 0 0 14px; }
+@media (min-width: 900px) {
+  body[data-page=welcome] main { max-width: 1080px; }
+  .acc-welcome.acc-split:has(.install-card[open]) { max-width: none; display: grid; grid-template-columns: 1fr 1fr; gap: 0 64px; align-items: start; justify-content: stretch; padding-top: 28px; }
+  .acc-welcome.acc-split:has(.install-card[open]) > .acc-flag { grid-column: 1 / -1; justify-self: center; margin-bottom: 34px; }
+  .acc-split .install-card[open] { border-bottom: 0; margin: 0; padding-right: 64px; border-right: 1px dashed var(--line); min-width: 0; }
+  .acc-split .install-card[open] > summary { padding-top: 0; }
+  .acc-split .install-card[open] > summary h3 { font-size: 32px; }
+  .acc-split .install-card p.why { font-size: 15px; line-height: 1.5; }
+  .acc-split .install-card .install-now { display: inline-flex; width: auto; padding: 12px 22px; }
+  .acc-split .install-card .install-now[hidden] { display: none; }
+  .acc-split:has(.install-card[open]) .login-col { min-width: 0; padding-top: 0; }
+  .acc-split:has(.install-card[open]) .login-title,
+  .acc-split:has(.install-card[open]) .acc-lead,
+  .acc-split:has(.install-card[open]) .acc-request,
+  .acc-split:has(.install-card[open]) .acc-note { text-align: left; }
+  .acc-split:has(.install-card[open]) .login-title { margin-top: 0; }
+  .acc-split:has(.install-card[open]) .acc-request .btn { justify-self: start; }
+}
