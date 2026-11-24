@@ -194,8 +194,8 @@ h3 { font-size: 20px; margin: 26px 0 10px; }
 .stepper svg { width: 18px; height: 18px; }
 .cook-btn { margin: 16px 0 0; width: 36px; height: 36px; transition: background .15s, color .15s; }
 .cook-btn svg { width: 23px; height: 23px; }
-.cook-btn.on { background: var(--accent); color: #fff; }
-.cook-btn.on:active { background: var(--accent); }
+.cook-btn.on { background: var(--accent-soft); color: var(--accent); }
+.cook-btn.on:active { background: var(--accent-soft); }
 
 .ingredients, .steps { list-style: none; margin: 0; padding: 0; }
 .ingredients li {
@@ -510,7 +510,7 @@ body:not(.no-fab) .topbar h1 {
 .stepper { border: 1.5px solid var(--text); border-radius: 3px; background: var(--surface); }
 .stepper span { font-family: var(--font-label); font-weight: 500; }
 .stepper button { color: var(--text); }
-.cook-btn { border-radius: 4px; }
+.cook-btn { border-radius: 50%; }
 .check { border-radius: 2px; border: 1.5px solid var(--text); }
 .ingredients li, .steps li { border-bottom: 1px dashed var(--line); }
 .ingredients li.sub, .steps li.sub { font: 500 13px var(--font-label); letter-spacing: .14em; color: var(--mustard); border: 0; }
