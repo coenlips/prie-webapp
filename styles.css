@@ -1151,3 +1151,6 @@ body.cook .links-box { display: none; }
 .parts-check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
 .parts-check input { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
 .sheet .parts-check input[type=checkbox] { width: 22px; height: 22px; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; -webkit-appearance: auto; appearance: auto; }
+.link-suggest { display: inline-flex; align-items: center; gap: 6px; border-style: dashed; border-color: #008C44; color: #008C44; text-transform: none; letter-spacing: 0; font: 600 15px -apple-system, system-ui, sans-serif; }
+.link-suggest i { font-style: normal; font-weight: 400; color: var(--muted); }
+.link-suggest, .link-chip { flex: 0 1 auto; max-width: 100%; white-space: normal; text-align: left; flex-wrap: wrap; row-gap: 2px; }

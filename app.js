@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '80 · 24 november 2026';
+const APP_VERSION = '81 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -86,21 +86,59 @@ function relatedOf(r) {
   }
   return { parts, usedIn: usedIn.filter(x => !parts.includes(x)), withs: withs.filter(x => !parts.includes(x) && !usedIn.includes(x)) };
 }
-// Welk ingrediënt noemt een onderdeel? Eerst de hele naam, anders steeds korter
-// ('Tomatensaus van oma' → 'Tomatensaus'). Geeft per regelnummer { recipe, phrase }.
+// Herkennen of een ingrediënt een ander recept noemt. Tolerant: hoofdletters, accenten, meervoud
+// (hoorntje/hoorntjes) en een kleine typefout (oublihoorntjes/oubliehoorntjes) tellen mee, en elk
+// betekenisvol deel van de naam ('Pizzasaus van oma' → 'pizzasaus', 'Oubliehoorntjes en cups maken' → 'oubliehoorntjes').
+const LINK_STOP = new Set(['maken', 'zelfgemaakte', 'zelfgemaakt', 'huisgemaakte', 'huisgemaakt', 'recept', 'basis', 'basisrecept',
+  'snelle', 'simpele', 'makkelijke', 'klassieke', 'lekkere', 'heerlijke', 'oma', 'opa', 'mama', 'papa', 'van', 'met', 'en', 'of',
+  'de', 'het', 'een', 'voor', 'in', 'uit', 'op', 'aan', 'zonder', 'extra', 'echte', 'originele', 'italiaanse', 'hollandse']);
+const normWord = w => w.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+function editDistance(a, b) {
+  if (Math.abs(a.length - b.length) > 2) return 3;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function sameWord(a, b) {
+  if (a === b) return true;
+  const [s, l] = a.length <= b.length ? [a, b] : [b, a];
+  if (s.length >= 4 && ['s', 'en', 'e', "'s"].some(x => s + x === l)) return true;   // meervoud
+  const d = editDistance(a, b);
+  return (s.length >= 6 && d <= 1) || (s.length >= 10 && d <= 2);
+}
+const wordsOf = text => [...String(text).matchAll(/[\p{L}\p{N}]+/gu)].map(m => ({ w: normWord(m[0]), start: m.index, end: m.index + m[0].length }));
+// Zoekt in de regels een stuk van de receptnaam; geeft { i, phrase } (phrase = de tekst zoals in de regel)
+function findRecipeInLines(ingrLines, recipe, skip = new Set()) {
+  const tw = wordsOf(recipe.title).map(t => t.w);
+  const cands = [];
+  for (let n = tw.length; n >= 1; n--) for (let s = 0; s + n <= tw.length; s++) {
+    const part = tw.slice(s, s + n);
+    if (n === 1 && (part[0].length < 5 || LINK_STOP.has(part[0]))) continue;
+    if (n > 1 && part.every(w => LINK_STOP.has(w))) continue;
+    cands.push(part);
+  }
+  for (const part of cands) {
+    for (let i = 0; i < ingrLines.length; i++) {
+      const l = ingrLines[i];
+      if (l.startsWith('#') || skip.has(i)) continue;
+      const lw = wordsOf(l);
+      for (let k = 0; k + part.length <= lw.length; k++) {
+        if (part.every((w, j) => sameWord(w, lw[k + j].w))) return { i, phrase: l.slice(lw[k].start, lw[k + part.length - 1].end) };
+      }
+    }
+  }
+  return null;
+}
+// Welk ingrediënt noemt welk onderdeel? Geeft per regelnummer { recipe, phrase }.
 function ingredientLinks(ingrLines, parts) {
   const found = new Map();
   for (const p of parts) {
-    const words = p.title.trim().split(/\s+/);
-    outer: for (let n = words.length; n >= 1; n--) {
-      const phrase = words.slice(0, n).join(' ');
-      if (phrase.length < 4) break;
-      for (let i = 0; i < ingrLines.length; i++) {
-        const l = ingrLines[i];
-        if (l.startsWith('#') || found.has(i)) continue;
-        if (l.toLowerCase().includes(phrase.toLowerCase())) { found.set(i, { recipe: p, phrase }); break outer; }
-      }
-    }
+    const hit = findRecipeInLines(ingrLines, p, new Set(found.keys()));
+    if (hit) found.set(hit.i, { recipe: p, phrase: hit.phrase });
   }
   return found;
 }
@@ -1344,10 +1382,20 @@ async function renderEdit(id) {
   let links = linksOf(r).map(l => ({ id: l.id, kind: l.kind }));
   const drawLinks = () => {
     $('#editLinks').innerHTML = links.map(l => `<button type="button" class="chip link-chip" data-rm="${esc(l.id)}" aria-label="Koppeling met ${esc(recipeById(l.id).title)} weghalen">${esc(recipeById(l.id).title)} <i>· ${LINK_KINDS[l.kind].toLowerCase()}</i> <span aria-hidden="true">✕</span></button>`).join('')
-      + `<button type="button" class="chip link-add" id="addLink">+ Recept koppelen</button>`;
+      + `<button type="button" class="chip link-add" id="addLink">+ Recept koppelen</button>`
+      + suggestHtml();
     view.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { links = links.filter(l => l.id !== b.dataset.rm); drawLinks(); });
+    view.querySelectorAll('[data-suggest]').forEach(b => b.onclick = () => { links.push({ id: b.dataset.suggest, kind: 'part' }); drawLinks(); });
     $('#addLink').onclick = openLinkPicker;
   };
+  // Noemt een ingrediënt een ander recept? Dan voorstellen om dat als onderdeel te koppelen.
+  const suggestHtml = () => {
+    const ingLines = lines($('#form').ingredients.value);
+    const sug = state.recipes.filter(x => x.id !== r.id && !links.some(l => l.id === x.id) && findRecipeInLines(ingLines, x)).slice(0, 3);
+    return sug.map(x => `<button type="button" class="chip link-suggest" data-suggest="${esc(x.id)}">+ ${esc(x.title)} <i>· als onderdeel koppelen</i></button>`).join('');
+  };
+  let sugTimer;
+  $('#form').ingredients.addEventListener('input', () => { clearTimeout(sugTimer); sugTimer = setTimeout(drawLinks, 500); });
   const openLinkPicker = () => {
     const others = state.recipes.filter(x => x.id !== r.id);
     const s = openAccSheet(`
