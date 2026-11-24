@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '93 · 24 november 2026';
+const APP_VERSION = '94 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2403,7 +2403,7 @@ async function renderBook(ownerId) {
   setHeader({ title: d.owner.name, back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   const mine = r => state.recipes.some(x => x.fromUser === d.owner.name && x.title === r.title);
   view.innerHTML = `<section class="book-page">
-    <div class="book-flag">${flagHtml(`Kookboek van ${d.owner.name}`)}</div>
+    <div class="book-flag"><div class="acc-flag"><span><small>Kookboek van</small>${esc(d.owner.name)}</span></div></div>
     <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit kookboek" autocomplete="off"></div>
     <ul class="cards book-cards" id="bookCards"></ul>
   </section>`;

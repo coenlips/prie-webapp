@@ -1277,3 +1277,7 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 /* 'Van …'-balk boven de foto: niet onder de foto laten schuiven (de foto heeft op de iPhone een negatieve marge) */
 .from-strip { margin: -12px -16px 12px; }
 @media (min-width: 900px) { body[data-page=detail]:not(.cook) .from-strip { margin: 0; } }
+/* Kookboek-vaandel: regel 1 'Kookboek van', regel 2 de naam, gecentreerd */
+.book-flag .acc-flag { max-width: calc(100% - 56px); }
+.book-flag .acc-flag span { text-align: center; font-size: 38px; line-height: 1; overflow-wrap: anywhere; text-wrap: balance; }
+.book-flag .acc-flag small { display: block; font-size: .5em; letter-spacing: .14em; margin-bottom: 4px; opacity: .9; }
