@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '105 · 24 november 2026';
+const APP_VERSION = '106 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1983,12 +1983,80 @@ function bareHeader() {
 
 const flagHtml = text => `<div class="acc-flag"><span>${esc(text)}</span></div>`;
 
+/* ---------- Op je beginscherm zetten (inlogscherm) ---------- */
+const OS_ICONS = {
+  apple: '<svg viewBox="0 0 24 24" class="os-logo" aria-hidden="true"><path fill="currentColor" stroke="none" d="M16.4 12.6c0-2.4 2-3.5 2-3.6-1.1-1.6-2.8-1.8-3.4-1.8-1.4-.1-2.8.9-3.5.9s-1.9-.9-3.1-.8c-1.6 0-3 .9-3.8 2.3-1.6 2.8-.4 7 1.2 9.3.8 1.1 1.7 2.4 2.9 2.3 1.2 0 1.6-.7 3-.7s1.8.7 3 .7c1.3 0 2.1-1.1 2.8-2.3.9-1.3 1.3-2.6 1.3-2.6s-2.4-.9-2.4-3.7zM14.2 5.6c.6-.8 1.1-1.9 1-3-.9 0-2.1.6-2.7 1.4-.6.7-1.1 1.8-1 2.8 1 .1 2.1-.5 2.7-1.2z"/></svg>',
+  android: '<svg viewBox="0 0 24 24" class="os-logo" aria-hidden="true"><path fill="currentColor" stroke="none" d="M6.6 9.6a5.4 5.4 0 0 1 10.8 0zM6.6 10.4h10.8v6.4a1 1 0 0 1-1 1h-1v2.5a1 1 0 0 1-2 0v-2.5h-2.8v2.5a1 1 0 0 1-2 0v-2.5h-1a1 1 0 0 1-1-1zM4.4 10.6a1 1 0 0 1 1 1v4a1 1 0 0 1-2 0v-4a1 1 0 0 1 1-1zM19.6 10.6a1 1 0 0 1 1 1v4a1 1 0 0 1-2 0v-4a1 1 0 0 1 1-1z"/><path d="M7.9 4.3l1.2 1.7M16.1 4.3l-1.2 1.7" stroke="currentColor" stroke-width="1"/><circle cx="9.4" cy="7.5" r=".7" fill="var(--surface)" stroke="none"/><circle cx="14.6" cy="7.5" r=".7" fill="var(--surface)" stroke="none"/></svg>',
+  share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 7.5 12 3l4.5 4.5"/><path d="M8 10H6a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1h-2"/></svg>',
+  plusSq: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3.5"/><path d="M12 8.5v7M8.5 12h7"/></svg>',
+  dots: '<svg viewBox="0 0 24 24"><circle cx="12" cy="5.5" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none"/><circle cx="12" cy="18.5" r="1.4" fill="currentColor" stroke="none"/></svg>',
+  install: '<svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M12 8v7M9 12.5l3 3 3-3"/></svg>',
+};
+const ua = navigator.userAgent;
+const isIOS = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const isAndroid = /Android/i.test(ua);
+const iosOtherBrowser = isIOS && /CriOS|FxiOS|EdgiOS/.test(ua);
+const isStandalone = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+// Chrome op Android: eigen installatievenster (bewaren tot iemand op de knop tikt)
+let installPrompt = null;
+addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); installPrompt = e;
+  document.querySelectorAll('.install-now').forEach(b => { b.hidden = false; });
+});
+addEventListener('appinstalled', () => { document.querySelectorAll('.install-card').forEach(c => c.remove()); });
+const INSTALL_LATER = 'ricetta-install-later';
+
+function installCardHtml() {
+  if (isStandalone() || !(isIOS || isAndroid)) return '';
+  try { if (localStorage.getItem(INSTALL_LATER)) return ''; } catch { /* */ }
+  return `<div class="install-card" id="installCard" data-os="${isAndroid ? 'android' : 'ios'}"></div>`;
+}
+function bindInstallCard() {
+  const card = $('#installCard');
+  if (!card) return;
+  const key = s => `<span class="key" aria-hidden="true">${OS_ICONS[s]}</span>`;
+  const draw = () => {
+    const os = card.dataset.os, ios = os === 'ios';
+    card.innerHTML = `
+      <div class="install-head"><h3>Op je ${ios ? 'beginscherm' : 'startscherm'}</h3>
+        <div class="os-tabs" role="tablist">
+          <button type="button" role="tab" data-os="ios" class="${ios ? 'on' : ''}" aria-selected="${ios}">${OS_ICONS.apple}iPhone</button>
+          <button type="button" role="tab" data-os="android" class="${ios ? '' : 'on'}" aria-selected="${!ios}">${OS_ICONS.android}Android</button>
+        </div></div>
+      <p class="why"><strong>Ricetta werkt het beste als je hem op je ${ios ? 'beginscherm' : 'startscherm'} installeert:</strong> dan open je hem als een gewone app, schermvullend en ook zonder internet.</p>
+      ${ios ? `<ol class="install-steps">
+          <li><span>Tik ${iosOtherBrowser ? 'rechtsboven' : 'in Safari onderin'} op ${key('share')} <b>Deel</b></span></li>
+          <li><span>Scroll omlaag en kies ${key('plusSq')} <b>Zet op beginscherm</b></span></li>
+          <li><span>Tik rechtsboven op <b>Voeg toe</b></span></li>
+        </ol>`
+      : `<button type="button" class="btn install-now"${installPrompt ? '' : ' hidden'}>${OS_ICONS.install} Ricetta installeren</button>
+        <p class="why install-or">${installPrompt ? 'Of zelf in Chrome:' : 'In Chrome:'}</p>
+        <ol class="install-steps">
+          <li><span>Tik rechtsboven op ${key('dots')} <b>Menu</b></span></li>
+          <li><span>Kies ${key('install')} <b>App installeren</b> of <b>Toevoegen aan startscherm</b></span></li>
+        </ol>`}
+      <button type="button" class="link install-later">Later</button>`;
+    card.querySelectorAll('[data-os]').forEach(b => b.onclick = () => { card.dataset.os = b.dataset.os; draw(); });
+    const now = card.querySelector('.install-now');
+    if (now) now.onclick = async () => {
+      if (!installPrompt) return;
+      installPrompt.prompt();
+      const choice = await installPrompt.userChoice.catch(() => null);
+      installPrompt = null;
+      if (choice && choice.outcome === 'accepted') card.remove(); else draw();
+    };
+    card.querySelector('.install-later').onclick = () => { try { localStorage.setItem(INSTALL_LATER, '1'); } catch { /* */ } card.remove(); };
+  };
+  draw();
+}
+
 function renderWelcome() {
   document.body.dataset.page = 'welcome';
   bareHeader();
   view.innerHTML = `
     <section class="acc-welcome">
       ${flagHtml('Ricetta')}
+      ${installCardHtml()}
       <p class="acc-lead">Log in om je eigen receptenverzameling te openen.</p>
       ${Sync.loginFormHtml()}
       <div class="acc-request">
@@ -2000,6 +2068,7 @@ function renderWelcome() {
   Sync.bindLoginForm($('#syncForm'), user => Sync.onSignIn(user));
   $('#requestBtn').onclick = openRequestSheet;
   $('#tryBtn').onclick = () => { setTryMode(true); route(); };
+  bindInstallCard();
 }
 
 // Na een tijdelijk wachtwoord van de beheerder: zelf een wachtwoord kiezen

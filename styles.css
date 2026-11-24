@@ -1372,3 +1372,24 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 @media (min-width: 900px) { .cook-switch { display: none !important; } }
 /* Schakelknop staat al op zijn vaste plek (2px onder de kopbalk geschoven, net als bij sticky), dus hij beweegt niet bij scrollen */
 .cook-switch { margin-top: -2px; }
+
+/* ---------- Inlogscherm: op je beginscherm zetten ---------- */
+.install-card { background: var(--surface); outline: 3px double var(--teal); outline-offset: -6px; padding: 18px 20px 14px; margin: 0 0 22px; text-align: left; }
+.install-head { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 8px; }
+.install-head h3 { margin: 0; font: 400 24px/1 var(--font-title); letter-spacing: .04em; }
+.os-tabs { display: flex; gap: 6px; }
+.os-tabs button { display: inline-flex; align-items: center; gap: 5px; padding: 5px 10px; border: 1.5px solid var(--line); border-radius: 999px; font: 500 12px var(--font-label); letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.os-tabs button.on { border-color: var(--text); color: var(--text); }
+.os-tabs .os-logo { width: 15px; height: 15px; }
+.install-card p.why { margin: 2px 0 12px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+.install-card p.why strong { color: var(--text); }
+.install-card .install-or { margin: 12px 0 8px !important; }
+.install-steps { list-style: none; margin: 0; padding: 0; counter-reset: s; display: grid; gap: 10px; }
+.install-steps li { display: grid; grid-template-columns: 24px 1fr; align-items: center; gap: 12px; font-size: 16px; line-height: 1.9; counter-increment: s; }
+.install-steps li::before { content: counter(s); width: 24px; height: 24px; border-radius: 50%; background: var(--accent); color: #fff8ee; display: grid; place-items: center; font: 400 15px/1 var(--font-title); padding-top: 2px; }
+.install-steps .key { display: inline-grid; place-items: center; width: 28px; height: 28px; border-radius: 7px; background: var(--accent-soft); color: var(--accent); vertical-align: middle; margin: 0 2px; }
+.install-steps .key svg { width: 19px; height: 19px; }
+.install-card .install-now { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.install-card .install-now[hidden] { display: none; }
+.install-card .install-now svg { width: 20px; height: 20px; }
+.install-later { display: block; margin: 12px auto 0; font-size: 14px; }
