@@ -1370,3 +1370,5 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 }
 .cook-switch .segmented { max-width: 520px; margin: 0 auto; }
 @media (min-width: 900px) { .cook-switch { display: none !important; } }
+/* Schakelknop staat al op zijn vaste plek (2px onder de kopbalk geschoven, net als bij sticky), dus hij beweegt niet bij scrollen */
+.cook-switch { margin-top: -2px; }
