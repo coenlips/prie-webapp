@@ -95,12 +95,18 @@ const Importer = (() => {
     const courses = [...new Set([...cats, ...kw].map(courseOf).filter(Boolean))];
     cats = cats.filter(c => !courseOf(c));
     const tags = list(r.keywords).flatMap(k => String(k).split(',')).map(k => oneLine(k).toLowerCase()).filter(Boolean).slice(0, 8);
+    // Vegetarisch/vegan: van de site zelf (suitableForDiet), of uit categorieën/trefwoorden
+    const dietList = list(r.suitableForDiet).map(String).join(' ');
+    const fromWords = dietFromWords({ categories: cats, tags });
+    const diet = /VeganDiet/i.test(dietList) ? 'vegan' : /VegetarianDiet/i.test(dietList) ? 'vegetarisch' : (fromWords ? fromWords.diet : '');
+    if (fromWords) cats = fromWords.categories;
     return {
       title: capital(oneLine(r.name) || oneLine(page.og['og:title']) || page.title),
       description: oneLine(r.description || page.og['og:description'] || ''),
       categories: [...new Set(cats)],
       courses,
       tags,
+      diet,
       servings: servings || 4,
       prepTime: prep || '',
       cookTime: cook || '',

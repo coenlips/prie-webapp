@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '72 · 23 november 2026';
+const APP_VERSION = '73 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -66,6 +66,68 @@ const AppSettings = {
 };
 const courseList = () => AppSettings.data.courses;
 const coursesOf = r => courseList().filter(c => (r.courses || []).includes(c));
+
+/* ---------- Vegetarisch en vegan ---------- */
+// Per recept r.diet = 'vegetarisch' | 'vegan' | ''. Logo's (cirkel met blaadje) als SVG-symbolen,
+// eenmalig in de pagina gezet en daarna overal hergebruikt.
+const DIETS = {
+  vegetarisch: { label: 'Vegetarisch', tip: 'Vegetarisch: zonder vlees en vis', bg: '#008C44', fg: '#FFF200' },
+  vegan: { label: 'Vegan', tip: 'Vegan: zonder vlees, vis, zuivel, eieren en andere dierlijke producten', bg: '#FFF200', fg: '#008C44' },
+};
+const DIET_LEAF = 'M 142.765625 170.960938 C 142.765625 170.960938 143.359375 167.660156 143.570312 166.1875 C 144.9375 157.621094 145.78125 148.902344 147.960938 140.515625 C 150.542969 130.914062 153.304688 120.691406 157.824219 111.761719 C 158.652344 110.398438 159.984375 107.765625 161.953125 107.871094 C 167.117188 107.472656 172.328125 105.792969 176.566406 102.683594 C 179.730469 100.351562 182.222656 97.722656 183.988281 94.183594 C 185.347656 90.601562 185.925781 87.078125 185.90625 83.238281 C 185.964844 79.773438 186.503906 76.65625 187.847656 73.457031 C 188.136719 72.574219 188.480469 71.714844 188.414062 70.765625 C 186.445312 70.5625 183.910156 72.242188 182.097656 72.914062 C 177.804688 74.34375 173.097656 74.96875 168.675781 75.828125 C 165.082031 76.4375 161.800781 77.46875 158.828125 79.65625 C 153.953125 83.109375 151.515625 87.371094 149.691406 93.027344 C 148.917969 96.214844 148.269531 99.90625 148.496094 103.175781 L 148.667969 103.550781 C 149.492188 103.273438 150.917969 100.761719 151.378906 100.015625 C 154.289062 95.507812 157.160156 91.425781 161.5625 88.097656 C 162.289062 87.660156 166.445312 85.378906 166.964844 86.507812 C 166.894531 87.980469 164.511719 90.039062 163.558594 91.21875 C 154.984375 101.328125 149.953125 114.890625 145.472656 127.183594 C 143.007812 133.988281 141.472656 141.199219 138.574219 147.796875 C 138.4375 148.035156 138.230469 148.515625 137.972656 148.636719 C 137.175781 147.84375 136.71875 145.929688 136.390625 144.867188 C 135.074219 140.195312 133.921875 135.355469 132.585938 130.683594 C 129.308594 118.332031 125.429688 103.886719 117.890625 93.34375 C 112.113281 85.710938 104.347656 77.046875 95.0625 73.722656 C 94.945312 73.726562 94.707031 73.730469 94.589844 73.730469 C 94.246094 74.472656 95.0625 75.027344 95.519531 75.539062 C 106.679688 86.945312 115.65625 102.515625 120.496094 117.609375 C 125.515625 133.4375 130.246094 150.335938 133.046875 166.726562 C 133.285156 168.050781 133.582031 169.664062 133.910156 170.960938 C 133.910156 170.960938 136.917969 171.148438 138.324219 171.148438 C 139.726562 171.148438 142.765625 170.960938 142.765625 170.960938';
+document.body.insertAdjacentHTML('afterbegin', `<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>${
+  Object.entries(DIETS).map(([k, d]) => `<symbol id="diet-${k}" viewBox="0 0 200 200"><circle cx="100" cy="100" r="100" fill="${d.bg}"/><path fill="${d.fg}" transform="translate(-76.875 -49.6875) scale(1.25)" d="${DIET_LEAF}"/></symbol>`).join('')
+}</defs></svg>`);
+const dietOf = r => (r && DIETS[r.diet] ? r.diet : '');
+// Logo met tekst; met tip een uitleg bij aanwijzen (muis) of aantikken (iPhone)
+function dietBadge(kind, { tip = true } = {}) {
+  const d = DIETS[kind];
+  if (!d) return '';
+  const attrs = tip ? ` role="img" aria-label="${d.tip}" data-tip="${d.tip}" tabindex="0"` : '';
+  return `<span class="diet diet-${kind}"${attrs}><svg viewBox="0 0 200 200" aria-hidden="true"><use href="#diet-${kind}"/></svg><span class="diet-text">${d.label}</span></span>`;
+}
+// Oude categorieën als 'Vega' worden omgezet naar het vinkje (en verdwijnen als categorie)
+const DIET_WORD_RE = /^(vega|veggie|vegetarisch|vegetarian|vegan|veganistisch|plantaardig)$/i;
+function dietFromWords(r) {
+  const cats = catsOf(r), hits = cats.filter(c => DIET_WORD_RE.test(c));
+  const tagHits = (r.tags || []).filter(t => DIET_WORD_RE.test(String(t).replace(/^#/, '')));
+  if (!hits.length && (dietOf(r) || !tagHits.length)) return null;
+  const words = [...hits, ...tagHits].join(' ').toLowerCase();
+  const diet = dietOf(r) || (/vegan|plantaardig/.test(words) ? 'vegan' : 'vegetarisch');
+  return { ...r, diet, categories: cats.filter(c => !DIET_WORD_RE.test(c)) };
+}
+
+// Uitleg bij het logo: aanwijzen met de muis, of aantikken op de iPhone/iPad
+const Tip = (() => {
+  let el = null, timer = 0;
+  function show(target, auto) {
+    if (!el) { el = document.createElement('div'); el.className = 'tip'; el.setAttribute('role', 'tooltip'); document.body.append(el); }
+    el.textContent = target.dataset.tip;
+    el.classList.add('on');
+    const r = target.getBoundingClientRect(), w = el.offsetWidth, h = el.offsetHeight;
+    el.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left + r.width / 2 - w / 2)) + 'px';
+    const above = r.top - h - 8;
+    el.style.top = (above >= 8 ? above : r.bottom + 8) + 'px';
+    clearTimeout(timer);
+    if (auto) timer = setTimeout(hide, 2800);
+  }
+  function hide() { if (el) el.classList.remove('on'); }
+  const tipOf = t => t && t.closest && t.closest('.diet[data-tip]');
+  document.addEventListener('pointerover', e => { if (e.pointerType === 'mouse' && tipOf(e.target)) show(tipOf(e.target)); });
+  document.addEventListener('pointerout', e => { if (e.pointerType === 'mouse' && tipOf(e.target) && !tipOf(e.relatedTarget)) hide(); });
+  // Aantikken: uitleg tonen in plaats van het recept te openen
+  document.addEventListener('click', e => {
+    const t = tipOf(e.target);
+    if (!t) { hide(); return; }
+    e.preventDefault(); e.stopPropagation();
+    show(t, true);
+  }, true);
+  document.addEventListener('focusin', e => { if (tipOf(e.target)) show(tipOf(e.target)); });
+  document.addEventListener('focusout', e => { if (tipOf(e.target)) hide(); });
+  addEventListener('scroll', hide, { passive: true, capture: true });
+  return { hide };
+})();
+
 
 // Is dit een drankje? Dan 'Proost!' in plaats van 'Eet smakelijk!'. Kijkt naar categorieën, gangen en
 // tags, met woordstammen zodat ook vervoegingen en andere talen meetellen (drank, dranken, drinken,
@@ -199,7 +261,15 @@ const state = {
 
 async function loadRecipes() {
   // Records die met '__' beginnen (zoals de boodschappenlijst) zijn geen recepten
-  state.recipes = (await DB.all()).filter(r => !String(r.id).startsWith('__')).sort((a, b) => a.title.localeCompare(b.title, 'nl'));
+  let list = (await DB.all()).filter(r => !String(r.id).startsWith('__'));
+  // Categorie 'Vega' e.d. omzetten naar het vinkje Vegetarisch/Vegan
+  const converted = list.map(dietFromWords).filter(Boolean);
+  if (converted.length) {
+    await DB.putMany(converted);
+    const byId = new Map(converted.map(r => [r.id, r]));
+    list = list.map(r => byId.get(r.id) || r);
+  }
+  state.recipes = list.sort((a, b) => a.title.localeCompare(b.title, 'nl'));
 }
 
 /* ---------- Kopbalk ---------- */
@@ -237,7 +307,9 @@ function renderList() {
   Shopping.updateBadge();
 
   const cats = catsByUse();
-  const chips = [['all', 'Alles'], ['fav', '♥'], ...cats.map(c => [c, c])];
+  const diets = ['vegetarisch', 'vegan'].filter(k => state.recipes.some(r => k === 'vegan' ? dietOf(r) === 'vegan' : dietOf(r)));
+  if (state.filter.startsWith('diet:') && !diets.includes(state.filter.slice(5))) state.filter = 'all';
+  const chips = [['all', 'Alles'], ['fav', '♥'], ...diets.map(k => ['diet:' + k, k]), ...cats.map(c => [c, c])];
   if (!chips.some(([k]) => k === state.filter)) state.filter = 'all';
   const usedCourses = courseList().filter(c => state.recipes.some(r => coursesOf(r).includes(c)));
   if (state.course && !usedCourses.includes(state.course)) state.course = null;
@@ -257,6 +329,8 @@ function renderList() {
     ${state.recipes.length ? `<div class="chips" id="catBar">${chips.map(([k, l]) =>
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
+        : k.startsWith('diet:')
+        ? `<button class="chip chip-diet${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
         : `<button class="chip${state.filter === k ? ' on' : ''}" data-filter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
     </div></div>
     <div class="inbox-banner" id="inboxBanner" hidden></div>
@@ -354,10 +428,13 @@ function renderCards() {
   if (dot) dot.hidden = !(q || state.filter !== 'all' || state.course);
   const list = state.recipes.filter(r => {
     if (state.filter === 'fav' && !r.favorite) return false;
-    if (state.filter !== 'all' && state.filter !== 'fav' && !catsOf(r).includes(state.filter)) return false;
+    if (state.filter === 'diet:vegetarisch' && !dietOf(r)) return false;      // vegan is ook vegetarisch
+    if (state.filter === 'diet:vegan' && dietOf(r) !== 'vegan') return false;
+    if (state.filter !== 'all' && state.filter !== 'fav' && !state.filter.startsWith('diet:') && !catsOf(r).includes(state.filter)) return false;
     if (state.course && !coursesOf(r).includes(state.course)) return false;
     if (!q) return true;
-    return [r.title, ...coursesOf(r), ...catsOf(r), r.ingredients, (r.tags || []).join(' ')].join(' ').toLowerCase().includes(q);
+    const dietWords = dietOf(r) === 'vegan' ? 'vegan veganistisch plantaardig vegetarisch vega veggie' : dietOf(r) ? 'vegetarisch vega veggie' : '';
+    return [r.title, ...coursesOf(r), ...catsOf(r), r.ingredients, (r.tags || []).join(' '), dietWords].join(' ').toLowerCase().includes(q);
   });
 
   const el = $('#cards');
@@ -386,7 +463,7 @@ function renderCards() {
         <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body">
           <div class="card-title">${esc(r.title)}${r.favorite ? ' <span class="fav">♥</span>' : ''}</div>
-          <div class="card-meta">${[coursesOf(r).join(', '), catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
+          <div class="card-meta">${dietBadge(dietOf(r))}${[coursesOf(r).join(', '), catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
         </div>
         <span class="card-chevron">${ICONS.chevron}</span>
       </a></li>`;
@@ -623,7 +700,7 @@ const Mag = (() => {
       <li class="mag-hero" style="grid-row:1">
         <a class="mh-photo" href="#/r/${esc(r.id)}" tabindex="-1"><img src="${r.photo}" alt=""></a>
         <div class="mh-text">
-          ${tags.length ? `<span class="mag-kicker">${tags.map(esc).join(' · ')}</span>` : ''}
+          ${tags.length || dietOf(r) ? `<span class="mag-kicker">${dietBadge(dietOf(r))}${tags.map(esc).join(' · ')}</span>` : ''}
           <h2 class="flag"><a href="#/r/${esc(r.id)}">${esc(r.title)}</a></h2>
           ${leadOf(r) ? `<p class="mh-lead">${esc(leadOf(r))}</p>` : ''}
           ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
@@ -722,7 +799,7 @@ const Mag = (() => {
           <div class="mc-label">
             <span class="mag-kicker">N° ${String(start + nr++).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
             <h3>${esc(r.title)}</h3>
-            ${metaOf(r) ? `<span class="mag-meta">${metaOf(r)}</span>` : ''}
+            ${metaOf(r) || dietOf(r) ? `<span class="mag-meta">${dietBadge(dietOf(r))}${metaOf(r) || ''}</span>` : ''}
           </div>
         </a></li>`;
     }).join('');
@@ -865,6 +942,7 @@ async function renderDetail(id) {
         <h2 class="detail-title">${esc(r.title)}</h2>
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
         <div class="meta">
+          ${dietBadge(dietOf(r))}
           ${coursesOf(r).map(c => `<span class="pill pill-course">${esc(c)}</span>`).join('')}
           ${catsOf(r).map(c => `<span class="pill">${esc(c)}</span>`).join('')}
           ${r.prepTime ? `<span>${ICONS.clock} ${r.cookTime ? 'Voorbereiden' : 'Bereidingstijd'} ${formatTime(r.prepTime)}</span>` : ''}
@@ -1046,6 +1124,7 @@ function recipeAsText(r, servings, factor) {
   });
   return [
     r.title,
+    dietOf(r) ? DIETS[dietOf(r)].label : '',
     r.description,
     `\nIngrediënten (${servings} ${servings === 1 ? 'portie' : 'porties'}):`,
     ...ingr,
@@ -1111,7 +1190,7 @@ async function renderEdit(id) {
       </div>
 
       <label>Categorieën <small>tik er één of meer aan, of typ nieuwe, gescheiden door komma's</small>
-        <input name="category" value="${esc(catsOf(r).join(', '))}" placeholder="Bijv. Diner, Vegetarisch" autocapitalize="sentences">
+        <input name="category" value="${esc(catsOf(r).join(', '))}" placeholder="Bijv. Diner, Italiaans" autocapitalize="sentences">
       </label>
       <div class="cat-choices" id="catChoices">
         ${catChoices.map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
@@ -1119,7 +1198,9 @@ async function renderEdit(id) {
 
       <div class="row">
         <label>Porties<input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
-        <div></div>
+        <div class="diet-pick" role="group" aria-label="Vegetarisch of vegan">
+          ${Object.keys(DIETS).map(k => `<label class="diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}</label>`).join('')}
+        </div>
       </div>
 
       <div class="row">
@@ -1142,6 +1223,9 @@ async function renderEdit(id) {
   // Categorie kiezen met knopjes (de keuzelijst van iOS werkt niet betrouwbaar)
   const catInput = view.querySelector('[name=category]');
   view.querySelectorAll('[data-course-pick]').forEach(b => b.addEventListener('click', () => b.classList.toggle('on')));
+  // Vegetarisch of vegan: hooguit één van de twee
+  const dietBoxes = [...view.querySelectorAll('input[name=diet]')];
+  dietBoxes.forEach(cb => cb.addEventListener('change', () => { if (cb.checked) dietBoxes.forEach(o => { if (o !== cb) o.checked = false; }); }));
 
   const markCat = () => {
     const chosen = splitCats(catInput.value).map(c => c.toLowerCase());
@@ -1187,6 +1271,7 @@ async function renderEdit(id) {
         ...[...view.querySelectorAll('[data-course-pick].on')].map(b => b.dataset.coursePick)],
       category: undefined, // oud veld, vervangen door 'categories'
       servings: Math.max(1, parseInt(d.servings, 10) || 1),
+      diet: view.querySelector('input[name=diet]:checked')?.value || '',
       prepTime: parseInt(d.prepTime, 10) || '',
       cookTime: parseInt(d.cookTime, 10) || '',
       ingredients: d.ingredients.trim(),
