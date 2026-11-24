@@ -1251,3 +1251,23 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 .empty .empty-books svg { width: 18px; height: 18px; }
 .form .share-check input[type=checkbox] { -webkit-appearance: auto; appearance: auto; width: 22px; height: 22px; min-width: 0; padding: 0; margin: 2px 0 0; border: 0; border-radius: 0; background: none; box-shadow: none; flex: none; accent-color: var(--accent); }
 .share-count { margin: 8px 0 0 !important; }
+
+/* ---------- Laden: pannetje met roerende pollepel ---------- */
+.loader { display: grid; justify-items: center; gap: 10px; padding: 56px 16px; color: var(--accent); }
+.loader svg { width: 88px; height: 88px; stroke-width: 2.4; overflow: visible; }
+.loader p { margin: 0; font: 500 13px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); }
+.loader .ld-pot { fill: var(--bg); }
+.loader .ld-ladle { transform-origin: 33px 42px; animation: ld-stir 1.6s ease-in-out infinite; }
+.loader .ld-steam path { opacity: 0; animation: ld-steam 2.4s ease-out infinite; }
+.loader .ld-steam path:nth-child(2) { animation-delay: .8s; }
+.loader .ld-steam path:nth-child(3) { animation-delay: 1.6s; }
+@keyframes ld-stir {
+  0%, 100% { transform: rotate(-16deg) translateX(-3px); }
+  50% { transform: rotate(16deg) translateX(3px); }
+}
+@keyframes ld-steam {
+  0% { opacity: 0; transform: translateY(4px); }
+  30% { opacity: .7; }
+  100% { opacity: 0; transform: translateY(-6px); }
+}
+@media (prefers-reduced-motion: reduce) { .loader .ld-ladle, .loader .ld-steam path { animation: none; } .loader .ld-steam path { opacity: .5; } }

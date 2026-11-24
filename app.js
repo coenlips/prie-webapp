@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '88 · 24 november 2026';
+const APP_VERSION = '89 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2050,7 +2050,7 @@ async function renderUsers() {
   setHeader({ title: 'Gebruikers', back: true, timer: false });
   const me = Sync.status().user;
   if (!me || !me.admin) { location.hash = '#/settings'; return; }
-  view.innerHTML = `<section class="settings"><div class="card-box"><p>Laden…</p></div></section>`;
+  view.innerHTML = `<section class="settings">${loaderHtml('Gebruikers ophalen…')}</section>`;
   let users, requests = [];
   try {
     users = await Sync.call('users');
@@ -2213,6 +2213,19 @@ const SHARE_KEY = 'ricetta-share';   // laatst bekende eigen instellingen (voor 
 const shareCache = () => { try { return JSON.parse(localStorage.getItem(SHARE_KEY)) || {}; } catch { return {}; } };
 const setShareCache = v => { try { localStorage.setItem(SHARE_KEY, JSON.stringify({ ...shareCache(), ...v })); } catch { /* */ } };
 const loggedIn = () => Sync.status().state === 'on';
+// Laden: pannetje met een roerende pollepel (zelfde lijnstijl als de iconen)
+function loaderHtml(text = 'Laden…') {
+  return `<div class="loader" role="status" aria-live="polite">
+    <svg viewBox="0 0 64 64" aria-hidden="true">
+      <g class="ld-steam"><path d="M17 21c-2-2.5 2-4 0-6.5"/><path d="M24 19c-2-2.5 2-4 0-6.5"/></g>
+      <g class="ld-ladle"><path d="M33 42 41 8"/><path d="M41 8c.8-3.4 4.6-4.4 6.4-1.8"/></g>
+      <path class="ld-pot" d="M10 28h44v16a10 10 0 0 1-10 10H20a10 10 0 0 1-10-10z"/>
+      <path d="M6 28h52M10 33H5M54 33h5"/>
+    </svg>
+    <p>${esc(text)}</p>
+  </div>`;
+}
+
 // Oudere server zonder deze functies: begrijpelijke melding
 const shareErr = err => /Onbekende actie/.test(err.message) ? 'Delen werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
 const avatarHtml = name => `<div class="acc-avatar" aria-hidden="true">${esc(String(name || '?').charAt(0).toUpperCase())}</div>`;
@@ -2347,7 +2360,7 @@ async function renderBooks() {
   document.body.dataset.page = 'settings';
   setHeader({ title: 'Kookboeken', back: true, timer: false });
   if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de kookboeken van anderen te bekijken.</p></div></section>`; return; }
-  view.innerHTML = `<section class="settings"><p class="books-intro">Laden…</p></section>`;
+  view.innerHTML = `<section class="settings">${loaderHtml('Kookboeken ophalen…')}</section>`;
   let books = [];
   try { books = await Sync.call('books'); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
   if (isStale(seq)) return;
@@ -2376,7 +2389,7 @@ async function renderBook(ownerId) {
   const seq = routeSeq;
   document.body.dataset.page = 'book';
   setHeader({ title: 'Kookboek', back: true, timer: false });
-  view.innerHTML = `<section class="book-page"><p class="books-intro">Laden…</p></section>`;
+  view.innerHTML = `<section class="book-page">${loaderHtml('Kookboek openen…')}</section>`;
   let d;
   try { d = await loadBook(ownerId); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
   if (isStale(seq)) return;
@@ -2416,6 +2429,9 @@ async function renderBook(ownerId) {
 async function renderBookRecipe(ownerId, recipeId) {
   const seq = routeSeq;
   let r, owner = bookCache.get(ownerId)?.owner;
+  const name = bookCache.get(ownerId)?.recipes.find(x => x.id === recipeId)?.title;
+  setHeader({ title: name || 'Recept', back: true, timer: false });
+  view.innerHTML = loaderHtml(name ? `${name} ophalen…` : 'Recept ophalen…');
   try {
     r = await Sync.call('book_recipe', { owner: ownerId, id: recipeId });
     if (!owner) owner = (await loadBook(ownerId)).owner;
