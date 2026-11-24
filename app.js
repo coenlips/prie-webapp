@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '102 · 24 november 2026';
+const APP_VERSION = '103 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1649,6 +1649,7 @@ function renderSettings() {
 
   view.innerHTML = `
     <section class="settings">
+      <h2 class="page-title">Instellingen</h2>
       ${standalone ? '' : fold('install', 'Op je beginscherm zetten', `
         <ol class="howto">
           <li>Open deze pagina in <strong>Safari</strong>.</li>

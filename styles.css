@@ -1358,3 +1358,5 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .page-flag { display: flex; justify-content: center; margin: 10px 0 14px; }
 .page-flag .acc-flag { margin-bottom: 0; }
 .page-flag .acc-flag span { font-size: 34px; }
+/* Eenvoudige kop onder de dubbele streep (Instellingen, Boodschappen) */
+.page-title { margin: 8px 0 14px; font: 400 38px/1 var(--font-title); letter-spacing: .03em; color: var(--text); }
