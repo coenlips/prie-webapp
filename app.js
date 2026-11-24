@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '95 · 24 november 2026';
+const APP_VERSION = '96 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1255,6 +1255,12 @@ function openShopSheet(r, ingr, done, factor) {
   const show = (l, f) => { tmp.innerHTML = scaleLine(l, f); return tmp.textContent; };
   const parts = relatedOf(r).parts;
   const partOfLine = ingredientLinks(ingr, parts);   // regelnummer → onderdeel (bijv. '1 portie pizzadeeg')
+  // Porties per recept: het hoofdrecept begint bij de porties van de receptpagina, een onderdeel bij die van zichzelf
+  const baseOf = { main: Math.max(1, +r.servings || 1) };
+  parts.forEach(p => { baseOf[p.id] = Math.max(1, +p.servings || 1); });
+  const serv = { main: Math.max(1, Math.round(baseOf.main * factor)) };
+  parts.forEach(p => { serv[p.id] = baseOf[p.id]; });
+  const fac = g => serv[g] / baseOf[g];
   // Alle regels: hoofdrecept (g = 'main') en per onderdeel (g = id van het onderdeel)
   const rows = [];
   ingr.forEach((l, i) => {
@@ -1280,6 +1286,9 @@ function openShopSheet(r, ingr, done, factor) {
     <div class="shop-pick" id="shopPick"></div>
     <button class="btn" id="shopAdd"></button>`, 'Op de boodschappenlijst');
   const draw = () => {
+    rows.forEach(x => { if (x.key) x.text = show(x.line, fac(x.g)); });
+    const stepper = g => `<span class="stepper shop-stepper" aria-label="Aantal porties">
+      <button type="button" data-min="${esc(g)}" aria-label="Minder porties">−</button><span>${ICONS.people} ${serv[g]}</span><button type="button" data-plus="${esc(g)}" aria-label="Meer porties">+</button></span>`;
     const row = x => x.sub != null
       ? `<p class="shop-sub">${esc(x.sub)}</p>`
       : `<button type="button" class="shop-row${x.buy ? ' on' : ''}" data-k="${esc(x.key)}" role="checkbox" aria-checked="${x.buy}">
@@ -1288,10 +1297,10 @@ function openShopSheet(r, ingr, done, factor) {
     const group = g => rows.filter(x => x.g === g);
     const allBtn = g => { const list = group(g).filter(x => x.key); const all = list.every(x => x.buy); return `<button type="button" class="link shop-all" data-all="${esc(g)}">${all ? 'Niets' : 'Alles'}</button>`; };
     s.$('#shopPick').innerHTML = `
-      <div class="shop-group"><div class="shop-head"><b>${esc(r.title)}</b>${allBtn('main')}</div>${group('main').map(row).join('')}</div>
+      <div class="shop-group"><div class="shop-head"><b>${esc(r.title)}</b>${stepper('main')}</div><div class="shop-tools">${allBtn('main')}</div>${group('main').map(row).join('')}</div>
       ${parts.map(p => `<div class="shop-group${partOn.has(p.id) ? '' : ' off'}">
-        <div class="shop-head"><label class="shop-part"><input type="checkbox" data-part="${esc(p.id)}"${partOn.has(p.id) ? ' checked' : ''}><b>Onderdeel: ${esc(p.title)}</b></label>${partOn.has(p.id) ? allBtn(p.id) : ''}</div>
-        ${partOn.has(p.id) ? group(p.id).map(row).join('') : ''}</div>`).join('')}`;
+        <div class="shop-head"><label class="shop-part"><input type="checkbox" data-part="${esc(p.id)}"${partOn.has(p.id) ? ' checked' : ''}><b>Onderdeel: ${esc(p.title)}</b></label>${partOn.has(p.id) ? stepper(p.id) : ''}</div>
+        ${partOn.has(p.id) ? `<div class="shop-tools">${allBtn(p.id)}</div>${group(p.id).map(row).join('')}` : ''}</div>`).join('')}`;
     const n = rows.filter(x => x.key && x.buy && (x.g === 'main' || partOn.has(x.g))).length;
     s.$('#shopAdd').textContent = n ? `Toevoegen (${n})` : 'Niets toevoegen';
     s.$('#shopAdd').disabled = !n;
@@ -1300,16 +1309,18 @@ function openShopSheet(r, ingr, done, factor) {
       const list = group(b.dataset.all).filter(x => x.key), all = list.every(x => x.buy);
       list.forEach(x => { x.buy = !all; }); draw();
     });
+    s.el.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { const g = b.dataset.min; if (serv[g] > 1) { serv[g]--; draw(); } });
+    s.el.querySelectorAll('[data-plus]').forEach(b => b.onclick = () => { serv[b.dataset.plus]++; draw(); });
     s.el.querySelectorAll('[data-part]').forEach(c => c.onchange = () => { c.checked ? partOn.add(c.dataset.part) : partOn.delete(c.dataset.part); syncPartLines(); draw(); });
   };
   draw();
   s.$('#shopAdd').onclick = async () => {
     const active = rows.filter(x => x.key && (x.g === 'main' || partOn.has(x.g)));
     const pick = active.filter(x => x.buy);
-    await Shopping.addFromRecipe(pick.filter(x => x.g === 'main').map(x => x.line), factor, r.title);
+    await Shopping.addFromRecipe(pick.filter(x => x.g === 'main').map(x => x.line), fac('main'), r.title);
     for (const p of parts.filter(p => partOn.has(p.id))) {
       const ls = pick.filter(x => x.g === p.id).map(x => x.line);
-      if (ls.length) await Shopping.addFromRecipe(ls, 1, p.title);
+      if (ls.length) await Shopping.addFromRecipe(ls, fac(p.id), p.title);
     }
     // Onthouden wat je wegtikt (niet wat je tijdens het koken hebt afgestreept, en niet de onderdeel-regel zelf)
     await rememberPantry(active.filter(x => !x.used && !(x.part && partOn.has(x.part.id))).map(x => ({ line: x.line, buy: x.buy })));
