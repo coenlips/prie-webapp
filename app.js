@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '103 · 24 november 2026';
+const APP_VERSION = '104 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1015,6 +1015,7 @@ function setCookMode(on) {
   if (on) state.cookTab = 'ingr';
   document.body.classList.toggle('cook', on);
   $('#cookTabs').hidden = !on;
+  $('#cookSwitch').hidden = !on;
   const btn = $('#cook');
   if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on); }
   showCookTab(state.cookTab || 'ingr');
@@ -1034,7 +1035,8 @@ function centerStep(li) {
       box.scrollTo({ top: Math.max(0, box.scrollTop + r.top - b.top + r.height / 2 - box.clientHeight / 2), behavior: smooth });
       return;
     }
-    const barBottom = document.querySelector('.topbar').getBoundingClientRect().bottom;
+    const sw = document.querySelector('#cookSwitch');
+    const barBottom = Math.max(document.querySelector('.topbar').getBoundingClientRect().bottom, sw && !sw.hidden && sw.offsetHeight ? sw.getBoundingClientRect().bottom : 0);
     const r = li.getBoundingClientRect();
     const target = scrollY + r.top + r.height / 2 - (barBottom + (innerHeight - barBottom) / 2);
     window.scrollTo({ top: Math.max(0, target), behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
@@ -1044,7 +1046,7 @@ function centerStep(li) {
 function showCookTab(tab) {
   state.cookTab = tab;
   document.body.classList.toggle('cook-tab-steps', tab === 'steps');
-  document.querySelectorAll('#cookTabs [data-tab]').forEach(b => {
+  document.querySelectorAll('#cookSwitch [data-tab]').forEach(b => {
     b.classList.toggle('on', b.dataset.tab === tab);
     b.setAttribute('aria-selected', b.dataset.tab === tab);
   });
@@ -1052,7 +1054,7 @@ function showCookTab(tab) {
 
 $('#cookOff').innerHTML = ICONS.cook;
 $('#cookOff').addEventListener('click', () => setCookMode(false));
-document.querySelectorAll('#cookTabs [data-tab]').forEach(b => b.addEventListener('click', () => {
+document.querySelectorAll('#cookSwitch [data-tab]').forEach(b => b.addEventListener('click', () => {
   if (state.cookTab !== b.dataset.tab) { showCookTab(b.dataset.tab); window.scrollTo(0, 0); }
 }));
 

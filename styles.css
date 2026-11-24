@@ -1360,3 +1360,13 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .page-flag .acc-flag span { font-size: 34px; }
 /* Eenvoudige kop onder de dubbele streep (Instellingen, Boodschappen) */
 .page-title { margin: 8px 0 14px; font: 400 38px/1 var(--font-title); letter-spacing: .03em; color: var(--text); }
+
+/* Kookstand: schakelknop Ingrediënten/Bereiding onder de dubbele streep, blijft staan bij scrollen */
+.cook-switch[hidden] { display: none; }
+.cook-switch {
+  position: sticky; top: calc(var(--topbar-h, 60px) - 2px); z-index: 9;
+  padding: 12px 16px 10px; background: var(--bg);
+  box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28);
+}
+.cook-switch .segmented { max-width: 520px; margin: 0 auto; }
+@media (min-width: 900px) { .cook-switch { display: none !important; } }

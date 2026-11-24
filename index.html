@@ -28,13 +28,16 @@
     <h1 id="title">Ricetta</h1>
     <div class="topbar-actions" id="topActions"></div>
     <nav class="cook-tabs" id="cookTabs" hidden aria-label="Kookstand">
-      <div class="segmented" role="tablist">
-        <button role="tab" data-tab="ingr">Ingrediënten</button>
-        <button role="tab" data-tab="steps">Bereiding</button>
-      </div>
       <button class="icon-btn cook-btn on" id="cookOff" aria-label="Kookstand uit" title="Kookstand uit"></button>
     </nav>
   </header>
+  <!-- Kookstand (iPhone en iPad staand): kiezen tussen ingrediënten en bereiding, onder de dubbele streep -->
+  <div class="cook-switch" id="cookSwitch" hidden>
+    <div class="segmented" role="tablist" aria-label="Kookstand">
+      <button role="tab" data-tab="ingr">Ingrediënten</button>
+      <button role="tab" data-tab="steps">Bereiding</button>
+    </div>
+  </div>
 
   <main id="view"></main>
 
