@@ -1303,3 +1303,8 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 .shop-stepper button { width: 30px; height: 32px; }
 .shop-tools { display: flex; justify-content: flex-end; padding: 2px 0 0; }
 .shop-head { flex-wrap: wrap; row-gap: 6px; }
+/* Boodschappen-venster: 'Toevoegen' ook bovenaan, blijft in beeld bij scrollen */
+.shop-sheet-head { position: sticky; top: -8px; z-index: 2; background: var(--bg); margin: -8px -16px 0; padding: 8px 16px; }
+.shop-sheet-head .btn.small { width: auto; padding: 9px 16px; font-size: 14px; }
+.shop-sheet-head .btn.small:disabled { opacity: .5; }
+.shop-title { margin: 6px 0 0; font: 400 26px var(--font-title); letter-spacing: .06em; }

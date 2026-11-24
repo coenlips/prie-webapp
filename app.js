@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '96 · 24 november 2026';
+const APP_VERSION = '97 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1281,7 +1281,8 @@ function openShopSheet(r, ingr, done, factor) {
   syncPartLines();
 
   const s = openAccSheet(`
-    <div class="sheet-head"><h3>Op de boodschappenlijst</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <div class="sheet-head shop-sheet-head"><button class="text-btn" data-close>Annuleer</button><button class="btn small" id="shopAddTop"></button></div>
+    <h3 class="shop-title">Op de boodschappenlijst</h3>
     <p class="acc-sheet-text">Tik weg wat je al in huis hebt.</p>
     <div class="shop-pick" id="shopPick"></div>
     <button class="btn" id="shopAdd"></button>`, 'Op de boodschappenlijst');
@@ -1302,8 +1303,7 @@ function openShopSheet(r, ingr, done, factor) {
         <div class="shop-head"><label class="shop-part"><input type="checkbox" data-part="${esc(p.id)}"${partOn.has(p.id) ? ' checked' : ''}><b>Onderdeel: ${esc(p.title)}</b></label>${partOn.has(p.id) ? stepper(p.id) : ''}</div>
         ${partOn.has(p.id) ? `<div class="shop-tools">${allBtn(p.id)}</div>${group(p.id).map(row).join('')}` : ''}</div>`).join('')}`;
     const n = rows.filter(x => x.key && x.buy && (x.g === 'main' || partOn.has(x.g))).length;
-    s.$('#shopAdd').textContent = n ? `Toevoegen (${n})` : 'Niets toevoegen';
-    s.$('#shopAdd').disabled = !n;
+    for (const id of ['#shopAdd', '#shopAddTop']) { s.$(id).textContent = n ? `Toevoegen (${n})` : 'Niets toevoegen'; s.$(id).disabled = !n; }
     s.el.querySelectorAll('.shop-row').forEach(b => b.onclick = () => { const x = rows.find(y => y.key === b.dataset.k); x.buy = !x.buy; draw(); });
     s.el.querySelectorAll('[data-all]').forEach(b => b.onclick = () => {
       const list = group(b.dataset.all).filter(x => x.key), all = list.every(x => x.buy);
@@ -1314,6 +1314,7 @@ function openShopSheet(r, ingr, done, factor) {
     s.el.querySelectorAll('[data-part]').forEach(c => c.onchange = () => { c.checked ? partOn.add(c.dataset.part) : partOn.delete(c.dataset.part); syncPartLines(); draw(); });
   };
   draw();
+  s.$('#shopAddTop').onclick = () => s.$('#shopAdd').click();
   s.$('#shopAdd').onclick = async () => {
     const active = rows.filter(x => x.key && (x.g === 'main' || partOn.has(x.g)));
     const pick = active.filter(x => x.buy);
