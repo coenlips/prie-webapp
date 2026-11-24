@@ -26,7 +26,8 @@ Zie [`server/LEESMIJ.md`](server/LEESMIJ.md). Kort: upload `server/api.php` met 
 
 1. Ga op GitHub naar **Settings → Pages** en kies bij *Source*: **GitHub Actions**.
 2. Push naar `main`. De workflow in `.github/workflows/pages.yml` publiceert de app op
-   `https://<gebruikersnaam>.github.io/prie-webapp/`.
+   `https://<gebruikersnaam>.github.io/prie-webapp/`, of op een eigen adres zoals `https://ricetta.coenlips.nl`
+   (Settings → Pages → Custom domain, plus een CNAME-record bij je domein naar `<gebruikersnaam>.github.io`).
 
 ## Op je iPhone installeren
 

@@ -14,4 +14,4 @@ const DB_PASS = 'database-wachtwoord';
 const APP_PASSWORD = 'kies-hier-een-wachtwoord';
 
 // Vanaf welke websites de app de API mag gebruiken
-const ALLOWED_ORIGINS = ['https://coenlips.github.io'];
+const ALLOWED_ORIGINS = ['https://ricetta.coenlips.nl', 'https://coenlips.github.io'];
