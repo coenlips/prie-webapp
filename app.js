@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.1.1 · 24 november 2026';
+const APP_VERSION = '1.1.2 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2143,11 +2143,8 @@ function renderSetPassword() {
 }
 
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
-/* Wijzigingsregister. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
+/* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
-  { v: '1.1.1', date: '24 november 2026', sections: [{ items: [
-    'Betere regelafbreking in de melding over wat er nieuw is.',
-  ] }] },
   { v: '1.1.0', date: '24 november 2026', sections: [{ items: [
     'Na een grote update zie je bij het openen één keer wat er nieuw is.',
     'Bij Instellingen staat nu dit overzicht van alle wijzigingen.',
@@ -2190,7 +2187,7 @@ const changeHtml = c => `${c.intro ? `<p class="news-intro">${c.intro}</p>` : ''
   ${s.h ? `<h4>${s.h}</h4>` : ''}<ul>${s.items.map(i => `<li>${i}</li>`).join('')}</ul>`).join('')}${c.outro ? `<p class="news-outro">${c.outro}</p>` : ''}`;
 function changelogHtml() {
   return CHANGELOG.map((c, i) => `
-    <details class="change"${i === 0 ? ' open' : ''}><summary><b>Versie ${c.v}</b><small>${c.date}</small><span class="fold-chevron" aria-hidden="true">${ICONS.chevron}</span></summary>
+    <details class="change"${i === 0 ? ' open' : ''}><summary><b>Versie ${c.v.split('.').slice(0, 2).join('.')}</b><small>${c.date}</small><span class="fold-chevron" aria-hidden="true">${ICONS.chevron}</span></summary>
       <div class="change-body">${changeHtml({ ...c, intro: '', outro: '' })}</div></details>`).join('');
 }
 // Eén keer de nieuwsmelding tonen (alleen als je ingelogd bent of de app uitprobeert, tot en met de einddatum).
