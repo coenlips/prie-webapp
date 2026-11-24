@@ -1,6 +1,6 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js.
-const VERSION = 'v110';
+const VERSION = 'v111';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -14,9 +14,9 @@ const FILES = [
   'importer.js',
   'shopping.js',
   'manifest.webmanifest',
-  'icons/apple-touch-icon.png',
-  'icons/icon-192.png',
-  'icons/icon-512.png',
+  'icons/apple-touch-icon-r.png',
+  'icons/icon-192-r.png',
+  'icons/icon-512-r.png',
   'fonts/bebas-neue-400.woff2',
   'fonts/oswald-500.woff2',
   'fonts/oswald-600.woff2',
