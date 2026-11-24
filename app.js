@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '76 · 24 november 2026';
+const APP_VERSION = '77 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -706,7 +706,6 @@ const Mag = (() => {
           ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
           <div class="mh-actions">
             <a class="btn mh-open" href="#/r/${esc(r.id)}">Bekijk recept</a>
-            ${many ? `<button class="mh-next" id="heroNext">Ander recept ›</button>` : ''}
           </div>
         </div>
       </li>`;
