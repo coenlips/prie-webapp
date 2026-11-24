@@ -1271,3 +1271,9 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
   100% { opacity: 0; transform: translateY(-6px); }
 }
 @media (prefers-reduced-motion: reduce) { .loader .ld-ladle, .loader .ld-steam path { animation: none; } .loader .ld-steam path { opacity: .5; } }
+
+/* Letter in het rondje optisch in het midden (de hoofdletters van Bebas staan iets te hoog) */
+.acc-avatar { line-height: 1; padding-top: .13em; box-sizing: border-box; }
+/* 'Van …'-balk boven de foto: niet onder de foto laten schuiven (de foto heeft op de iPhone een negatieve marge) */
+.from-strip { margin: -12px -16px 12px; }
+@media (min-width: 900px) { body[data-page=detail]:not(.cook) .from-strip { margin: 0; } }
