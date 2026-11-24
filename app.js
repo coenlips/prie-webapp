@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '89 · 24 november 2026';
+const APP_VERSION = '90 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2565,7 +2565,7 @@ async function route() {
   if (page !== 'r') state.backStack = [];
   document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
   document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
-    ontvangen: 'detail', kookboeken: 'settings', kookboek: sub ? 'detail' : 'book' })[page] || 'list';
+    ontvangen: 'detail', kookboeken: 'settings', kookboek: 'book' })[page] || 'list';
 
   // Nog niet ingelogd (en niet aan het uitproberen), of eerst een eigen wachtwoord kiezen?
   const gate = accountGate();
