@@ -1101,3 +1101,53 @@ body[data-page=welcome] #title { visibility: hidden; }
 /* Uitgelicht recept: VEGAN/VEGETARISCH en de gang/categorieën op precies dezelfde hoogte */
 .mag-hero .mag-kicker:has(.diet) { display: inline-flex; align-items: center; flex-wrap: wrap; row-gap: 4px; }
 .mag-hero .mag-kicker .diet-text { letter-spacing: inherit; }
+
+/* ---------- Recepten koppelen ---------- */
+.ingredients .ing-link { color: var(--accent); text-decoration: underline dotted 1.5px; text-underline-offset: 3px; }
+.ing-go { display: inline-flex; align-items: center; margin-left: 6px; padding: 2px 7px 1px; border-radius: 3px; background: var(--accent-soft); color: var(--accent);
+  font: 500 11px var(--font-label); letter-spacing: .1em; text-transform: uppercase; vertical-align: 2px; white-space: nowrap; }
+.ingredients li.done .ing-link, .ingredients li.done .ing-go { color: inherit; }
+.links-box { margin: 34px 0 12px; }
+.links-box h3 { margin-bottom: 4px; }
+.links-sub { font: 500 12px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); margin: 14px 0 8px; }
+.link-cards { display: flex; gap: 12px; overflow-x: auto; margin: 0 -16px; padding: 4px 16px 6px; scrollbar-width: none; }
+.link-cards::-webkit-scrollbar { display: none; }
+.link-card { flex: none; width: 140px; display: block; background: var(--surface); outline: 3px double var(--teal); outline-offset: -6px; color: var(--text); }
+.link-card img { display: block; width: 100%; aspect-ratio: 1; object-fit: cover; }
+.link-nophoto, .pick-nophoto { display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.link-nophoto { aspect-ratio: 1; }
+.link-nophoto svg { width: 44px; height: 44px; }
+.link-card b { display: block; padding: 8px 10px 11px; font: 400 18px/1.05 var(--font-title); letter-spacing: .02em; text-align: center; overflow-wrap: anywhere; }
+.link-card:active { transform: scale(.98); }
+@media (min-width: 700px) { .link-cards { flex-wrap: wrap; overflow: visible; margin: 0; padding: 4px 0 6px; } .link-card { width: 160px; } }
+body.cook .links-box { display: none; }
+/* Bewerken */
+.field-links { display: grid; gap: 8px; }
+.field-label { font-family: var(--font-label); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; font-size: 14px; }
+.field-label small { font-weight: 400; text-transform: none; letter-spacing: 0; font-family: -apple-system, system-ui, sans-serif; color: var(--muted); }
+.edit-links { display: flex; flex-wrap: wrap; gap: 8px; }
+.link-chip { display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font: 600 15px -apple-system, system-ui, sans-serif; }
+.link-chip i { font-style: normal; font-weight: 400; color: var(--muted); }
+.link-chip span { color: var(--accent); }
+.link-add { border-style: dashed; color: var(--accent); }
+.pick { list-style: none; margin: 10px 0 0; padding: 0; max-height: 55vh; overflow-y: auto; }
+.pick li { display: flex; align-items: center; gap: 12px; padding: 9px 0; border-bottom: 1px dashed var(--line); }
+.pick img, .pick-nophoto { width: 44px; height: 44px; object-fit: cover; flex: none; }
+.pick-nophoto svg { width: 24px; height: 24px; }
+.pick b { flex: 1; min-width: 0; font-weight: 600; }
+.pick .seg { display: flex; gap: 4px; flex: none; }
+.pick .seg button { font: 500 11px var(--font-label); letter-spacing: .08em; text-transform: uppercase; padding: 6px 7px; border: 1.5px solid var(--text); color: var(--text); border-radius: 2px; }
+.pick .seg button.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.pick-none { color: var(--muted); justify-content: center; }
+/* Spiekvenster in de kookstand */
+.peek { max-height: 70vh; overflow-y: auto; }
+.peek h4 { font: 500 12px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); margin: 14px 0 6px; }
+.peek ul, .peek ol { margin: 0; padding-left: 22px; font-size: 18px; }
+.peek li { margin: 6px 0; }
+.peek .peek-sub { list-style: none; margin-left: -22px; font: 500 12px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--mustard); }
+.peek .btn { margin-top: 16px; }
+/* Boodschappenlijst: onderdelen kiezen */
+.parts-pick { display: grid; gap: 10px; margin: 6px 0 4px; }
+.parts-check { display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.parts-check input { width: 22px; height: 22px; accent-color: var(--accent); flex: none; }
+.sheet .parts-check input[type=checkbox] { width: 22px; height: 22px; min-width: 0; padding: 0; border: 0; border-radius: 0; background: none; -webkit-appearance: auto; appearance: auto; }

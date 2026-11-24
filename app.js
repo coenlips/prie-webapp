@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '79 · 24 november 2026';
+const APP_VERSION = '80 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -66,6 +66,80 @@ const AppSettings = {
 };
 const courseList = () => AppSettings.data.courses;
 const coursesOf = r => courseList().filter(c => (r.courses || []).includes(c));
+
+/* ---------- Recepten koppelen ---------- */
+// r.links = [{ id, kind }] met kind 'part' (onderdeel, bijv. pizzadeeg) of 'with' (lekker met).
+// Koppel je A aan B, dan ziet B dat vanzelf ('Gebruikt in' of 'Lekker met').
+const LINK_KINDS = { part: 'Onderdeel', with: 'Lekker met' };
+const recipeById = id => state.recipes.find(x => x.id === id);
+const linksOf = r => (Array.isArray(r.links) ? r.links : [])
+  .filter(l => l && LINK_KINDS[l.kind] && l.id !== r.id && recipeById(l.id));
+function relatedOf(r) {
+  const parts = [], withs = [], usedIn = [];
+  for (const l of linksOf(r)) (l.kind === 'part' ? parts : withs).push(recipeById(l.id));
+  for (const o of state.recipes) {
+    if (o.id === r.id) continue;
+    const l = linksOf(o).find(x => x.id === r.id);
+    if (!l) continue;
+    if (l.kind === 'part') usedIn.push(o);
+    else if (!withs.includes(o)) withs.push(o);
+  }
+  return { parts, usedIn: usedIn.filter(x => !parts.includes(x)), withs: withs.filter(x => !parts.includes(x) && !usedIn.includes(x)) };
+}
+// Welk ingrediënt noemt een onderdeel? Eerst de hele naam, anders steeds korter
+// ('Tomatensaus van oma' → 'Tomatensaus'). Geeft per regelnummer { recipe, phrase }.
+function ingredientLinks(ingrLines, parts) {
+  const found = new Map();
+  for (const p of parts) {
+    const words = p.title.trim().split(/\s+/);
+    outer: for (let n = words.length; n >= 1; n--) {
+      const phrase = words.slice(0, n).join(' ');
+      if (phrase.length < 4) break;
+      for (let i = 0; i < ingrLines.length; i++) {
+        const l = ingrLines[i];
+        if (l.startsWith('#') || found.has(i)) continue;
+        if (l.toLowerCase().includes(phrase.toLowerCase())) { found.set(i, { recipe: p, phrase }); break outer; }
+      }
+    }
+  }
+  return found;
+}
+const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+function linkIngredientHtml(html, link) {
+  const re = new RegExp(escRe(esc(link.phrase)), 'i');
+  const id = esc(link.recipe.id);
+  const marked = re.test(html) ? html.replace(re, m => `<a class="ing-link" href="#/r/${id}" data-link="${id}">${m}</a>`) : html;
+  return `${marked}<a class="ing-go" href="#/r/${id}" data-link="${id}" aria-label="Open het recept ${esc(link.recipe.title)}">recept ›</a>`;
+}
+function linkCard(x) {
+  return `<a class="link-card" href="#/r/${esc(x.id)}" data-link="${esc(x.id)}">${x.photo
+    ? `<img src="${x.photo}" alt="" loading="lazy">` : `<span class="link-nophoto">${ICONS.plate}</span>`}<b>${esc(x.title)}</b></a>`;
+}
+function relatedHtml(r) {
+  const { parts, usedIn, withs } = relatedOf(r);
+  if (!parts.length && !usedIn.length && !withs.length) return '';
+  const group = (t, list) => list.length ? `<p class="links-sub">${t}</p><div class="link-cards">${list.map(linkCard).join('')}</div>` : '';
+  return `<section class="links-box"><h3>Hoort bij dit recept</h3>${group('Onderdelen', parts)}${group('Gebruikt in', usedIn)}${group('Lekker met', withs)}</section>`;
+}
+// Naar een gekoppeld recept; het terug-pijltje brengt je weer terug
+function goRecipe(id, fromId) {
+  if (fromId) state.backStack = [...(state.backStack || []), fromId];
+  location.hash = '#/r/' + encodeURIComponent(id);
+}
+// Kookstand: gekoppeld recept als spiekvenster, zodat je je plek niet kwijtraakt
+function openPeek(x, fromId) {
+  const ing = lines(x.ingredients), st = lines(x.steps);
+  const sheet = openAccSheet(`
+    <div class="sheet-head"><h3>${esc(x.title)}</h3><button class="text-btn" data-close>Sluit</button></div>
+    <div class="peek">
+      <h4>Ingrediënten (${x.servings || 1} ${x.servings === 1 ? 'portie' : 'porties'})</h4>
+      <ul>${ing.map(l => l.startsWith('#') ? `<li class="peek-sub">${esc(l.replace(/^#+\s*/, ''))}</li>` : `<li>${esc(l)}</li>`).join('')}</ul>
+      <h4>Bereiding</h4>
+      <ol>${st.map(l => l.startsWith('#') ? `<li class="peek-sub">${esc(l.replace(/^#+\s*/, ''))}</li>` : `<li>${esc(l)}</li>`).join('')}</ol>
+      <button class="btn ghost" id="peekOpen">Open het hele recept</button>
+    </div>`, x.title);
+  sheet.$('#peekOpen').onclick = () => { sheet.close(); setCookMode(false); goRecipe(x.id, fromId); };
+}
 
 /* ---------- Vegetarisch en vegan ---------- */
 // Per recept r.diet = 'vegetarisch' | 'vegan' | ''. Logo's (cirkel met blaadje) als SVG-symbolen,
@@ -288,6 +362,7 @@ $('#backBtn').addEventListener('click', () => {
   // in de kookstand: terug naar het gewone receptscherm
   if (state.cookMode) { setCookMode(false); return; }
   const page = (location.hash || '#/').split('/')[1];
+  if (page === 'r' && state.backStack?.length) { location.hash = '#/r/' + encodeURIComponent(state.backStack.pop()); return; }
   if (page === 'gebruikers') location.hash = '#/settings';
   else if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
@@ -926,6 +1001,7 @@ async function renderDetail(id) {
 
   const ingr = lines(r.ingredients);
   const steps = lines(r.steps);
+  const ingLinks = ingredientLinks(ingr, relatedOf(r).parts);
   // echte stappen (geen #kopje); als ze allemaal zijn afgestreept: 'Eet smakelijk!' (of 'Proost!')
   const stepKeys = steps.map((l, i) => l.startsWith('#') ? null : 's' + i).filter(Boolean);
   const allStepsDone = () => stepKeys.length > 0 && stepKeys.every(k => done.has(k));
@@ -967,7 +1043,7 @@ async function renderDetail(id) {
         <ul class="ingredients">
           ${ingr.map((l, i) => l.startsWith('#')
             ? `<li class="sub">${esc(l.replace(/^#+\s*/, ''))}</li>`
-            : `<li data-i="${i}" class="${done.has('i' + i) ? 'done' : ''}"><span class="check"></span><span>${scaleLine(l, factor)}</span></li>`).join('')}
+            : `<li data-i="${i}" class="${done.has('i' + i) ? 'done' : ''}"><span class="check"></span><span>${ingLinks.has(i) ? linkIngredientHtml(scaleLine(l, factor), ingLinks.get(i)) : scaleLine(l, factor)}</span></li>`).join('')}
         </ul>
 
         </div>
@@ -986,6 +1062,8 @@ async function renderDetail(id) {
           <span class="ba-ribbon"><span class="ba-band">${isDrink(r) ? 'Proost!' : 'Eet smakelijk!'}</span></span>
         </div>
         </div>
+
+        ${relatedHtml(r)}
 
         ${r.notes ? `<h3 class="notes-head">Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
 
@@ -1042,6 +1120,13 @@ async function renderDetail(id) {
     view.querySelectorAll('[data-i]').forEach(li => li.onclick = () => {
       const k = 'i' + li.dataset.i; done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
     });
+    // Gekoppelde recepten: openen (in de kookstand als spiekvenster)
+    view.querySelectorAll('[data-link]').forEach(el => el.onclick = e => {
+      e.preventDefault(); e.stopPropagation();
+      const x = recipeById(el.dataset.link);
+      if (!x) return;
+      if (state.cookMode) openPeek(x, r.id); else goRecipe(x.id, r.id);
+    });
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s;
       if (state.cookMode) {
@@ -1073,7 +1158,7 @@ async function renderDetail(id) {
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
     };
     $('#shareBtn').onclick = () => shareRecipe(r, servings, factor);
-    $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor, r.title);
+    $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor, r);
   }
 
   draw();
@@ -1089,7 +1174,8 @@ async function renderDetail(id) {
 
 // Kopieert de afgevinkte ingrediënten (of alles als er niets is afgevinkt).
 // Kopieert de afgevinkte ingrediënten (of alle) naar het klembord én zet ze op de boodschappenlijst.
-async function copyIngredients(ingr, done, factor, title) {
+async function copyIngredients(ingr, done, factor, r) {
+  const title = r.title;
   const tmp = document.createElement('div');
   const items = ingr
     .map((l, i) => ({ l, i }))
@@ -1103,7 +1189,13 @@ async function copyIngredients(ingr, done, factor, title) {
   // Eerst het klembord: iOS staat dat alleen direct na een tik toe
   let copied = true;
   try { await navigator.clipboard.writeText(text); } catch { copied = false; }
-  await Shopping.addFromRecipe(chosen.map(({ l }) => l), factor, title);
+  // Gebruikt dit recept andere recepten (zoals pizzadeeg)? Vraag of die ingrediënten er ook bij moeten.
+  const parts = relatedOf(r).parts;
+  const extra = parts.length ? await askParts(r, parts) : [];
+  const linked = ingredientLinks(ingr, extra);
+  await Shopping.addFromRecipe(chosen.filter(({ i }) => !linked.has(i)).map(({ l }) => l), factor, title);
+  for (const p of extra) await Shopping.addFromRecipe(lines(p.ingredients).filter(l => !l.startsWith('#')), 1, p.title);
+  if (extra.length) toast(`Op de boodschappenlijst, met ${extra.map(p => p.title).join(' en ')}`);
   if (!copied) toast('Op de boodschappenlijst gezet (kopiëren lukte niet)');
   btn.innerHTML = ICONS.check;
   btn.classList.add('copied');
@@ -1112,6 +1204,23 @@ async function copyIngredients(ingr, done, factor, title) {
     btn.innerHTML = ICONS.basket;
     btn.classList.remove('copied');
   }, 1200);
+}
+
+// Vraagt welke onderdelen ook op de boodschappenlijst moeten; geeft de gekozen recepten terug
+function askParts(r, parts) {
+  return new Promise(resolve => {
+    let answered = false;
+    const finish = list => { if (!answered) { answered = true; resolve(list); } };
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>Ook de onderdelen?</h3><button class="text-btn" data-close>Sluit</button></div>
+      <p class="acc-sheet-text">${esc(r.title)} gebruikt ${parts.length === 1 ? 'dit recept' : 'deze recepten'}. Zet de ingrediënten ervan er ook op:</p>
+      <div class="parts-pick">${parts.map(p => `<label class="parts-check"><input type="checkbox" value="${esc(p.id)}" checked><span>${esc(p.title)}</span></label>`).join('')}</div>
+      <button class="btn" id="partsYes">Toevoegen</button>
+      <button class="btn ghost" id="partsNo">Alleen ${esc(r.title)}</button>`, 'Ook de onderdelen op de boodschappenlijst?');
+    s.$('#partsYes').onclick = () => { finish(parts.filter(p => s.el.querySelector(`input[value="${CSS.escape(p.id)}"]`).checked)); s.close(); };
+    s.$('#partsNo').onclick = () => { finish([]); s.close(); };
+    s.el.addEventListener('click', e => { if (e.target === s.el || e.target.closest('[data-close]')) finish([]); });
+  });
 }
 
 function recipeAsText(r, servings, factor) {
@@ -1133,6 +1242,7 @@ function recipeAsText(r, servings, factor) {
       return lines(r.steps).map(s => s.startsWith('#') ? '\n' + s.replace(/^#+\s*/, '') + ':' : `${++n}. ${s}`);
     })(),
     r.notes ? `\nNotities:\n${r.notes}` : '',
+    (() => { const { parts, withs } = relatedOf(r); const all = [...parts, ...withs]; return all.length ? `\nZie ook: ${all.map(x => x.title).join(', ')}` : ''; })(),
   ].filter(Boolean).join('\n');
 }
 
@@ -1207,6 +1317,10 @@ async function renderEdit(id) {
         <label>Kooktijd (min)<input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}"></label>
       </div>
 
+      <div class="field-links"><span class="field-label">Bijbehorende recepten <small>onderdelen en wat er lekker bij past</small></span>
+        <div class="edit-links" id="editLinks"></div>
+      </div>
+
       <label>Ingrediënten <small>één per regel · begin met # voor een kopje</small>
         <textarea name="ingredients" rows="8" placeholder="250 g bloem&#10;2 eieren&#10;# Voor de saus&#10;1/2 l melk">${esc(r.ingredients)}</textarea>
       </label>
@@ -1225,6 +1339,41 @@ async function renderEdit(id) {
   // Vegetarisch of vegan: hooguit één van de twee
   const dietBoxes = [...view.querySelectorAll('input[name=diet]')];
   dietBoxes.forEach(cb => cb.addEventListener('change', () => { if (cb.checked) dietBoxes.forEach(o => { if (o !== cb) o.checked = false; }); }));
+
+  // Bijbehorende recepten koppelen
+  let links = linksOf(r).map(l => ({ id: l.id, kind: l.kind }));
+  const drawLinks = () => {
+    $('#editLinks').innerHTML = links.map(l => `<button type="button" class="chip link-chip" data-rm="${esc(l.id)}" aria-label="Koppeling met ${esc(recipeById(l.id).title)} weghalen">${esc(recipeById(l.id).title)} <i>· ${LINK_KINDS[l.kind].toLowerCase()}</i> <span aria-hidden="true">✕</span></button>`).join('')
+      + `<button type="button" class="chip link-add" id="addLink">+ Recept koppelen</button>`;
+    view.querySelectorAll('[data-rm]').forEach(b => b.onclick = () => { links = links.filter(l => l.id !== b.dataset.rm); drawLinks(); });
+    $('#addLink').onclick = openLinkPicker;
+  };
+  const openLinkPicker = () => {
+    const others = state.recipes.filter(x => x.id !== r.id);
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>Recept koppelen</h3><button class="text-btn" data-close>Klaar</button></div>
+      <input type="search" id="linkSearch" placeholder="Zoek een recept" autocomplete="off">
+      <ul class="pick" id="pickList"></ul>`, 'Recept koppelen');
+    const drawPick = () => {
+      const q = s.$('#linkSearch').value.trim().toLowerCase();
+      const list = others.filter(x => !q || x.title.toLowerCase().includes(q));
+      s.$('#pickList').innerHTML = list.length ? list.map(x => {
+        const cur = links.find(l => l.id === x.id)?.kind;
+        return `<li>${x.photo ? `<img src="${x.photo}" alt="" loading="lazy">` : `<span class="pick-nophoto">${ICONS.plate}</span>`}<b>${esc(x.title)}</b>
+          <span class="seg">${Object.entries(LINK_KINDS).map(([k, label]) => `<button type="button" class="${cur === k ? 'on' : ''}" data-pick="${esc(x.id)}" data-kind="${k}" aria-pressed="${cur === k}">${label}</button>`).join('')}</span></li>`;
+      }).join('') : `<li class="pick-none">Geen recepten gevonden.</li>`;
+      s.el.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
+        const { pick, kind } = b.dataset, cur = links.find(l => l.id === pick);
+        if (cur && cur.kind === kind) links = links.filter(l => l.id !== pick);   // nog eens tikken = weghalen
+        else if (cur) cur.kind = kind;
+        else links.push({ id: pick, kind });
+        drawPick(); drawLinks();
+      });
+    };
+    s.$('#linkSearch').oninput = drawPick;
+    drawPick();
+  };
+  drawLinks();
 
   const markCat = () => {
     const chosen = splitCats(catInput.value).map(c => c.toLowerCase());
@@ -1277,6 +1426,7 @@ async function renderEdit(id) {
       steps: d.steps.trim(),
       notes: d.notes.trim(),
       tags: d.tags.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean),
+      links: links.filter(l => recipeById(l.id)),
       photo,
       createdAt: r.createdAt || Date.now(),
       updatedAt: Date.now(),
@@ -1866,6 +2016,7 @@ async function route() {
   window.scrollTo(0, 0);
 
   if (page !== 'r' && state.cookMode) setCookMode(false);
+  if (page !== 'r') state.backStack = [];
   document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
   document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop' })[page] || 'list';
 
