@@ -1486,13 +1486,17 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .ed .stat b input { width: 2.4ch; flex: 0 1 auto; }
 .ed .stat b small { font: 500 12px var(--font-label); letter-spacing: .08em; color: var(--muted); }
 .ed .chips { display: flex; flex-wrap: wrap; gap: 7px; }
-.ed .chip-new { border-style: dashed; border-color: var(--accent); color: var(--accent); background: none; }
+.ed input.chip-new { border-style: dashed; border-color: var(--accent); color: var(--text); background: none; width: 7.2em; padding: 6px 12px; font: 500 15px var(--font-label); text-transform: uppercase; letter-spacing: .06em; border-radius: 3px; transition: width .15s; }
+.ed input.chip-new::placeholder { color: var(--accent); opacity: 1; }
+.ed input.chip-new:focus { width: 200px; border-style: solid; background: var(--surface); text-transform: none; letter-spacing: 0; font: 15px -apple-system, BlinkMacSystemFont, system-ui, sans-serif; }
+.ed input.chip-new:focus::placeholder { color: var(--muted); }
 .ed .chip-input { align-self: stretch; width: 170px; border: 1.5px solid var(--accent); background: var(--surface); padding: 6px 10px; font-size: 15px; border-radius: 3px; }
 .ed .diet-check { position: relative; display: inline-flex; align-items: center; cursor: pointer; }
 .ed .diet-check input { position: absolute; inset: 0; width: 100%; height: 100%; margin: 0; opacity: 0; cursor: pointer; }
-.ed .diet-check.on { background: #008C44; border-color: #008C44; }
-.ed .diet-check.on .diet-text { color: #fff; }
-.ed .diet-check.on svg { border-radius: 50%; box-shadow: 0 0 0 2px #fff; }
+.ed .diet-check.on { background: #DDF1E4; border-color: #008C44; box-shadow: inset 0 0 0 1px #008C44; }
+.ed .diet-check .diet-on { display: none; width: 16px; height: 16px; margin-left: 2px; color: #008C44; }
+.ed .diet-check.on .diet-on { display: block; }
+.ed .diet-check .diet-on svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
 .ed .diet-check:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 .ed .switch-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; background: var(--surface); border: 1.5px solid var(--line); cursor: pointer; }
 .ed .switch-row > span:first-child { flex: 1; display: grid; gap: 2px; }

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.2.1 · 24 november 2026';
+const APP_VERSION = '1.2.2 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1452,11 +1452,11 @@ async function renderEdit(id) {
           <input type="hidden" name="category" value="${esc(catsOf(r).join(', '))}">
           <div class="chips cat-choices" id="catChoices">
             ${[...new Set([...catChoices, ...catsOf(r)])].map(c => `<button type="button" class="chip" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
-            <button type="button" class="chip chip-new" id="catNew">+ Nieuwe</button>
+            <input class="chip chip-new" id="catNew" placeholder="+ Nieuwe" aria-label="Nieuwe categorie" enterkeyhint="done" autocapitalize="sentences" autocomplete="off">
           </div>
           <span class="ed-sub">Dieet</span>
           <div class="chips diet-pick" role="group" aria-label="Vegetarisch of vegan">
-            ${Object.keys(DIETS).map(k => `<label class="chip diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}</label>`).join('')}
+            ${Object.keys(DIETS).map(k => `<label class="chip diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}<span class="diet-on" aria-hidden="true">${ICONS.check}</span></label>`).join('')}
           </div>
         </section>
 
@@ -1576,23 +1576,19 @@ async function renderEdit(id) {
   });
   view.querySelectorAll('[data-cat]').forEach(bindCat);
   markCat();
-  $('#catNew').addEventListener('click', () => {
-    const btn = $('#catNew');
-    const inp = Object.assign(document.createElement('input'), { className: 'chip-input', placeholder: 'Nieuwe categorie', enterKeyHint: 'done', autocapitalize: 'sentences' });
-    btn.style.display = 'none'; btn.before(inp); inp.focus();
-    let done = false;
-    const finish = () => {
-      if (done) return; done = true;
-      splitCats(inp.value).forEach(c => {
-        let chip = [...view.querySelectorAll('[data-cat]')].find(x => x.dataset.cat.toLowerCase() === c.toLowerCase());
-        if (!chip) { chip = Object.assign(document.createElement('button'), { type: 'button', className: 'chip', textContent: c }); chip.dataset.cat = c; inp.before(chip); bindCat(chip); }
-        if (!chip.classList.contains('on')) chip.click();
-      });
-      inp.remove(); btn.style.display = '';
-    };
-    inp.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); finish(); } if (e.key === 'Escape') { inp.value = ''; finish(); } });
-    inp.addEventListener('blur', finish);
-  });
+  // Nieuwe categorie: typ in het knopje '+ Nieuwe', Enter of ergens anders tikken voegt hem toe
+  const catNew = $('#catNew');
+  const addCat = () => {
+    splitCats(catNew.value).forEach(c => {
+      let chip = [...view.querySelectorAll('[data-cat]')].find(x => x.dataset.cat.toLowerCase() === c.toLowerCase());
+      if (!chip) { chip = Object.assign(document.createElement('button'), { type: 'button', className: 'chip', textContent: c }); chip.dataset.cat = c; catNew.before(chip); bindCat(chip); }
+      if (!chip.classList.contains('on')) chip.click();
+    });
+    catNew.value = '';
+  };
+  catNew.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCat(); catNew.blur(); } if (e.key === 'Escape') { catNew.value = ''; catNew.blur(); } });
+  catNew.addEventListener('focus', () => { catNew.placeholder = 'Naam van de categorie'; });
+  catNew.addEventListener('blur', () => { addCat(); catNew.placeholder = '+ Nieuwe'; });
 
   const preview = $('#photoPreview');
   const drawPhoto = () => {
