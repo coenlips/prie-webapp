@@ -1351,3 +1351,10 @@ body[data-page=book] .topbar { background-color: var(--bg); }
   .book-top .book-flag { padding: 18px var(--gutter) 12px; }
   .book-top .book-head { padding: 0 var(--gutter) 14px; }
 }
+
+/* Menubalk: geen schermtitels, alleen de iconen (en Ricetta op het overzicht). De ruimte blijft, zodat de iconen rechts blijven. */
+.topbar h1.title-hidden { visibility: hidden; }
+/* Titel van het scherm Kookboeken, onder de dubbele streep */
+.page-flag { display: flex; justify-content: center; margin: 10px 0 14px; }
+.page-flag .acc-flag { margin-bottom: 0; }
+.page-flag .acc-flag span { font-size: 34px; }

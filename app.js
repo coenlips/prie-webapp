@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '101 · 24 november 2026';
+const APP_VERSION = '102 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -390,7 +390,10 @@ async function loadRecipes() {
 
 // close: kruisje links om snel terug te gaan naar je eigen overzicht; lead: iconen vóór de wekker
 function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = true, timerLabel = '' } = {}) {
+  // In de menubalk alleen de naam Ricetta (op het overzicht); andere schermen geen titel, alleen de iconen.
+  // De schermtitel blijft wel de titel van het tabblad en voor voorleessoftware.
   $('#title').textContent = title;
+  $('#title').classList.toggle('title-hidden', title !== 'Ricetta' || back || close);
   $('#backBtn').hidden = !back;
   $('#closeBtn').hidden = !close;
   $('#topActions').innerHTML = lead + (timer ? `<button class="icon-btn" id="timerBtn" aria-label="Kookwekker">${ICONS.timer}</button>` : '') + actions;
@@ -2452,6 +2455,7 @@ async function renderBooks() {
     return t.map(s => s ? `<img src="${s}" alt="">` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
   };
   view.innerHTML = `<section class="settings">
+    <div class="page-flag">${flagHtml('Kookboeken')}</div>
     <p class="books-intro">Recepten van mensen die hun kookboek met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
     ${books.length ? `<ul class="books">${books.map(b => `
       <li><a class="book" href="#/kookboek/${b.id}"><div class="covers">${covers(b)}</div>
