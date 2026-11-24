@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '97 · 24 november 2026';
+const APP_VERSION = '98 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2444,30 +2444,67 @@ async function loadBook(ownerId) {
   bookCache.set(ownerId, d);
   return d;
 }
+const bookFilters = new Map();   // per kookboek: zoekterm, gang en filter (blijft bij terugkomen)
 async function renderBook(ownerId) {
   const seq = routeSeq;
   document.body.dataset.page = 'book';
-  setHeader({ title: 'Kookboek', back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open') !== '0'; } catch { return true; } })();
+  const head = title => setHeader({ title, back: true, close: true, timer: false, actions: `
+    <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
+    <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  head('Kookboek');
   view.innerHTML = `<section class="book-page">${loaderHtml('Kookboek openen…')}</section>`;
   let d;
   try { d = await loadBook(ownerId); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
   if (isStale(seq)) return;
-  setHeader({ title: d.owner.name, back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  head(d.owner.name);
   const mine = r => state.recipes.some(x => x.fromUser === d.owner.name && x.title === r.title);
+  const f = bookFilters.get(ownerId) || { q: '', course: null, filter: 'all' };
+  bookFilters.set(ownerId, f);
+
+  // Filters zoals die persoon ze heeft: gangen (in de volgorde van je eigen gangen), dieet en categorieën
+  const all = d.recipes;
+  const rCourses = r => Array.isArray(r.courses) ? r.courses : [];
+  const rCats = r => Array.isArray(r.categories) ? r.categories : (r.category ? [r.category] : []);
+  const courseNames = [...new Set(all.flatMap(rCourses))];
+  const mineOrder = courseList();
+  courseNames.sort((x, y) => (mineOrder.indexOf(x) + 1 || 99) - (mineOrder.indexOf(y) + 1 || 99) || x.localeCompare(y, 'nl'));
+  const catCount = new Map();
+  all.forEach(r => rCats(r).forEach(c => catCount.set(c, (catCount.get(c) || 0) + 1)));
+  const cats = [...catCount.keys()].sort((x, y) => catCount.get(y) - catCount.get(x) || x.localeCompare(y, 'nl'));
+  const diets = ['vegetarisch', 'vegan'].filter(k => all.some(r => k === 'vegan' ? dietOf(r) === 'vegan' : dietOf(r)));
+  const chips = [['all', 'Alles'], ...diets.map(k => ['diet:' + k, k]), ...cats.map(c => [c, c])];
+  if (!chips.some(([k]) => k === f.filter)) f.filter = 'all';
+  if (f.course && !courseNames.includes(f.course)) f.course = null;
+
   view.innerHTML = `<section class="book-page">
     <div class="book-flag"><div class="acc-flag"><span><small>Kookboek van</small>${esc(d.owner.name)}</span></div></div>
-    <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit kookboek" autocomplete="off"></div>
+    <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
+      <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit kookboek" value="${esc(f.q)}" autocomplete="off"></div>
+      ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
+      ${chips.length > 1 ? `<div class="chips">${chips.map(([k, l]) => k.startsWith('diet:')
+        ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
+        : `<button class="chip${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
+    </div></div>
     <ul class="cards book-cards" id="bookCards"></ul>
   </section>`;
   const draw = () => {
-    const q = $('#bookQ').value.trim().toLowerCase();
-    const list = d.recipes.filter(r => !q || [r.title, r.ingredients, ...(r.courses || []), ...(r.categories || [])].join(' ').toLowerCase().includes(q));
+    const q = f.q.trim().toLowerCase();
+    const dot = $('#filterToggle .filter-dot');
+    if (dot) dot.hidden = !(q || f.filter !== 'all' || f.course);
+    const list = all.filter(r => {
+      if (f.course && !rCourses(r).includes(f.course)) return false;
+      if (f.filter === 'diet:vegetarisch' && !dietOf(r)) return false;
+      if (f.filter === 'diet:vegan' && dietOf(r) !== 'vegan') return false;
+      if (f.filter !== 'all' && !f.filter.startsWith('diet:') && !rCats(r).includes(f.filter)) return false;
+      return !q || [r.title, r.ingredients, ...rCourses(r), ...rCats(r)].join(' ').toLowerCase().includes(q);
+    });
     $('#bookCards').innerHTML = list.length ? list.map(r => {
       const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
       return `<li><a class="card" href="#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}">
         <div class="thumb">${r.thumb ? `<img src="${r.thumb}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body"><div class="card-title">${esc(r.title)}</div>
-          <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[(r.courses || []).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div></div>
+          <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[rCourses(r).join(', '), rCats(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div></div>
         ${mine(r) ? `<span class="keep-done">✓ bewaard</span>` : `<button class="keep-btn" data-keep="${esc(r.id)}">+ bewaar</button>`}
       </a></li>`;
     }).join('') : `<li class="none">Geen recepten gevonden.</li>`;
@@ -2482,7 +2519,26 @@ async function renderBook(ownerId) {
       } catch (err) { toast(shareErr(err)); bt.disabled = false; bt.textContent = '+ bewaar'; }
     });
   };
-  $('#bookQ').oninput = draw;
+  $('#bookQ').oninput = e => { f.q = e.target.value; draw(); };
+  view.querySelectorAll('[data-bcourse]').forEach(b => b.onclick = () => {
+    f.course = f.course === b.dataset.bcourse ? null : b.dataset.bcourse;
+    view.querySelectorAll('[data-bcourse]').forEach(x => x.classList.toggle('on', x.dataset.bcourse === f.course));
+    draw();
+  });
+  view.querySelectorAll('[data-bfilter]').forEach(b => b.onclick = () => {
+    const k = b.dataset.bfilter;
+    f.filter = (k === f.filter && k !== 'all') ? 'all' : k;
+    view.querySelectorAll('[data-bfilter]').forEach(x => x.classList.toggle('on', x.dataset.bfilter === f.filter));
+    draw();
+  });
+  // In- en uitklappen met het icoon in de menubalk, net als in je eigen overzicht (zelfde keuze onthouden)
+  $('#filterToggle').onclick = () => {
+    const btn = $('#filterToggle'), open = btn.getAttribute('aria-expanded') !== 'true';
+    btn.classList.toggle('on', open);
+    btn.setAttribute('aria-expanded', open);
+    try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
+    foldFilters($('#bookHead'), open);
+  };
   draw();
 }
 async function renderBookRecipe(ownerId, recipeId) {

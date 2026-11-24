@@ -1308,3 +1308,8 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 .shop-sheet-head .btn.small { width: auto; padding: 9px 16px; font-size: 14px; }
 .shop-sheet-head .btn.small:disabled { opacity: .5; }
 .shop-title { margin: 6px 0 0; font: 400 26px var(--font-title); letter-spacing: .06em; }
+/* Kookboek van een ander: zoeken en filters, in te klappen zoals in je eigen overzicht */
+.book-head { margin-bottom: 8px; }
+.book-head .book-search { margin-bottom: 0; }
+.book-head .chips { margin-top: 10px; }
+@media (min-width: 700px) { .book-head .chips { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding: 0; } }
