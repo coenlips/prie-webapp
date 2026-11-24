@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '87 · 24 november 2026';
+const APP_VERSION = '88 · 24 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -32,6 +32,7 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+  book: '<svg viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5v13c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 6v13.5"/></svg>',
   user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>',
   people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
   search: '<svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>',
@@ -402,6 +403,10 @@ $('#backBtn').addEventListener('click', () => {
   if (state.cookMode) { setCookMode(false); return; }
   const page = (location.hash || '#/').split('/')[1];
   if (page === 'r' && state.backStack?.length) { location.hash = '#/r/' + encodeURIComponent(state.backStack.pop()); return; }
+  const parts = (location.hash || '#/').split('/');
+  if (page === 'kookboek' && parts[3]) { location.hash = `#/kookboek/${parts[2]}`; return; }
+  if (page === 'kookboek') { location.hash = '#/kookboeken'; return; }
+  if (page === 'kookboeken' || page === 'ontvangen') { location.hash = '#/'; return; }
   if (page === 'gebruikers') location.hash = '#/settings';
   else if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
@@ -440,7 +445,7 @@ function renderList() {
     </div>
     ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
       `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
-    ${state.recipes.length ? `<div class="chips" id="catBar">${chips.map(([k, l]) =>
+    ${state.recipes.length ? `<div class="chips" id="catBar">${loggedIn() ? `<a class="chip chip-books" href="#/kookboeken">${ICONS.book}Kookboeken</a>` : ''}${chips.map(([k, l]) =>
       k === 'fav'
         ? `<button class="chip chip-fav${state.filter === k ? ' on' : ''}" data-filter="fav" aria-label="Favorieten" title="Favorieten">${ICONS.heart}</button>`
         : k.startsWith('diet:')
@@ -560,6 +565,7 @@ function renderCards() {
         <h2>Nog geen recepten</h2>
         <p>Tik op <strong>+</strong> om je eerste recept toe te voegen.</p>
         <button class="btn ghost" id="sample">Voorbeeldrecept toevoegen</button>
+        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.book} Kookboeken van anderen bekijken</a>` : ''}
       </div>`;
     $('#sample').addEventListener('click', addSample);
     return;
@@ -1018,11 +1024,15 @@ document.querySelectorAll('#cookTabs [data-tab]').forEach(b => b.addEventListene
   if (state.cookTab !== b.dataset.tab) { showCookTab(b.dataset.tab); window.scrollTo(0, 0); }
 }));
 
-async function renderDetail(id) {
+// opts.recipe: een recept dat (nog) niet van jou is, met opts.from (naam), opts.message,
+// opts.saveLabel/onSave en optioneel opts.onDiscard (onderaan een balk met knoppen)
+async function renderDetail(id, opts = {}) {
   const seq = routeSeq;
-  const r = await DB.get(id);
+  const foreign = !!opts.recipe;
+  const r = foreign ? opts.recipe : await DB.get(id);
   if (isStale(seq)) return;
   if (!r) { location.hash = '#/'; return; }
+  if (foreign) document.body.dataset.page = 'detail';
 
   const base = Math.max(1, +r.servings || 1);
   let servings = base;
@@ -1033,14 +1043,14 @@ async function renderDetail(id) {
     title: r.title, back: true, timerLabel: r.title,
     actions: `
       <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
-      <button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
-      <button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken">${ICONS.edit}</button>`,
+      ${foreign ? '' : `<button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
+      <button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken">${ICONS.edit}</button>`}`,
   });
   Shopping.updateBadge();
 
   const ingr = lines(r.ingredients);
   const steps = lines(r.steps);
-  const ingLinks = ingredientLinks(ingr, relatedOf(r).parts);
+  const ingLinks = foreign ? new Map() : ingredientLinks(ingr, relatedOf(r).parts);
   // echte stappen (geen #kopje); als ze allemaal zijn afgestreept: 'Eet smakelijk!' (of 'Proost!')
   const stepKeys = steps.map((l, i) => l.startsWith('#') ? null : 's' + i).filter(Boolean);
   const allStepsDone = () => stepKeys.length > 0 && stepKeys.every(k => done.has(k));
@@ -1050,6 +1060,7 @@ async function renderDetail(id) {
     // scrollplek van de kolommen (kookstand iPad/laptop) bewaren bij opnieuw tekenen
     const keepScroll = ['.part-ingr', '.part-steps'].map(s => view.querySelector(s)?.scrollTop || 0);
     view.innerHTML = `
+      ${opts.from ? `<div class="from-strip"><div class="acc-avatar" aria-hidden="true">${esc(opts.from.charAt(0).toUpperCase())}</div><span><b>Van ${esc(opts.from)}</b>${opts.message ? ` · <q>${esc(opts.message)}</q>` : ''}</span></div>` : ''}
       <div class="photo-col${r.photo ? '' : ' no-photo'}">
         ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
         <div class="photo-cap">
@@ -1102,16 +1113,18 @@ async function renderDetail(id) {
         </div>
         </div>
 
-        ${relatedHtml(r)}
+        ${foreign ? '' : relatedHtml(r)}
 
         ${r.notes ? `<h3 class="notes-head">Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
 
         ${r.source ? `<p class="source">Bron: <a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(siteOf(r.source))}</a></p>` : ''}
+        ${r.fromUser && !foreign ? `<p class="source">Van ${esc(r.fromUser)}</p>` : ''}
 
-        <div class="detail-actions">
+        ${foreign ? '' : `<div class="detail-actions">
           <button class="btn ghost" id="shareBtn">${ICONS.share} Delen</button>
-        </div>
-      </section>`;
+        </div>`}
+      </section>
+      ${opts.onSave ? `<div class="save-bar${opts.onDiscard ? '' : ' single'}"><button class="btn" id="saveCopy">${esc(opts.saveLabel || 'Bewaar in mijn recepten')}</button>${opts.onDiscard ? '<button class="btn ghost" id="discardCopy">Weg</button>' : ''}</div>` : ''}`;
 
     // iPad/laptop: titel op de foto passend maken (lange namen kleiner, woorden heel)
     const col = view.querySelector('.photo-col'), title = view.querySelector('.detail-title');
@@ -1196,13 +1209,15 @@ async function renderDetail(id) {
       const ok = await setWakeLock(state.cookMode);
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
     };
-    $('#shareBtn').onclick = () => shareRecipe(r, servings, factor);
+    if ($('#shareBtn')) $('#shareBtn').onclick = () => openShareSheet(r, servings, factor);
+    if ($('#saveCopy')) $('#saveCopy').onclick = async e => { e.currentTarget.disabled = true; try { await opts.onSave(); } catch (err) { toast(err.message); e.currentTarget.disabled = false; } };
+    if ($('#discardCopy')) $('#discardCopy').onclick = () => opts.onDiscard();
     $('#copyBtn').onclick = () => copyIngredients(ingr, done, factor, r);
   }
 
   draw();
   const favBtn = $('#favBtn');
-  favBtn.onclick = async () => {
+  if (favBtn) favBtn.onclick = async () => {
     r.favorite = !r.favorite;
     await DB.put(r);
     await loadRecipes();
@@ -1350,6 +1365,8 @@ async function renderEdit(id) {
           ${Object.keys(DIETS).map(k => `<label class="diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}</label>`).join('')}
         </div>
       </div>
+      ${loggedIn() ? `<label class="share-check"><input type="checkbox" name="shared"${(id ? r.shared : (shareCache().visibility || 'none') !== 'none') ? ' checked' : ''}>
+        <span>${ICONS.book}<span>Zichtbaar in mijn kookboek<small>${(shareCache().visibility || 'none') === 'none' ? 'Je kookboek is nu privé; dit telt zodra je het deelt (Instellingen).' : 'Mensen met wie je je kookboek deelt, zien dit recept.'}</small></span></span></label>` : ''}
 
       <div class="row">
         <label>Voorbereiden (min)<input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}"></label>
@@ -1471,6 +1488,7 @@ async function renderEdit(id) {
       category: undefined, // oud veld, vervangen door 'categories'
       servings: Math.max(1, parseInt(d.servings, 10) || 1),
       diet: view.querySelector('input[name=diet]:checked')?.value || '',
+      shared: view.querySelector('input[name=shared]') ? view.querySelector('input[name=shared]').checked : !!r.shared,
       prepTime: parseInt(d.prepTime, 10) || '',
       cookTime: parseInt(d.cookTime, 10) || '',
       ingredients: d.ingredients.trim(),
@@ -1479,6 +1497,7 @@ async function renderEdit(id) {
       tags: d.tags.split(',').map(t => t.trim().replace(/^#/, '')).filter(Boolean),
       links: links.filter(l => recipeById(l.id)),
       photo,
+      thumb: photo === r.photo ? r.thumb : '',   // nieuwe foto: nieuwe kleine versie maken
       createdAt: r.createdAt || Date.now(),
       updatedAt: Date.now(),
     };
@@ -1487,6 +1506,7 @@ async function renderEdit(id) {
     await DB.put(updated);
     if (inboxId) await Importer.doneInbox(inboxId);
     await loadRecipes();
+    if (updated.shared && updated.photo && !updated.thumb) ensureThumbs();
     toast('Opgeslagen');
     if (id && state.navigated) history.back();
     else location.replace(`#/r/${updated.id}`);
@@ -1552,6 +1572,9 @@ function renderSettings() {
         </ol>`, { open: true, icon: ICONS.phone })}
 
       ${fold('account', 'Account', `<div id="syncCard">${Sync.cardHtml()}</div>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.user })}
+
+      ${sync.state === 'on' ? fold('sharing', 'Delen met anderen', shareSettingsHtml(), { icon: ICONS.book,
+        badge: `<span class="badge-muted">${({ none: 'privé', some: 'gedeeld', all: 'iedereen' })[shareCache().visibility || 'none']}</span>` }) : ''}
 
       ${sync.user?.admin ? fold('users', 'Gebruikers', `
         <p>Accounts aanmaken, aanvragen goedkeuren, wachtwoorden opnieuw instellen en de mail testen.</p>
@@ -1634,6 +1657,7 @@ function renderSettings() {
     const ub = $('#badge-users');
     if (ub) ub.innerHTML = usersBadge();
   });
+  bindShareSettings();
   const openUsers = $('#openUsers');
   if (openUsers) openUsers.onclick = () => { location.hash = '#/gebruikers'; };
 
@@ -2181,6 +2205,334 @@ Sync.onSignIn = async user => {
 Sync.onSignOut = afterSignOut;
 Sync.onPasswordButton = openPasswordSheet;
 
+/* ---------- Delen met andere gebruikers ---------- */
+// Recepten sturen (komen in het postvak van de ander) en in elkaars kookboek kijken.
+// In je kookboek staan alleen recepten met r.shared = true; wie mag kijken stel je in bij Instellingen.
+
+const SHARE_KEY = 'ricetta-share';   // laatst bekende eigen instellingen (voor nieuwe recepten)
+const shareCache = () => { try { return JSON.parse(localStorage.getItem(SHARE_KEY)) || {}; } catch { return {}; } };
+const setShareCache = v => { try { localStorage.setItem(SHARE_KEY, JSON.stringify({ ...shareCache(), ...v })); } catch { /* */ } };
+const loggedIn = () => Sync.status().state === 'on';
+// Oudere server zonder deze functies: begrijpelijke melding
+const shareErr = err => /Onbekende actie/.test(err.message) ? 'Delen werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
+const avatarHtml = name => `<div class="acc-avatar" aria-hidden="true">${esc(String(name || '?').charAt(0).toUpperCase())}</div>`;
+
+// Kleine foto voor in andermans overzicht (de grote foto wordt pas bij openen opgehaald)
+let thumbsBusy = false;
+async function ensureThumbs() {
+  if (thumbsBusy) return;
+  thumbsBusy = true;
+  try {
+    for (const r of state.recipes.filter(x => x.shared && x.photo && !x.thumb)) {
+      try { await DB.put({ ...r, thumb: await resizeImage(r.photo, 240) }); } catch { /* volgende keer */ }
+    }
+    await loadRecipes();
+  } finally { thumbsBusy = false; }
+}
+
+// Een recept van iemand anders als eigen kopie bewaren
+async function saveCopy(src, fromName) {
+  const copy = { ...src, id: uid(), shared: false, links: [], favorite: false, fromUser: fromName, createdAt: Date.now() };
+  delete copy.updatedAt; delete copy._inboxId; delete copy.thumb;
+  await DB.put(copy);
+  await loadRecipes();
+  return copy;
+}
+
+/* Personenkiezer: zoeken, bovenaan de 3 met wie je het meest deelt, daaronder iedereen */
+let peopleCache = null;
+async function loadPeople() {
+  peopleCache = await Sync.call('people');
+  return peopleCache;
+}
+function peoplePicker(box, { people, top, selected, single = false, disabled = () => '', onChange = () => {} }) {
+  box.innerHTML = `<input type="search" class="people-search" placeholder="Zoek een naam" autocomplete="off"><div class="people-lists"></div>`;
+  const search = box.querySelector('.people-search'), lists = box.querySelector('.people-lists');
+  const row = p => {
+    const why = disabled(p);
+    return `<li class="${selected.has(p.id) ? 'on' : ''}${why ? ' off' : ''}" data-pid="${p.id}" role="${single ? 'radio' : 'checkbox'}" aria-checked="${selected.has(p.id)}" tabindex="${why ? -1 : 0}">
+      ${avatarHtml(p.name)}<b>${esc(p.name)}${why ? `<small>${esc(why)}</small>` : ''}</b><span class="tick" aria-hidden="true">${selected.has(p.id) ? '✓' : ''}</span></li>`;
+  };
+  const draw = () => {
+    const q = search.value.trim().toLowerCase();
+    const topPeople = top.map(id => people.find(p => p.id === id)).filter(Boolean);
+    if (q) {
+      const hits = people.filter(p => p.name.toLowerCase().includes(q));
+      lists.innerHTML = hits.length ? `<ul class="people">${hits.map(row).join('')}</ul>` : `<p class="people-none">Niemand gevonden.</p>`;
+    } else {
+      const rest = people.filter(p => !top.includes(p.id));
+      lists.innerHTML = (topPeople.length ? `<p class="people-head">Vaak gedeeld</p><ul class="people">${topPeople.map(row).join('')}</ul>` : '')
+        + (rest.length ? `<p class="people-head">${topPeople.length ? 'Iedereen' : ''}</p><ul class="people">${rest.map(row).join('')}</ul>` : '')
+        + (!people.length ? `<p class="people-none">Er zijn nog geen andere gebruikers.</p>` : '');
+    }
+    lists.querySelectorAll('li[data-pid]').forEach(li => li.onclick = () => {
+      const p = people.find(x => x.id === +li.dataset.pid);
+      if (disabled(p)) return;
+      if (single) { selected.clear(); selected.add(p.id); }
+      else selected.has(p.id) ? selected.delete(p.id) : selected.add(p.id);
+      draw(); onChange();
+    });
+  };
+  search.oninput = draw;
+  draw();
+  return { focus: () => search.focus({ preventScroll: true }) };
+}
+
+/* Delen-knop bij een recept: naar iemand in Ricetta, of via WhatsApp/mail */
+async function openShareSheet(r, servings, factor) {
+  if (!loggedIn()) return shareRecipe(r, servings, factor);
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Recept delen</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <p class="people-head">Naar iemand in Ricetta</p>
+    <div id="sendPicker"><p class="people-none">Laden…</p></div>
+    <input class="msg-in" id="sendMsg" maxlength="200" placeholder="Berichtje (mag leeg blijven)">
+    <p class="sync-msg" id="sendErr" hidden></p>
+    <button class="btn" id="sendBtn" disabled>Kies iemand</button>
+    <p class="share-or">of</p>
+    <button class="btn ghost" id="sysShare">${ICONS.share} Via WhatsApp, Mail, …</button>`, 'Recept delen');
+  s.$('#sysShare').onclick = () => { s.close(); shareRecipe(r, servings, factor); };
+  const selected = new Set();
+  let people = [];
+  const btn = s.$('#sendBtn');
+  const update = () => {
+    const names = people.filter(p => selected.has(p.id)).map(p => p.name);
+    btn.disabled = !names.length;
+    btn.textContent = names.length ? `Stuur naar ${names.length > 2 ? `${names.length} mensen` : names.join(' en ')}` : 'Kies iemand';
+  };
+  try {
+    const d = await loadPeople();
+    people = d.people;
+    peoplePicker(s.$('#sendPicker'), { people, top: d.top, selected, disabled: p => p.accept ? '' : 'ontvangt geen recepten', onChange: update });
+  } catch (err) { s.$('#sendPicker').innerHTML = `<p class="people-none">${esc(shareErr(err))}</p>`; }
+  btn.onclick = async () => {
+    btn.disabled = true; btn.textContent = 'Versturen…';
+    const recipe = { ...r };
+    delete recipe.links; delete recipe.favorite; delete recipe.shared; delete recipe._inboxId; delete recipe.updatedAt;
+    try {
+      const res = await Sync.call('send_recipe', { to: [...selected], recipe, message: s.$('#sendMsg').value.trim() });
+      s.close();
+      toast(`Verstuurd naar ${res.sent.join(' en ')}`);
+    } catch (err) { const m = s.$('#sendErr'); m.hidden = false; m.textContent = shareErr(err); update(); }
+  };
+}
+
+/* Ontvangen recept bekijken: '#/ontvangen/<postvak-id>' */
+async function renderReceived(inboxId) {
+  const seq = routeSeq;
+  let item = Importer.inboxItem(inboxId);
+  if (!item) { await Importer.checkInbox(); item = Importer.inboxItem(inboxId); }
+  if (isStale(seq)) return;
+  if (!item || item.data.kind !== 'recipe') { location.hash = '#/'; return; }
+  const d = item.data;
+  return renderDetail(null, {
+    recipe: { ...d.recipe, id: 'ontvangen-' + inboxId },
+    from: d.from?.name || '', message: d.message,
+    onSave: async () => {
+      const copy = await saveCopy(d.recipe, d.from?.name || '');
+      await Importer.dropInbox(inboxId);
+      toast('Bewaard in je recepten');
+      location.hash = '#/r/' + encodeURIComponent(copy.id);
+    },
+    onDiscard: async () => {
+      if (!confirm(`"${d.recipe.title}" weggooien?`)) return;
+      await Importer.dropInbox(inboxId);
+      location.hash = '#/';
+    },
+  });
+}
+
+/* Kookboeken van anderen: '#/kookboeken' */
+async function renderBooks() {
+  const seq = routeSeq;
+  document.body.dataset.page = 'settings';
+  setHeader({ title: 'Kookboeken', back: true, timer: false });
+  if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de kookboeken van anderen te bekijken.</p></div></section>`; return; }
+  view.innerHTML = `<section class="settings"><p class="books-intro">Laden…</p></section>`;
+  let books = [];
+  try { books = await Sync.call('books'); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
+  if (isStale(seq)) return;
+  const covers = b => {
+    const t = b.thumbs.slice(0, 4);
+    while (t.length < 4) t.push('');
+    return t.map(s => s ? `<img src="${s}" alt="">` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
+  };
+  view.innerHTML = `<section class="settings">
+    <p class="books-intro">Recepten van mensen die hun kookboek met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
+    ${books.length ? `<ul class="books">${books.map(b => `
+      <li><a class="book" href="#/kookboek/${b.id}"><div class="covers">${covers(b)}</div>
+        <div><b>Kookboek van ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
+      : `<div class="card-box"><p>Er deelt nog niemand een kookboek met je.</p><p>Deel je eigen kookboek bij <a href="#/settings" class="link">Instellingen → Delen met anderen</a>.</p></div>`}
+  </section>`;
+}
+
+/* Iemands kookboek: '#/kookboek/<id>' en een recept daaruit: '#/kookboek/<id>/<recept-id>' */
+const bookCache = new Map();
+async function loadBook(ownerId) {
+  const d = await Sync.call('book', { owner: ownerId });
+  bookCache.set(ownerId, d);
+  return d;
+}
+async function renderBook(ownerId) {
+  const seq = routeSeq;
+  document.body.dataset.page = 'book';
+  setHeader({ title: 'Kookboek', back: true, timer: false });
+  view.innerHTML = `<section class="book-page"><p class="books-intro">Laden…</p></section>`;
+  let d;
+  try { d = await loadBook(ownerId); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
+  if (isStale(seq)) return;
+  setHeader({ title: d.owner.name, back: true, timer: false });
+  const mine = r => state.recipes.some(x => x.fromUser === d.owner.name && x.title === r.title);
+  view.innerHTML = `<section class="book-page">
+    <div class="book-flag">${flagHtml(`Kookboek van ${d.owner.name}`)}</div>
+    <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit kookboek" autocomplete="off"></div>
+    <ul class="cards book-cards" id="bookCards"></ul>
+  </section>`;
+  const draw = () => {
+    const q = $('#bookQ').value.trim().toLowerCase();
+    const list = d.recipes.filter(r => !q || [r.title, r.ingredients, ...(r.courses || []), ...(r.categories || [])].join(' ').toLowerCase().includes(q));
+    $('#bookCards').innerHTML = list.length ? list.map(r => {
+      const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
+      return `<li><a class="card" href="#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}">
+        <div class="thumb">${r.thumb ? `<img src="${r.thumb}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
+        <div class="card-body"><div class="card-title">${esc(r.title)}</div>
+          <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[(r.courses || []).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div></div>
+        ${mine(r) ? `<span class="keep-done">✓ bewaard</span>` : `<button class="keep-btn" data-keep="${esc(r.id)}">+ bewaar</button>`}
+      </a></li>`;
+    }).join('') : `<li class="none">Geen recepten gevonden.</li>`;
+    view.querySelectorAll('[data-keep]').forEach(bt => bt.onclick = async e => {
+      e.preventDefault(); e.stopPropagation();
+      bt.disabled = true; bt.textContent = 'Bezig…';
+      try {
+        const full = await Sync.call('book_recipe', { owner: d.owner.id, id: bt.dataset.keep });
+        await saveCopy(full, d.owner.name);
+        toast(`"${full.title}" bewaard in je recepten`);
+        draw();
+      } catch (err) { toast(shareErr(err)); bt.disabled = false; bt.textContent = '+ bewaar'; }
+    });
+  };
+  $('#bookQ').oninput = draw;
+  draw();
+}
+async function renderBookRecipe(ownerId, recipeId) {
+  const seq = routeSeq;
+  let r, owner = bookCache.get(ownerId)?.owner;
+  try {
+    r = await Sync.call('book_recipe', { owner: ownerId, id: recipeId });
+    if (!owner) owner = (await loadBook(ownerId)).owner;
+  } catch (err) { if (!isStale(seq)) { toast(shareErr(err)); location.hash = `#/kookboek/${ownerId}`; } return; }
+  if (isStale(seq)) return;
+  const already = state.recipes.find(x => x.fromUser === owner.name && x.title === r.title);
+  return renderDetail(null, {
+    recipe: { ...r, id: `kookboek-${ownerId}-${recipeId}` }, from: owner.name,
+    saveLabel: already ? 'Nog een keer bewaren' : 'Bewaar in mijn recepten',
+    onSave: async () => {
+      const copy = await saveCopy(r, owner.name);
+      toast('Bewaard in je recepten');
+      location.hash = '#/r/' + encodeURIComponent(copy.id);
+    },
+  });
+}
+
+/* Instellingen → Delen met anderen */
+function shareSettingsHtml() {
+  return `<div id="shareSettings"><p>Laden…</p></div>`;
+}
+async function bindShareSettings() {
+  const box = $('#shareSettings');
+  if (!box) return;
+  let st;
+  try { st = await Sync.call('share_get'); } catch (err) { box.innerHTML = `<p>${esc(shareErr(err))}</p>`; return; }
+  if (!box.isConnected) return;
+  setShareCache({ visibility: st.visibility });
+  let people = st.people.map(p => p.id);
+  const sharedCount = () => state.recipes.filter(r => r.shared).length;
+  const draw = () => {
+    box.innerHTML = `
+      <p class="opt-head">Wie mag in mijn kookboek kijken?</p>
+      <div class="choice-list">
+        <label><input type="radio" name="vis" value="none" ${st.visibility === 'none' ? 'checked' : ''}><span><strong>Niemand</strong><small>Je recepten zijn alleen van jou.</small></span></label>
+        <label><input type="radio" name="vis" value="some" ${st.visibility === 'some' ? 'checked' : ''}><span><strong>Alleen deze mensen</strong></span></label>
+        ${st.visibility === 'some' ? `<div class="mini-chips">${st.people.map(p => `<span class="chip on">${esc(p.name)}</span>`).join('')}<button class="chip link-add" id="pickViewers">${st.people.length ? 'Wijzig' : '+ Kies mensen'}</button></div>` : ''}
+        <label><input type="radio" name="vis" value="all" ${st.visibility === 'all' ? 'checked' : ''}><span><strong>Iedereen in Ricetta</strong></span></label>
+      </div>
+      ${st.visibility !== 'none' ? `<button class="btn ghost" id="pickRecipes">Recepten kiezen</button><p class="small-note share-count">${sharedCount()} van je ${state.recipes.length} recepten ${sharedCount() === 1 ? 'staat' : 'staan'} in je kookboek.</p>` : ''}
+      <p class="opt-head">Recepten ontvangen</p>
+      <div class="choice-list"><label><input type="checkbox" id="acceptSend" ${st.accept ? 'checked' : ''}><span><strong>Anderen mogen mij recepten sturen</strong><small>Ze komen eerst in je postvak; jij kiest of je ze bewaart.</small></span></label></div>`;
+    const badge = $('#badge-sharing');
+    if (badge) badge.innerHTML = `<span class="badge-muted">${({ none: 'privé', some: 'gedeeld', all: 'iedereen' })[st.visibility]}</span>`;
+    box.querySelectorAll('[name=vis]').forEach(rb => rb.onchange = async () => {
+      const first = st.visibility === 'none' && !state.recipes.some(r => r.shared);
+      st.visibility = rb.value;
+      await Sync.call('share_set', { visibility: st.visibility }).catch(err => toast(shareErr(err)));
+      setShareCache({ visibility: st.visibility });
+      draw();
+      if (st.visibility === 'some' && !st.people.length) openViewerPicker();
+      else if (st.visibility !== 'none' && first) openRecipePicker(true);
+    });
+    const pv = $('#pickViewers'); if (pv) pv.onclick = () => openViewerPicker();
+    const pr = $('#pickRecipes'); if (pr) pr.onclick = () => openRecipePicker(false);
+    $('#acceptSend').onchange = e => Sync.call('share_set', { accept: e.target.checked }).catch(err => toast(shareErr(err)));
+  };
+  // Met wie: zoeken + de 3 met wie je het meest deelt bovenaan
+  const openViewerPicker = async () => {
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>Wie mag kijken?</h3><button class="text-btn" data-close>Klaar</button></div>
+      <div id="viewPicker"><p class="people-none">Laden…</p></div>`, 'Wie mag kijken');
+    const selected = new Set(people);
+    let d;
+    try { d = await loadPeople(); } catch (err) { s.$('#viewPicker').innerHTML = `<p class="people-none">${esc(shareErr(err))}</p>`; return; }
+    const picker = peoplePicker(s.$('#viewPicker'), { people: d.people, top: d.top, selected, onChange: async () => {
+      people = [...selected];
+      st.people = d.people.filter(p => selected.has(p.id));
+      await Sync.call('share_set', { people }).catch(err => toast(shareErr(err)));
+    } });
+    picker.focus();
+    s.el.addEventListener('click', e => {
+      if (e.target === s.el || e.target.closest('[data-close]')) setTimeout(() => {
+        draw();
+        if (!state.recipes.some(r => r.shared) && st.people.length) openRecipePicker(true);
+      }, 220);
+    });
+  };
+  // Welke recepten: per recept aan/uit, met 'Kies allemaal'
+  const openRecipePicker = first => {
+    const chosen = new Set(state.recipes.filter(r => r.shared).map(r => r.id));
+    const s = openAccSheet(`
+      <div class="sheet-head"><h3>${first ? 'Welke recepten wil je delen?' : 'Recepten in je kookboek'}</h3><button class="text-btn" data-close>Annuleer</button></div>
+      ${first ? '<p class="acc-sheet-text">Kies welke recepten anderen in je kookboek zien. Je kunt dit later per recept aanpassen.</p>' : ''}
+      <div class="pick-tools"><input type="search" id="recQ" placeholder="Zoek een recept" autocomplete="off"><button class="chip" id="allBtn"></button></div>
+      <ul class="pick rec-pick" id="recList"></ul>
+      <button class="btn" id="recSave">Opslaan</button>`, 'Welke recepten');
+    const drawList = () => {
+      const q = s.$('#recQ').value.trim().toLowerCase();
+      const list = state.recipes.filter(r => !q || r.title.toLowerCase().includes(q));
+      s.$('#recList').innerHTML = list.map(r => `<li data-rid="${esc(r.id)}" class="${chosen.has(r.id) ? 'on' : ''}">
+        ${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span class="pick-nophoto">${ICONS.plate}</span>`}<b>${esc(r.title)}</b><span class="tick">${chosen.has(r.id) ? '✓' : ''}</span></li>`).join('');
+      const all = state.recipes.every(r => chosen.has(r.id));
+      s.$('#allBtn').textContent = all ? 'Niets kiezen' : 'Kies allemaal';
+      s.$('#recSave').textContent = `Opslaan (${chosen.size} ${chosen.size === 1 ? 'recept' : 'recepten'})`;
+      s.el.querySelectorAll('#recList li').forEach(li => li.onclick = () => { chosen.has(li.dataset.rid) ? chosen.delete(li.dataset.rid) : chosen.add(li.dataset.rid); drawList(); });
+    };
+    s.$('#recQ').oninput = drawList;
+    s.$('#allBtn').onclick = () => {
+      const all = state.recipes.every(r => chosen.has(r.id));
+      state.recipes.forEach(r => all ? chosen.delete(r.id) : chosen.add(r.id));
+      drawList();
+    };
+    s.$('#recSave').onclick = async () => {
+      const changed = state.recipes.filter(r => !!r.shared !== chosen.has(r.id)).map(r => ({ ...r, shared: chosen.has(r.id) }));
+      if (changed.length) await DB.putMany(changed);
+      await loadRecipes();
+      s.close();
+      toast(`${chosen.size} ${chosen.size === 1 ? 'recept staat' : 'recepten staan'} in je kookboek`);
+      draw();
+      ensureThumbs();
+    };
+    drawList();
+  };
+  draw();
+}
+
 /* ---------- Router ---------- */
 
 // Elk schermwissel krijgt een nummer; trage schermen tekenen niet meer als er al een nieuwer is.
@@ -2190,13 +2542,14 @@ const isStale = seq => seq !== routeSeq;
 async function route() {
   routeSeq++;
   const hash = location.hash || '#/';
-  const [, page, id] = hash.split('/');
+  const [, page, id, sub] = hash.split('/');
   window.scrollTo(0, 0);
 
   if (page !== 'r' && state.cookMode) setCookMode(false);
   if (page !== 'r') state.backStack = [];
   document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
-  document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop' })[page] || 'list';
+  document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
+    ontvangen: 'detail', kookboeken: 'settings', kookboek: sub ? 'detail' : 'book' })[page] || 'list';
 
   // Nog niet ingelogd (en niet aan het uitproberen), of eerst een eigen wachtwoord kiezen?
   const gate = accountGate();
@@ -2207,6 +2560,10 @@ async function route() {
   if (page === 'new') return renderEdit(null);
   if (page === 'settings') return renderSettings();
   if (page === 'gebruikers') return renderUsers();
+  if (page === 'ontvangen' && id) return renderReceived(+id);
+  if (page === 'kookboeken') return renderBooks();
+  if (page === 'kookboek' && id && sub) return renderBookRecipe(+id, decodeURIComponent(sub));
+  if (page === 'kookboek' && id) return renderBook(+id);
   if (page === 'boodschappen') {
     setHeader({ title: 'Boodschappen', back: true, timer: false });
     return Shopping.render(view);
@@ -2263,6 +2620,7 @@ Sync.onRemoteChange = async () => {
   await Shopping.load();
   route();
   registerServiceWorker();
-  Importer.checkInbox();   // recepten die vanuit Safari zijn gedeeld
+  Importer.checkInbox();   // recepten die vanuit Safari of door anderen zijn gedeeld
+  setTimeout(ensureThumbs, 3000);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 })();

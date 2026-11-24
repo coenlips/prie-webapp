@@ -299,6 +299,14 @@ const Importer = (() => {
     el.hidden = !inbox.length;
     if (!inbox.length) return;
     const first = inbox[0].data || {};
+    if (first.kind === 'recipe') {   // recept van een andere gebruiker
+      el.innerHTML = `
+        <div class="acc-avatar inbox-av" aria-hidden="true">${esc((first.from?.name || '?').charAt(0).toUpperCase())}</div>
+        <div class="inbox-text"><strong>${esc(first.from?.name || 'Iemand')} stuurde je een recept${inbox.length > 1 ? ` <span class="req-count">+${inbox.length - 1}</span>` : ''}</strong>
+          <small>${esc(oneLine(first.title || ''))}${first.message ? ` · “${esc(first.message)}”` : ''}</small></div>
+        <a class="btn small" href="#/ontvangen/${inbox[0].id}">Bekijken</a>`;
+      return;
+    }
     el.innerHTML = `
       <div class="inbox-text"><strong>${inbox.length} ${inbox.length === 1 ? 'recept' : 'recepten'} gedeeld</strong>
         <small>${esc(oneLine(first.title || '').slice(0, 60))}</small></div>
@@ -370,5 +378,12 @@ const Importer = (() => {
 
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') checkInbox(); });
 
-  return { openSheet, fromText, findRecipe, fromRecipe, minutes, checkInbox, renderBanner, doneInbox, SHARE_JS };
+  const inboxItem = id => inbox.find(x => x.id === id);
+  async function dropInbox(id) {
+    await Sync.call('inbox_delete', { id }).catch(() => {});
+    inbox = inbox.filter(x => x.id !== id);
+    renderBanner();
+  }
+
+  return { openSheet, fromText, findRecipe, fromRecipe, minutes, checkInbox, renderBanner, doneInbox, inboxItem, dropInbox, SHARE_JS };
 })();

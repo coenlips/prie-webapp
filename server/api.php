@@ -128,6 +128,16 @@ function db(): PDO {
     if (!has_column($pdo, 'recepten_inbox', 'user_id')) {
         $pdo->exec("ALTER TABLE recepten_inbox ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER id");
     }
+    // Delen met andere gebruikers: wie mag in iemands kookboek kijken, en wie wil recepten ontvangen
+    if (!has_column($pdo, 'recepten_users', 'book_vis')) {
+        $pdo->exec("ALTER TABLE recepten_users ADD COLUMN book_vis VARCHAR(8) NOT NULL DEFAULT 'none', ADD COLUMN accept_send TINYINT(1) NOT NULL DEFAULT 1");
+    }
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_book_access (
+        owner_id INT NOT NULL, viewer_id INT NOT NULL, PRIMARY KEY (owner_id, viewer_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_sends (
+        id INT AUTO_INCREMENT PRIMARY KEY, from_id INT NOT NULL, to_id INT NOT NULL, at BIGINT NOT NULL, INDEX (from_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     return $pdo;
 }
 
@@ -328,6 +338,40 @@ function app_url(string $given): string {
         if ($given === $o || str_starts_with($given, rtrim($o, '/') . '/')) return $given;
     }
     return ALLOWED_ORIGINS[0] ?? '';
+}
+
+/* ---------- Delen ---------- */
+
+// Mag $viewer in het kookboek van $owner kijken?
+function can_view(array $owner, int $viewerId): bool {
+    if ((int) $owner['id'] === $viewerId) return false;
+    if ($owner['book_vis'] === 'all') return true;
+    if ($owner['book_vis'] !== 'some') return false;
+    $st = db()->prepare('SELECT 1 FROM recepten_book_access WHERE owner_id = ? AND viewer_id = ?');
+    $st->execute([$owner['id'], $viewerId]);
+    return (bool) $st->fetchColumn();
+}
+
+// De gedeelde recepten van iemand (alleen recepten met het vinkje 'shared')
+function shared_recipes(int $ownerId): array {
+    $st = db()->prepare("SELECT id, data, updated_at FROM recepten WHERE user_id = ? AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
+    $st->execute([$ownerId]);
+    $out = [];
+    foreach ($st->fetchAll() as $row) {
+        $r = json_decode((string) $row['data'], true);
+        if (!is_array($r) || empty($r['shared'])) continue;
+        $r['id'] = $row['id'];
+        $r['updatedAt'] = (int) $row['updated_at'];
+        $out[] = $r;
+    }
+    usort($out, fn($a, $b) => strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? '')));
+    return $out;
+}
+
+// Recept zonder de grote foto (de kleine 'thumb' blijft) en zonder eigen notities/koppelingen
+function recipe_light(array $r): array {
+    unset($r['photo'], $r['links'], $r['favorite'], $r['_inboxId']);
+    return $r;
 }
 
 function login_failed(string $key): void {
@@ -614,6 +658,8 @@ switch ($action) {
         foreach (['recepten', 'recepten_tokens', 'recepten_inbox'] as $t) {
             db()->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$u['id']]);
         }
+        db()->prepare('DELETE FROM recepten_book_access WHERE owner_id = ? OR viewer_id = ?')->execute([$u['id'], $u['id']]);
+        db()->prepare('DELETE FROM recepten_sends WHERE from_id = ? OR to_id = ?')->execute([$u['id'], $u['id']]);
         db()->prepare('DELETE FROM recepten_users WHERE id = ?')->execute([$u['id']]);
         out(['ok' => true]);
     }
@@ -677,6 +723,114 @@ switch ($action) {
         $type = strtolower(explode(';', $r['type'])[0]);
         if ($r['status'] !== 200 || !str_starts_with($type, 'image/')) fail(502, 'De foto kon niet worden opgehaald.');
         out(['data' => 'data:' . $type . ';base64,' . base64_encode($r['body'])]);
+    }
+
+    /* ---------- Delen met andere gebruikers ---------- */
+
+    case 'share_get': {
+        $u = require_user();
+        $st = db()->prepare('SELECT u.id, u.name FROM recepten_book_access a JOIN recepten_users u ON u.id = a.viewer_id WHERE a.owner_id = ? ORDER BY u.name');
+        $st->execute([$u['id']]);
+        out(['visibility' => $u['book_vis'], 'accept' => (bool) $u['accept_send'],
+             'people' => array_map(fn($r) => ['id' => (int) $r['id'], 'name' => $r['name']], $st->fetchAll())]);
+    }
+
+    case 'share_set': {
+        $u = require_user();
+        $b = body();
+        $vis = in_array($b['visibility'] ?? '', ['none', 'some', 'all'], true) ? $b['visibility'] : $u['book_vis'];
+        $accept = array_key_exists('accept', $b) ? (!empty($b['accept']) ? 1 : 0) : (int) $u['accept_send'];
+        db()->prepare('UPDATE recepten_users SET book_vis = ?, accept_send = ? WHERE id = ?')->execute([$vis, $accept, $u['id']]);
+        if (isset($b['people']) && is_array($b['people'])) {
+            db()->prepare('DELETE FROM recepten_book_access WHERE owner_id = ?')->execute([$u['id']]);
+            $ins = db()->prepare('INSERT IGNORE INTO recepten_book_access (owner_id, viewer_id) SELECT ?, id FROM recepten_users WHERE id = ? AND id <> ?');
+            foreach (array_slice($b['people'], 0, 500) as $pid) $ins->execute([$u['id'], (int) $pid, $u['id']]);
+        }
+        out(['ok' => true]);
+    }
+
+    // Andere gebruikers (voor versturen en kiezen met wie je deelt), met de 3 met wie je het meest deelt
+    case 'people': {
+        $u = require_user();
+        $st = db()->prepare('SELECT id, name, accept_send FROM recepten_users WHERE id <> ? ORDER BY name');
+        $st->execute([$u['id']]);
+        $people = array_map(fn($r) => ['id' => (int) $r['id'], 'name' => $r['name'], 'accept' => (bool) $r['accept_send']], $st->fetchAll());
+        $st = db()->prepare('SELECT to_id AS id, COUNT(*) AS n FROM recepten_sends WHERE from_id = ? GROUP BY to_id');
+        $st->execute([$u['id']]);
+        $score = [];
+        foreach ($st->fetchAll() as $r) $score[(int) $r['id']] = (int) $r['n'];
+        $st = db()->prepare('SELECT viewer_id FROM recepten_book_access WHERE owner_id = ?');
+        $st->execute([$u['id']]);
+        foreach ($st->fetchAll(PDO::FETCH_COLUMN) as $id) $score[(int) $id] = ($score[(int) $id] ?? 0) + 1;
+        arsort($score);
+        out(['people' => $people, 'top' => array_slice(array_keys($score), 0, 3)]);
+    }
+
+    // Een recept naar anderen sturen: komt in hun postvak, zij kiezen of ze het bewaren
+    case 'send_recipe': {
+        $u = require_user();
+        $b = body();
+        $r = $b['recipe'] ?? null;
+        if (!is_array($r) || trim((string) ($r['title'] ?? '')) === '') fail(400, 'Geen recept ontvangen.');
+        unset($r['links'], $r['favorite'], $r['shared'], $r['_inboxId']);
+        $msg = mb_substr(trim(preg_replace('/\s+/u', ' ', (string) ($b['message'] ?? ''))), 0, 200);
+        $data = ['kind' => 'recipe', 'from' => ['id' => (int) $u['id'], 'name' => $u['name']], 'message' => $msg, 'recipe' => $r, 'title' => $r['title']];
+        $json = json_encode($data, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_INVALID_UTF8_SUBSTITUTE);
+        if (strlen($json) > 6 * 1024 * 1024) fail(413, 'Dit recept is te groot om te versturen (te grote foto).');
+        $sent = [];
+        $find = db()->prepare('SELECT id, name, accept_send FROM recepten_users WHERE id = ?');
+        $count = db()->prepare('SELECT COUNT(*) FROM recepten_inbox WHERE user_id = ?');
+        foreach (array_unique(array_map('intval', (array) ($b['to'] ?? []))) as $to) {
+            if ($to === (int) $u['id']) continue;
+            $find->execute([$to]);
+            $t = $find->fetch();
+            if (!$t || !$t['accept_send']) continue;
+            $count->execute([$to]);
+            if ((int) $count->fetchColumn() >= 50) continue;
+            db()->prepare('INSERT INTO recepten_inbox (user_id, created_at, data) VALUES (?, ?, ?)')->execute([$to, now_ms(), $json]);
+            db()->prepare('INSERT INTO recepten_sends (from_id, to_id, at) VALUES (?, ?, ?)')->execute([$u['id'], $to, now_ms()]);
+            $sent[] = $t['name'];
+        }
+        if (!$sent) fail(400, 'Het recept kon niet worden verstuurd. Misschien ontvangt deze persoon geen recepten.');
+        out(['sent' => $sent]);
+    }
+
+    // Kookboeken die met mij gedeeld zijn
+    case 'books': {
+        $u = require_user();
+        $rows = db()->query("SELECT * FROM recepten_users WHERE book_vis <> 'none' ORDER BY name")->fetchAll();
+        $out = [];
+        foreach ($rows as $o) {
+            if (!can_view($o, (int) $u['id'])) continue;
+            $list = shared_recipes((int) $o['id']);
+            if (!$list) continue;
+            $week = now_ms() - 7 * 86400 * 1000;
+            $byNew = $list;
+            usort($byNew, fn($a, $b) => ($b['updatedAt'] ?? 0) <=> ($a['updatedAt'] ?? 0));
+            $thumbs = array_values(array_filter(array_map(fn($r) => $r['thumb'] ?? '', $byNew)));
+            $out[] = ['id' => (int) $o['id'], 'name' => $o['name'], 'count' => count($list),
+                      'new' => count(array_filter($list, fn($r) => ($r['createdAt'] ?? 0) > $week)),
+                      'thumbs' => array_slice($thumbs, 0, 4)];
+        }
+        out($out);
+    }
+
+    case 'book': {
+        $u = require_user();
+        $o = find_user((int) (body()['owner'] ?? 0));
+        if (!can_view($o, (int) $u['id'])) fail(403, 'Dit kookboek wordt niet (meer) met je gedeeld.');
+        out(['owner' => ['id' => (int) $o['id'], 'name' => $o['name']], 'recipes' => array_map('recipe_light', shared_recipes((int) $o['id']))]);
+    }
+
+    case 'book_recipe': {
+        $u = require_user();
+        $b = body();
+        $o = find_user((int) ($b['owner'] ?? 0));
+        if (!can_view($o, (int) $u['id'])) fail(403, 'Dit kookboek wordt niet (meer) met je gedeeld.');
+        foreach (shared_recipes((int) $o['id']) as $r) {
+            if ($r['id'] === (string) ($b['id'] ?? '')) { unset($r['links'], $r['favorite']); out($r); }
+        }
+        fail(404, 'Dit recept wordt niet (meer) gedeeld.');
     }
 
     /* ---------- Postvak: recepten gedeeld vanaf de iPhone ---------- */
