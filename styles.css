@@ -1713,3 +1713,12 @@ body[data-page=menus] main { max-width: 640px; }
 .mp-row .tick { width: 28px; height: 28px; flex: none; border: 1.5px solid var(--accent); border-radius: 50%; display: grid; place-items: center; color: var(--accent); font-weight: 700; }
 .mp-row.on .tick { background: var(--accent); color: #fff; }
 .mx-shop-head { margin-top: 14px; }
+/* Menukaart: alles gecentreerd (fotootje boven de naam), hulst kleiner en binnen de kaart */
+.mk-dish { flex-direction: column; justify-content: center; gap: 6px; text-align: center; max-width: none; padding: 8px 0 10px; }
+.mk-dish img { width: 64px; height: 64px; }
+.mk-dish small { display: block; margin-top: 3px; }
+.mk-course + .mk-course { margin-top: 22px; }
+.mk-deco { width: 86px; height: 58px; top: -14px; left: -12px; }
+.mk-deco.r { right: -12px; }
+.mk { padding-top: 40px; }
+@media (min-width: 900px) { .mk-deco { width: 110px; height: 74px; top: -22px; left: -22px; } .mk-deco.r { right: -22px; } }

@@ -93,7 +93,7 @@ const Menus = (() => {
       <div class="mk-wrap"><div class="mk mk-${kind}">${DECOR[kind] ? DECOR[kind]('l') + DECOR[kind]('r') : ''}
         <div class="mk-kicker">Menu</div>
         <h1>${esc(m.title || 'Menu')}</h1>
-        <p class="mk-sub">${esc([fmtDate(m.date), `${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}`].filter(Boolean).join(' · '))}</p>
+        <p class="mk-sub">${[fmtDate(m.date), `${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}`].filter(Boolean).map(t => `<span class="nowrap">${esc(t)}</span>`).join(' · ')}</p>
         <div class="mk-orn" aria-hidden="true">✦ ✦ ✦</div>
         ${courses.length ? courses.map(c => `<div class="mk-course"><h4>${esc(c)}</h4>${dishes.filter(d => d.course === c).map(d => `
           <a class="mk-dish" href="#/r/${encodeURIComponent(d.r.id)}"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><span><b>${esc(d.r.title)}</b>${timeOf(d.r) ? `<small>${timeOf(d.r)}</small>` : ''}</span></a>`).join('')}</div>`).join('')
