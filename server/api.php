@@ -138,6 +138,12 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_sends (
         id INT AUTO_INCREMENT PRIMARY KEY, from_id INT NOT NULL, to_id INT NOT NULL, at BIGINT NOT NULL, INDEX (from_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Lichte gegevens per recept (zonder grote foto), zodat de Ricettari van anderen snel laden
+    if (!has_column($pdo, 'recepten', 'meta')) {
+        $pdo->exec("ALTER TABLE recepten ADD COLUMN shared TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN meta MEDIUMTEXT NULL,
+            ADD COLUMN thumb MEDIUMTEXT NULL, ADD COLUMN thumb_s MEDIUMTEXT NULL, ADD COLUMN light_v TINYINT NOT NULL DEFAULT 0,
+            ADD INDEX user_shared (user_id, shared)");
+    }
     // Foutmeldingen en ideeën van gebruikers (de beheerder ziet ze bij Instellingen → Wat is er nieuw)
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_feedback (
         id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, kind VARCHAR(8) NOT NULL, text TEXT NOT NULL,
@@ -358,26 +364,65 @@ function can_view(array $owner, int $viewerId): bool {
     return (bool) $st->fetchColumn();
 }
 
-// De gedeelde recepten van iemand (alleen recepten met het vinkje 'shared')
+// Lichte versie van een recept: zonder grote foto, voorbeeldfoto's, eigen notities en koppelingen.
+// Wordt bij het opslaan apart bewaard (kolommen shared, meta, thumb, thumb_s).
+const LIGHT_V = 1;
+function light_cols($r): array {
+    if (!is_array($r)) return [0, null, null, null];
+    $img = fn($v) => (is_string($v) && str_starts_with($v, 'data:image/')) ? $v : null;
+    $m = $r;
+    unset($m['photo'], $m['thumb'], $m['thumbS'], $m['thumbV'], $m['links'], $m['favorite'], $m['_inboxId']);
+    return [empty($r['shared']) ? 0 : 1, json_encode($m, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), $img($r['thumb'] ?? null), $img($r['thumbS'] ?? null)];
+}
+
+// Eenmalig (en daarna alleen voor oudere rijen): de lichte kolommen vullen uit de volledige recepten
+function backfill_light(): void {
+    static $done = false;
+    if ($done) return;
+    $done = true;
+    $pdo = db();
+    $sel = $pdo->prepare('SELECT user_id, id, data, deleted FROM recepten WHERE light_v < ? LIMIT 100');
+    $upd = $pdo->prepare('UPDATE recepten SET shared = ?, meta = ?, thumb = ?, thumb_s = ?, light_v = ? WHERE user_id = ? AND id = ?');
+    for ($i = 0; $i < 30; $i++) {
+        $sel->execute([LIGHT_V]);
+        $rows = $sel->fetchAll();
+        if (!$rows) return;
+        foreach ($rows as $row) {
+            $c = $row['deleted'] ? [0, null, null, null] : light_cols(json_decode((string) $row['data'], true));
+            $upd->execute([...$c, LIGHT_V, $row['user_id'], $row['id']]);
+        }
+    }
+}
+
+// Adres van een voorbeeldfoto: ondertekend en een week geldig, zodat de browser hem kan bewaren
+function thumb_url(int $owner, string $id, string $size, int $v): string {
+    $week = 7 * 86400;
+    $exp = (intdiv(time(), $week) + 2) * $week;
+    $sig = substr(hash_hmac('sha256', "$owner|$id|$size|$v|$exp", APP_PASSWORD . '|thumb'), 0, 32);
+    $https = (($_SERVER['HTTPS'] ?? '') !== '' && ($_SERVER['HTTPS'] ?? '') !== 'off') || (($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '') === 'https');
+    $base = ($https ? 'https' : 'http') . '://' . ($_SERVER['HTTP_HOST'] ?? '') . strtok((string) ($_SERVER['REQUEST_URI'] ?? '/api.php'), '?');
+    return $base . '?' . http_build_query(['action' => 'thumb', 'o' => $owner, 'i' => $id, 's' => $size, 'v' => $v, 'e' => $exp, 'k' => $sig]);
+}
+
+// De gedeelde recepten van iemand, licht (met adressen van de voorbeeldfoto's)
 function shared_recipes(int $ownerId): array {
-    $st = db()->prepare("SELECT id, data, updated_at FROM recepten WHERE user_id = ? AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
+    backfill_light();
+    $st = db()->prepare("SELECT id, meta, updated_at, thumb IS NOT NULL AS has_m, thumb_s IS NOT NULL AS has_s
+        FROM recepten WHERE user_id = ? AND shared = 1 AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
     $st->execute([$ownerId]);
     $out = [];
     foreach ($st->fetchAll() as $row) {
-        $r = json_decode((string) $row['data'], true);
-        if (!is_array($r) || empty($r['shared'])) continue;
+        $r = json_decode((string) $row['meta'], true);
+        if (!is_array($r)) continue;
+        $v = (int) $row['updated_at'];
         $r['id'] = $row['id'];
-        $r['updatedAt'] = (int) $row['updated_at'];
+        $r['updatedAt'] = $v;
+        if ($row['has_m']) $r['thumb'] = thumb_url($ownerId, $row['id'], 'm', $v);
+        if ($row['has_s'] || $row['has_m']) $r['thumbS'] = thumb_url($ownerId, $row['id'], $row['has_s'] ? 's' : 'm', $v);
         $out[] = $r;
     }
     usort($out, fn($a, $b) => strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? '')));
     return $out;
-}
-
-// Recept zonder de grote foto (de kleine 'thumb' blijft) en zonder eigen notities/koppelingen
-function recipe_light(array $r): array {
-    unset($r['photo'], $r['links'], $r['favorite'], $r['_inboxId']);
-    return $r;
 }
 
 function login_failed(string $key): void {
@@ -732,10 +777,15 @@ switch ($action) {
         $u = require_user();
         $rows = (array) (body()['rows'] ?? []);
         // Alleen overschrijven als de nieuwe versie minstens zo recent is.
-        $st = db()->prepare('INSERT INTO recepten (user_id, id, data, deleted, updated_at) VALUES (?, ?, ?, ?, ?)
+        $st = db()->prepare('INSERT INTO recepten (user_id, id, data, deleted, updated_at, shared, meta, thumb, thumb_s, light_v) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             ON DUPLICATE KEY UPDATE
               data       = IF(VALUES(updated_at) >= updated_at, VALUES(data), data),
               deleted    = IF(VALUES(updated_at) >= updated_at, VALUES(deleted), deleted),
+              shared     = IF(VALUES(updated_at) >= updated_at, VALUES(shared), shared),
+              meta       = IF(VALUES(updated_at) >= updated_at, VALUES(meta), meta),
+              thumb      = IF(VALUES(updated_at) >= updated_at, VALUES(thumb), thumb),
+              thumb_s    = IF(VALUES(updated_at) >= updated_at, VALUES(thumb_s), thumb_s),
+              light_v    = IF(VALUES(updated_at) >= updated_at, VALUES(light_v), light_v),
               updated_at = GREATEST(updated_at, VALUES(updated_at))');
         foreach ($rows as $r) {
             if (!is_array($r) || !isset($r['id']) || !is_string($r['id']) || strlen($r['id']) > 64) continue;
@@ -746,6 +796,8 @@ switch ($action) {
                 $deleted ? null : json_encode($r['data'] ?? null, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
                 $deleted ? 1 : 0,
                 (int) ($r['updated_at'] ?? now_ms()),
+                ...($deleted ? [0, null, null, null] : light_cols($r['data'] ?? null)),
+                LIGHT_V,
             ]);
         }
         out(['ok' => true]);
@@ -852,7 +904,7 @@ switch ($action) {
             $week = now_ms() - 7 * 86400 * 1000;
             $byNew = $list;
             usort($byNew, fn($a, $b) => ($b['updatedAt'] ?? 0) <=> ($a['updatedAt'] ?? 0));
-            $thumbs = array_values(array_filter(array_map(fn($r) => $r['thumb'] ?? '', $byNew)));
+            $thumbs = array_values(array_filter(array_map(fn($r) => $r['thumbS'] ?? '', $byNew)));
             $out[] = ['id' => (int) $o['id'], 'name' => $o['name'], 'count' => count($list),
                       'new' => count(array_filter($list, fn($r) => ($r['createdAt'] ?? 0) > $week)),
                       'thumbs' => array_slice($thumbs, 0, 4)];
@@ -864,7 +916,7 @@ switch ($action) {
         $u = require_user();
         $o = find_user((int) (body()['owner'] ?? 0));
         if (!can_view($o, (int) $u['id'])) fail(403, 'Dit Ricettario wordt niet (meer) met je gedeeld.');
-        out(['owner' => ['id' => (int) $o['id'], 'name' => $o['name']], 'recipes' => array_map('recipe_light', shared_recipes((int) $o['id']))]);
+        out(['owner' => ['id' => (int) $o['id'], 'name' => $o['name']], 'recipes' => shared_recipes((int) $o['id'])]);
     }
 
     case 'book_recipe': {
@@ -872,10 +924,32 @@ switch ($action) {
         $b = body();
         $o = find_user((int) ($b['owner'] ?? 0));
         if (!can_view($o, (int) $u['id'])) fail(403, 'Dit Ricettario wordt niet (meer) met je gedeeld.');
-        foreach (shared_recipes((int) $o['id']) as $r) {
-            if ($r['id'] === (string) ($b['id'] ?? '')) { unset($r['links'], $r['favorite']); out($r); }
-        }
-        fail(404, 'Dit recept wordt niet (meer) gedeeld.');
+        backfill_light();
+        $st = db()->prepare('SELECT data, updated_at FROM recepten WHERE user_id = ? AND id = ? AND shared = 1 AND deleted = 0');
+        $st->execute([(int) $o['id'], (string) ($b['id'] ?? '')]);
+        $row = $st->fetch();
+        $r = $row ? json_decode((string) $row['data'], true) : null;
+        if (!is_array($r)) fail(404, 'Dit recept wordt niet (meer) gedeeld.');
+        unset($r['links'], $r['favorite'], $r['_inboxId'], $r['thumb'], $r['thumbS']);
+        $r['id'] = (string) $b['id'];
+        $r['updatedAt'] = (int) $row['updated_at'];
+        out($r);
+    }
+
+    // Voorbeeldfoto van een gedeeld recept (adres komt uit shared_recipes, ondertekend; zonder inloggen te laden als <img>)
+    case 'thumb': {
+        $o = (int) ($_GET['o'] ?? 0); $id = (string) ($_GET['i'] ?? ''); $size = ($_GET['s'] ?? '') === 's' ? 's' : 'm';
+        $v = (int) ($_GET['v'] ?? 0); $exp = (int) ($_GET['e'] ?? 0);
+        $sig = substr(hash_hmac('sha256', "$o|$id|$size|$v|$exp", APP_PASSWORD . '|thumb'), 0, 32);
+        if (!hash_equals($sig, (string) ($_GET['k'] ?? '')) || $exp < time()) fail(403, 'Deze foto is niet (meer) beschikbaar.');
+        $st = db()->prepare('SELECT ' . ($size === 's' ? 'thumb_s' : 'thumb') . ' FROM recepten WHERE user_id = ? AND id = ? AND shared = 1 AND deleted = 0');
+        $st->execute([$o, $id]);
+        $data = (string) ($st->fetchColumn() ?: '');
+        if (!preg_match('#^data:(image/[a-z+.-]+);base64,#i', $data, $m)) fail(404, 'Geen foto.');
+        header('Content-Type: ' . $m[1]);
+        header('Cache-Control: public, max-age=' . max(60, $exp - time()) . ', immutable');
+        echo base64_decode(substr($data, strlen($m[0])));
+        exit;
     }
 
     /* ---------- Postvak: recepten gedeeld vanaf de iPhone ---------- */

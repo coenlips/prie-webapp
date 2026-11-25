@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.3.0 · 24 november 2026';
+const APP_VERSION = '1.3.1 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1632,6 +1632,7 @@ async function renderEdit(id) {
       links: links.filter(l => recipeById(l.id)),
       photo,
       thumb: photo === r.photo ? r.thumb : '',   // nieuwe foto: nieuwe kleine versie maken
+      thumbS: photo === r.photo ? r.thumbS : '',
       thumbV: photo === r.photo ? r.thumbV : 0,
       createdAt: r.createdAt || Date.now(),
       updatedAt: Date.now(),
@@ -2589,6 +2590,7 @@ async function reloadAll() {
   await AppSettings.load();
 }
 async function afterSignOut() {
+  shareStore.clear();
   setTryMode(false);   // volgende gebruiker ziet weer het welkomstscherm
   await reloadAll();
   toast('Je bent uitgelogd');
@@ -2633,8 +2635,8 @@ async function ensureThumbs() {
   if (thumbsBusy) return;
   thumbsBusy = true;
   try {
-    for (const r of state.recipes.filter(x => x.shared && x.photo && (!x.thumb || x.thumbV !== 2))) {
-      try { await DB.put({ ...r, thumb: await resizeImage(r.photo, 640), thumbV: 2 }); } catch { /* volgende keer */ }
+    for (const r of state.recipes.filter(x => x.shared && x.photo && (!x.thumb || !x.thumbS || x.thumbV !== 3))) {
+      try { await DB.put({ ...r, thumb: await resizeImage(r.photo, 640), thumbS: await resizeImage(r.photo, 320), thumbV: 3 }); } catch { /* volgende keer */ }
     }
     await loadRecipes();
   } finally { thumbsBusy = false; }
@@ -2643,7 +2645,7 @@ async function ensureThumbs() {
 // Een recept van iemand anders als eigen kopie bewaren
 async function saveCopy(src, fromName) {
   const copy = { ...src, id: uid(), shared: false, links: [], favorite: false, fromUser: fromName, createdAt: Date.now() };
-  delete copy.updatedAt; delete copy._inboxId; delete copy.thumb;
+  delete copy.updatedAt; delete copy._inboxId; delete copy.thumb; delete copy.thumbS; delete copy.thumbV;
   await DB.put(copy);
   await loadRecipes();
   return copy;
@@ -2751,6 +2753,24 @@ async function renderReceived(inboxId) {
   });
 }
 
+/* Ricettari van anderen: wat je eerder zag meteen tonen en op de achtergrond verversen */
+const shareStore = {
+  key: k => `ricetta-cache-${Sync.status().user?.id || 0}-${k}`,
+  get(k) { try { return JSON.parse(localStorage.getItem(this.key(k)) || 'null'); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(this.key(k), JSON.stringify(v)); } catch { /* vol of geen opslag */ } },
+  clear() { try { Object.keys(localStorage).filter(k => k.startsWith('ricetta-cache-')).forEach(k => localStorage.removeItem(k)); } catch { /* */ } },
+};
+// Eerst het bewaarde tonen (als dat er is), dan ophalen; alleen opnieuw tekenen als er iets veranderd is.
+async function cachedLoad(seq, key, fetcher, show, fail) {
+  const old = shareStore.get(key);
+  if (old) show(old);
+  let fresh;
+  try { fresh = await fetcher(); } catch (err) { if (!old && !isStale(seq)) fail(err); return; }
+  shareStore.set(key, fresh);
+  if (isStale(seq)) return;
+  if (!old || JSON.stringify(old) !== JSON.stringify(fresh)) show(fresh);
+}
+
 /* Ricettari van anderen: '#/kookboeken' */
 async function renderBooks() {
   const seq = routeSeq;
@@ -2758,13 +2778,14 @@ async function renderBooks() {
   setHeader({ title: 'Ricettari', close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de Ricettari van anderen te bekijken.</p></div></section>`; return; }
   view.innerHTML = `<section class="settings">${loaderHtml('Ricettari ophalen…')}</section>`;
-  let books = [];
-  try { books = await Sync.call('books'); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
-  if (isStale(seq)) return;
+  await cachedLoad(seq, 'books', () => Sync.call('books'), books => showBooks(books),
+    err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
+}
+function showBooks(books) {
   const covers = b => {
     const t = b.thumbs.slice(0, 4);
     while (t.length < 4) t.push('');
-    return t.map(s => s ? `<img src="${s}" alt="">` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
+    return t.map(s => s ? `<img src="${s}" alt="" loading="lazy" onerror="this.hidden=true">` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
   };
   view.innerHTML = `<section class="settings">
     <div class="page-flag">${flagHtml('Ricettari')}</div>
@@ -2781,6 +2802,7 @@ const bookCache = new Map();
 async function loadBook(ownerId) {
   const d = await Sync.call('book', { owner: ownerId });
   bookCache.set(ownerId, d);
+  shareStore.set(`book-${ownerId}`, d);
   return d;
 }
 const bookFilters = new Map();   // per persoon: zoekterm, gang en filter (blijft bij terugkomen)
@@ -2793,9 +2815,11 @@ async function renderBook(ownerId) {
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   head('Ricettario');
   view.innerHTML = `<section class="book-page">${loaderHtml('Ricettario openen…')}</section>`;
-  let d;
-  try { d = await loadBook(ownerId); } catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; return; }
-  if (isStale(seq)) return;
+  await cachedLoad(seq, `book-${ownerId}`, () => Sync.call('book', { owner: ownerId }), d => { bookCache.set(ownerId, d); showBook(ownerId, d, head, filtersOpen); },
+    err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
+}
+function showBook(ownerId, d, head, filtersOpen) {
+  const y = scrollY;
   head(d.owner.name);
   const mine = r => state.recipes.some(x => x.fromUser === d.owner.name && x.title === r.title);
   const f = bookFilters.get(ownerId) || { q: '', course: null, filter: 'all' };
@@ -2865,7 +2889,7 @@ async function renderBook(ownerId) {
     el.innerHTML = list.length ? list.map(r => {
       const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
       return `<li><a class="card" href="#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}">
-        <div class="thumb">${r.thumb ? `<img src="${r.thumb}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
+        <div class="thumb">${r.thumbS || r.thumb ? `<img src="${r.thumbS || r.thumb}" alt="" loading="lazy" onerror="this.hidden=true">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body"><div class="card-title">${esc(r.title)}</div>
           <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[rCourses(r).join(', '), rCats(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div></div>
         ${mine(r) ? `<span class="keep-done">✓ bewaard</span>` : `<button class="keep-btn" data-keep="${esc(r.id)}">+ bewaar</button>`}
@@ -2904,15 +2928,20 @@ async function renderBook(ownerId) {
     foldFilters($('#bookHead'), open, { also: [$('#bookCards')] });   // schuift onder het vaandel door, net als onder de kopbalk
   };
   draw();
+  if (y > 0) scrollTo(0, y);   // ververst na het tonen van de bewaarde versie: op dezelfde plek blijven
 }
+const bookRecipeCache = new Map();   // volledige recepten die je net bekeek (met grote foto), alleen zolang de app open is
 async function renderBookRecipe(ownerId, recipeId) {
   const seq = routeSeq;
-  let r, owner = bookCache.get(ownerId)?.owner;
+  let r, owner = bookCache.get(ownerId)?.owner || shareStore.get(`book-${ownerId}`)?.owner;
   const name = bookCache.get(ownerId)?.recipes.find(x => x.id === recipeId)?.title;
   setHeader({ title: name || 'Recept', back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   view.innerHTML = loaderHtml(name ? `${name} ophalen…` : 'Recept ophalen…');
   try {
-    r = await Sync.call('book_recipe', { owner: ownerId, id: recipeId });
+    const key = `${ownerId}/${recipeId}`;
+    r = bookRecipeCache.get(key) || await Sync.call('book_recipe', { owner: ownerId, id: recipeId });
+    bookRecipeCache.delete(key); bookRecipeCache.set(key, r);
+    if (bookRecipeCache.size > 15) bookRecipeCache.delete(bookRecipeCache.keys().next().value);
     if (!owner) owner = (await loadBook(ownerId)).owner;
   } catch (err) { if (!isStale(seq)) { toast(shareErr(err)); location.hash = `#/kookboek/${ownerId}`; } return; }
   if (isStale(seq)) return;
