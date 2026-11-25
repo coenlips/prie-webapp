@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.15 · 25 november 2026';
+const APP_VERSION = '1.7.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -18,6 +18,7 @@ const ICONS = {
   bug: '<svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5 9 3M14 5l1-2"/></svg>',
   pdf: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h4"/></svg>',
   shuffle: '<svg viewBox="0 0 48 48" class="shuf"><g class="shuf-arrows"><path d="M38.7 15.5A17 17 0 0 0 9.3 15.5"/><path d="M9.3 32.5A17 17 0 0 0 38.7 32.5"/><path class="head" d="M7.2 19.1L6.6 12.1L13.5 16.1Z"/><path class="head" d="M40.8 28.9L41.4 35.9L34.5 31.9Z"/></g><g class="shuf-sq"><rect class="sq sq-a" x="15.5" y="15.5" width="11" height="11" rx="2"/><rect class="sq sq-b" x="21.5" y="21.5" width="11" height="11" rx="2"/></g></svg>',
+  mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>',
   news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -1088,6 +1089,8 @@ function setCookMode(on) {
   showCookTab(state.cookTab || 'ingr');
   if (on && detailWideMQ.matches) window.scrollTo(0, 0);   // iPad/laptop: beide kolommen scrollen zelf
   if (!on) setWakeLock(false);
+  $('#cookVoice').hidden = !on || !(Voice.can.speak || Voice.can.listen);
+  if (!on && Voice.isOn()) Voice.stop();
 }
 
 // Zet een stap midden in het zichtbare deel (onder de vaste balk)
@@ -1118,6 +1121,57 @@ function showCookTab(tab) {
     b.setAttribute('aria-selected', b.dataset.tab === tab);
   });
 }
+
+/* ---------- Handsfree koken: voorlezen en luisteren ---------- */
+const VOICE_INTRO = 'ricetta-voice-intro';
+const voiceHint = (() => { const el = document.createElement('div'); el.className = 'voice-hint'; el.id = 'voiceHint'; el.hidden = true; document.body.appendChild(el); return el; })();
+let voiceHintTimer = null;
+function showVoiceHint(html, ms = 0) {
+  voiceHint.innerHTML = html; voiceHint.hidden = false;
+  clearTimeout(voiceHintTimer);
+  if (ms) voiceHintTimer = setTimeout(() => { voiceHint.innerHTML = Voice.isOn() && Voice.can.listen ? `${ICONS.mic}<span>Ik luister…</span>` : ''; voiceHint.hidden = !Voice.isOn() || !Voice.can.listen; }, ms);
+}
+function voiceOff() {
+  if (Voice.isOn()) Voice.stop();
+}
+function voiceOn() {
+  const btn = $('#cookVoice');
+  Voice.start({
+    next: () => state.voiceCtl && state.voiceCtl.next(),
+    prev: () => state.voiceCtl && state.voiceCtl.prev(),
+    repeat: () => state.voiceCtl && state.voiceCtl.repeat(),
+    stop: () => { Voice.stop(); Voice.speak('Ik luister niet meer.'); },
+    heard: (text, cmd) => showVoiceHint(cmd ? `<span>✓ ${esc(text)}</span>` : `<span><i class="vh-unknown">“${esc(text)}”?</i> Zeg volgende, terug, herhaal of stop.</span>`, cmd ? 1600 : 3200),
+    denied: () => toast('De microfoon mag niet worden gebruikt. Sta dit toe in de instellingen van je browser.'),
+    stopped: () => { btn.classList.remove('on'); btn.setAttribute('aria-pressed', 'false'); voiceHint.hidden = true; },
+  });
+  btn.classList.add('on'); btn.setAttribute('aria-pressed', 'true');
+  if (Voice.can.listen) showVoiceHint(`${ICONS.mic}<span>Ik luister…</span>`);
+  else toast('Luisteren werkt niet in deze browser. Ik lees de stappen wel voor als je erop tikt.');
+  state.voiceCtl && state.voiceCtl.start();
+}
+function openVoiceIntro(go) {
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Handsfree koken</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <p class="acc-sheet-text">Ik lees elke stap hardop voor${Voice.can.listen ? ', en je bestuurt de stappen met je stem' : ''}. Handig met deeg aan je handen!</p>
+    ${Voice.can.listen ? `<ul class="voice-cmds">
+      <li><div><b>“Volgende”</b> of <b>“verder”</b></div><span>naar de volgende stap</span></li>
+      <li><div><b>“Terug”</b></div><span>een stap terug</span></li>
+      <li><div><b>“Herhaal”</b></div><span>de stap nog een keer voorlezen</span></li>
+      <li><div><b>“Stop”</b></div><span>niet meer luisteren</span></li>
+    </ul>
+    <p class="small-note">De app luistert alleen zolang de microfoonknop aan staat. In Chrome gaat het geluid naar Google om het om te zetten in tekst.</p>`
+    : '<p class="small-note">Luisteren naar je stem werkt niet in deze browser. Tik op een stap om naar de volgende te gaan; ik lees hem dan voor.</p>'}
+    <button class="btn" id="voiceGo">${ICONS.mic} Begin</button>`, 'Handsfree koken');
+  s.$('#voiceGo').onclick = () => { try { localStorage.setItem(VOICE_INTRO, '1'); } catch { /* */ } s.close(); go(); };
+}
+$('#cookVoice').innerHTML = ICONS.mic;
+$('#cookVoice').addEventListener('click', () => {
+  if (Voice.isOn()) { voiceOff(); return; }
+  let seen = false; try { seen = localStorage.getItem(VOICE_INTRO) === '1'; } catch { /* */ }
+  if (seen) voiceOn(); else openVoiceIntro(voiceOn);
+});
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') voiceOff(); });
 
 $('#cookOff').innerHTML = ICONS.cook;
 $('#cookOff').addEventListener('click', () => setCookMode(false));
@@ -1280,21 +1334,43 @@ async function renderDetail(id, opts = {}) {
       if (!x) return;
       if (state.cookMode) openPeek(x, r.id); else goRecipe(x.id, r.id);
     });
+    // Kookstand: stap p wordt de huidige, alles ervoor is klaar (p voorbij de laatste = alles klaar)
+    const setStep = p => {
+      p = Math.max(0, Math.min(p, stepKeys.length));
+      curStep = stepKeys[p] || null;
+      stepKeys.forEach((s, j) => j < p ? done.add(s) : done.delete(s));
+      view.querySelectorAll('[data-s]').forEach(el => {
+        const s = 's' + el.dataset.s;
+        el.classList.toggle('done', done.has(s));
+        el.classList.toggle('current', s === curStep);
+      });
+      if (curStep) centerStep(view.querySelector(`[data-s="${curStep.slice(1)}"]`));
+      const ba = $('#bonApp'), show = allStepsDone();
+      if (ba.hidden === show) {
+        ba.hidden = !show;
+        if (show) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: 'end' }));
+      }
+      if (Voice.isOn()) voiceRead();
+    };
+    // Handsfree: de huidige stap voorlezen ('Stap 3. …'), of het einde
+    const stepText = k => { const li = view.querySelector(`[data-s="${k.slice(1)}"]`); return li ? li.querySelector('p').textContent.replace(/\s+/g, ' ').trim() : ''; };
+    const voiceRead = () => {
+      if (!curStep) { Voice.speak(allStepsDone() ? `Klaar! ${isDrink(r) ? 'Proost' : 'Eet smakelijk'}.` : 'Zeg volgende om te beginnen.'); return; }
+      const n = stepKeys.indexOf(curStep) + 1;
+      Voice.speak(`Stap ${n}${n === stepKeys.length ? ', de laatste' : ''}. ${stepText(curStep)}`);
+    };
+    state.voiceCtl = {
+      next: () => { if (state.cookTab !== 'steps') showCookTab('steps'); setStep(curStep ? stepKeys.indexOf(curStep) + 1 : (allStepsDone() ? stepKeys.length : 0)); },
+      prev: () => { if (state.cookTab !== 'steps') showCookTab('steps'); setStep(curStep ? stepKeys.indexOf(curStep) - 1 : stepKeys.length - 1); },
+      repeat: voiceRead,
+      start: () => { if (!curStep && !allStepsDone()) { showCookTab('steps'); setStep(0); } else voiceRead(); },
+    };
     view.querySelectorAll('[data-s]').forEach(li => li.onclick = () => {
       const k = 's' + li.dataset.s;
       if (state.cookMode) {
-        // Kookstand: aangetikte stap wordt de huidige, alles ervoor is klaar.
         // Tik je de huidige stap nog eens aan, dan ga je door naar de volgende.
-        let p = stepKeys.indexOf(k);
-        if (curStep === k) p++;
-        curStep = stepKeys[p] || null;
-        stepKeys.forEach((s, j) => j < p ? done.add(s) : done.delete(s));
-        view.querySelectorAll('[data-s]').forEach(el => {
-          const s = 's' + el.dataset.s;
-          el.classList.toggle('done', done.has(s));
-          el.classList.toggle('current', s === curStep);
-        });
-        if (curStep) centerStep(view.querySelector(`[data-s="${curStep.slice(1)}"]`));
+        setStep(stepKeys.indexOf(k) + (curStep === k ? 1 : 0));
+        return;
       } else {
         done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
         curStep = null; view.querySelectorAll('.steps .current').forEach(el => el.classList.remove('current'));
@@ -2357,6 +2433,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.7.0', date: '25 november 2026', sections: [{ items: [
+    'Handsfree koken: tik in de kookstand op de microfoon. Ricetta leest elke stap voor en luistert naar “volgende”, “terug”, “herhaal” en “stop”.',
+  ] }] },
   { v: '1.6.0', date: '25 november 2026', sections: [{ items: [
     'Deel een recept als mooie pdf, als een bladzijde uit een kookmagazine: Delen → Als pdf met QR-code.',
     'Wie de QR-code scant, ziet het recept en bewaart het met één tik in zijn eigen Ricetta. De link kun je altijd weer intrekken.',
