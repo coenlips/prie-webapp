@@ -126,7 +126,7 @@ const RecipePdf = (() => {
     ctx.save(); ctx.strokeStyle = C.line; ctx.lineWidth = mm(.3); ctx.setLineDash([mm(1), mm(.8)]); ctx.beginPath(); ctx.moveTo(x + w - mm(44), y + mm(5)); ctx.lineTo(x + w - mm(44), y + h - mm(5)); ctx.stroke(); ctx.restore();
     wordmark(ctx, x + w - mm(5), y + mm(14.5), pt(26), 'right');
     ctx.fillStyle = C.muted; ctx.font = `500 ${pt(6.5)}px Oswald`;
-    const by = from ? `UIT DE RICETTE DI ${from.toUpperCase()}` : 'GEDEELD VIA RICETTA';
+    const by = from ? `LE RICETTE DI ${from.toUpperCase()}` : 'GEDEELD VIA RICETTA';
     let fsz = pt(6.5); while (spacedWidth(ctx, by, fsz * .16) > mm(36) && fsz > pt(4.5)) { fsz *= .92; ctx.font = `500 ${fsz}px Oswald`; }
     spaced(ctx, by, x + w - mm(5), y + mm(20.5), fsz * .16, 'right');
     return { qr: [qx, qy, size] };
