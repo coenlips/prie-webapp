@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.7.0 · 25 november 2026';
+const APP_VERSION = '1.7.1 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -19,6 +19,7 @@ const ICONS = {
   pdf: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h4"/></svg>',
   shuffle: '<svg viewBox="0 0 48 48" class="shuf"><g class="shuf-arrows"><path d="M38.7 15.5A17 17 0 0 0 9.3 15.5"/><path d="M9.3 32.5A17 17 0 0 0 38.7 32.5"/><path class="head" d="M7.2 19.1L6.6 12.1L13.5 16.1Z"/><path class="head" d="M40.8 28.9L41.4 35.9L34.5 31.9Z"/></g><g class="shuf-sq"><rect class="sq sq-a" x="15.5" y="15.5" width="11" height="11" rx="2"/><rect class="sq sq-b" x="21.5" y="21.5" width="11" height="11" rx="2"/></g></svg>',
   mic: '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M8.5 21h7"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".9" fill="currentColor" stroke="none"/></svg>',
   news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -1090,6 +1091,7 @@ function setCookMode(on) {
   if (on && detailWideMQ.matches) window.scrollTo(0, 0);   // iPad/laptop: beide kolommen scrollen zelf
   if (!on) setWakeLock(false);
   $('#cookVoice').hidden = !on || !(Voice.can.speak || Voice.can.listen);
+  $('#cookVoiceInfo').hidden = $('#cookVoice').hidden;
   if (!on && Voice.isOn()) Voice.stop();
 }
 
@@ -1152,7 +1154,7 @@ function voiceOn() {
 }
 function openVoiceIntro(go) {
   const s = openAccSheet(`
-    <div class="sheet-head"><h3>Handsfree koken</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <div class="sheet-head"><h3>Handsfree koken</h3><button class="text-btn" data-close>${go ? 'Annuleer' : 'Sluit'}</button></div>
     <p class="acc-sheet-text">Ik lees elke stap hardop voor${Voice.can.listen ? ', en je bestuurt de stappen met je stem' : ''}. Handig met deeg aan je handen!</p>
     ${Voice.can.listen ? `<ul class="voice-cmds">
       <li><div><b>“Volgende”</b> of <b>“verder”</b></div><span>naar de volgende stap</span></li>
@@ -1162,10 +1164,13 @@ function openVoiceIntro(go) {
     </ul>
     <p class="small-note">De app luistert alleen zolang de microfoonknop aan staat. In Chrome gaat het geluid naar Google om het om te zetten in tekst.</p>`
     : '<p class="small-note">Luisteren naar je stem werkt niet in deze browser. Tik op een stap om naar de volgende te gaan; ik lees hem dan voor.</p>'}
-    <button class="btn" id="voiceGo">${ICONS.mic} Begin</button>`, 'Handsfree koken');
-  s.$('#voiceGo').onclick = () => { try { localStorage.setItem(VOICE_INTRO, '1'); } catch { /* */ } s.close(); go(); };
+    ${go ? `<button class="btn" id="voiceGo">${ICONS.mic} Begin</button>` : '<button class="btn" data-close>Oké</button>'}`, 'Handsfree koken');
+  if (go) s.$('#voiceGo').onclick = () => { try { localStorage.setItem(VOICE_INTRO, '1'); } catch { /* */ } s.close(); go(); };
 }
 $('#cookVoice').innerHTML = ICONS.mic;
+$('#cookVoiceInfo').innerHTML = ICONS.info;
+// Uitleg opnieuw lezen; staat handsfree nog uit, dan kun je vanuit de uitleg meteen beginnen
+$('#cookVoiceInfo').addEventListener('click', () => openVoiceIntro(Voice.isOn() ? null : voiceOn));
 $('#cookVoice').addEventListener('click', () => {
   if (Voice.isOn()) { voiceOff(); return; }
   let seen = false; try { seen = localStorage.getItem(VOICE_INTRO) === '1'; } catch { /* */ }

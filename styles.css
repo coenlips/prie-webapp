@@ -1657,3 +1657,4 @@ body[data-page=book] .list-head.closed { box-shadow: none; }
 #voiceGo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 14px; }
 #voiceGo svg { width: 20px; height: 20px; }
 @media (prefers-reduced-motion: reduce) { .voice-btn.on::after { animation: none; } }
+.voice-info svg { width: 22px; height: 22px; }
