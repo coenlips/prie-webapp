@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.4 · 25 november 2026';
+const APP_VERSION = '1.6.5 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -483,7 +483,7 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 
 function renderList() {
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open') !== '0'; } catch { return true; } })();
-  setHeader({ lead: loggedIn() ? `<button class="icon-btn books-btn" data-go="#/kookboeken" aria-label="Ricettari van anderen" title="Ricettari van anderen">${ICONS.book}</button>` : '', actions: `
+  setHeader({ lead: loggedIn() ? `<button class="icon-btn books-btn" data-go="#/kookboeken" aria-label="Ricette van anderen" title="Ricette van anderen">${ICONS.book}</button>` : '', actions: `
     <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
@@ -573,7 +573,7 @@ function renderList() {
 // het menu schuift onder de kopbalk weg en de recepten schuiven mee. De echte opmaak
 // verandert maar één keer (bij dichtklappen aan het eind, bij openklappen aan het begin),
 // zodat het raster met grote foto's niet elk beeldje opnieuw berekend hoeft te worden.
-// clip: het menu staat niet direct onder de kopbalk (bijv. onder het vaandel van iemands Ricettario).
+// clip: het menu staat niet direct onder de kopbalk (bijv. onder het vaandel van iemands Ricette).
 // Dan blijft het staan en wordt het van onderaf dichtgeschoven, als een rolgordijn.
 function foldFilters(head, open, { clip = false, also = [] } = {}) {
   const els = [head];
@@ -637,7 +637,7 @@ function renderCards() {
         <h2>Nog geen recepten</h2>
         <p>Tik op <strong>+</strong> om je eerste recept toe te voegen.</p>
         <button class="btn ghost" id="sample">Voorbeeldrecept toevoegen</button>
-        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.book} Ricettari van anderen bekijken</a>` : ''}
+        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.book} Ricette van anderen bekijken</a>` : ''}
       </div>`;
     $('#sample').addEventListener('click', addSample);
     return;
@@ -889,7 +889,7 @@ const Mag = (() => {
     return first.length > 170 ? first.slice(0, 165).replace(/\s+\S*$/, '') + '…' : first;
   }
 
-  // Standaard: je eigen recepten. Voor andermans Ricettario geeft render() andere opties mee.
+  // Standaard: je eigen recepten. Voor andermans Ricette geeft render() andere opties mee.
   let O = {};
   const hrefOf = r => (O.href ? O.href(r) : `#/r/${esc(r.id)}`);
   const coursesOfR = r => (O.courses ? O.courses(r) : coursesOf(r));
@@ -970,7 +970,7 @@ const Mag = (() => {
     { id: 'fillShop', icon: 'basket', title: 'Boodschappen', sub: 'Naar je lijstje' },
   ];
 
-  // opts (andermans Ricettario): all, browsing, href, courses, cats, fillers [{id, icon, title, sub, on}], hero ({ id })
+  // opts (andermans Ricette): all, browsing, href, courses, cats, fillers [{id, icon, title, sub, on}], hero ({ id })
   function render(el, list, opts = {}) {
     O = opts;
     const all = opts.all || state.recipes;
@@ -1536,7 +1536,7 @@ async function renderEdit(id) {
         </section>
 
         ${loggedIn() ? `<section class="ed-sec"><h3>Delen</h3>
-          <label class="switch-row share-check"><span><b>Zichtbaar in mijn Ricettario</b><small>${(shareCache().visibility || 'none') === 'none' ? 'Je Ricettario is nu privé; dit telt zodra je het deelt (Instellingen).' : 'Mensen met wie je je Ricettario deelt, zien dit recept.'}</small></span>
+          <label class="switch-row share-check"><span><b>Zichtbaar in mijn Ricette</b><small>${(shareCache().visibility || 'none') === 'none' ? 'Je Ricette zijn nu privé; dit telt zodra je ze deelt (Instellingen).' : 'Mensen met wie je je Ricette deelt, zien dit recept.'}</small></span>
             <span class="switch"><input type="checkbox" name="shared" role="switch"${(id ? r.shared : (shareCache().visibility || 'none') !== 'none') ? ' checked' : ''}></span></label>
         </section>` : ''}
       </div>
@@ -2354,7 +2354,7 @@ const CHANGELOG = [
     'Feestelijk koken: heb je alle stappen van een recept met de categorie Kerst of Sinterklaas afgestreept, dan krijg je een feestbanner.',
   ] }] },
   { v: '1.4.0', date: '25 november 2026', sections: [{ items: [
-    'De Ricettari van anderen laden veel sneller; de fotootjes verschijnen rustig.',
+    'De Ricette van anderen laden veel sneller; de fotootjes verschijnen rustig.',
     'Recepten zonder foto krijgen een getekend bord, zodat het overzicht er mooi vol uitziet.',
   ] }] },
   { v: '1.3.0', date: '24 november 2026', sections: [{ items: [
@@ -2374,8 +2374,8 @@ const CHANGELOG = [
     intro: '<span class="nowrap">Er is flink wat veranderd in Ricetta.</span><br>Dit is er nieuw:',
     sections: [
       { h: 'Recepten delen met elkaar', items: [
-        '<b>Kijk in elkaars Ricettario.</b> Bij Instellingen → Delen met anderen kies je wie jouw Ricettario mag bekijken en welke recepten erin staan. Per recept kun je dat later nog aan- of uitzetten.',
-        '<b>Bekijk de Ricettari van anderen</b> via het boek-icoon linksboven. Je kunt erin zoeken en filteren, en met + Bewaar neem je een recept over in je eigen verzameling.',
+        '<b>Kijk in elkaars Ricette.</b> Bij Instellingen → Delen met anderen kies je wie jouw Ricette mag bekijken en welke recepten erbij horen. Per recept kun je dat later nog aan- of uitzetten.',
+        '<b>Bekijk de Ricette van anderen</b> via het boek-icoon linksboven. Je kunt erin zoeken en filteren, en met + Bewaar neem je een recept over in je eigen verzameling.',
         '<b>Stuur een recept naar iemand.</b> Het komt bij de ander binnen als bericht.',
       ] },
       { h: 'Vegetarisch en vegan', items: [
@@ -2398,7 +2398,7 @@ const CHANGELOG = [
       ] },
       { h: 'Nieuw uiterlijk', items: [
         'Een nieuw app-icoon. Zie je nog het oude? Verwijder Ricetta van je beginscherm en zet hem er opnieuw op.',
-        'Verder veel verfijnd: een rustigere menubalk, een nieuwe laadanimatie, een vaste schakelknop in de kookstand, een nieuwe weergave van het uitgelichte recept en de Ricettari van anderen als tijdschrift op iPad en laptop.',
+        'Verder veel verfijnd: een rustigere menubalk, een nieuwe laadanimatie, een vaste schakelknop in de kookstand, een nieuwe weergave van het uitgelichte recept en de Ricette van anderen als tijdschrift op iPad en laptop.',
       ] },
     ],
     outro: 'Veel kookplezier!' },
@@ -2570,7 +2570,7 @@ async function renderUsers() {
       </div>
       <div class="card-box">
         <h3>Testaccounts</h3>
-        <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricettario alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
+        <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
         ${users.some(u => u.test)
           ? `<button class="btn ghost" id="testMake">Opnieuw aanmaken</button><button class="btn ghost danger" id="testRemove">Testaccounts verwijderen</button>`
           : '<button class="btn ghost" id="testMake">Testaccounts aanmaken</button>'}
@@ -2716,8 +2716,8 @@ Sync.onSignOut = afterSignOut;
 Sync.onPasswordButton = openPasswordSheet;
 
 /* ---------- Delen met andere gebruikers ---------- */
-// Recepten sturen (komen in het postvak van de ander) en in elkaars Ricettario kijken.
-// In je Ricettario staan alleen recepten met r.shared = true; wie mag kijken stel je in bij Instellingen.
+// Recepten sturen (komen in het postvak van de ander) en in elkaars Ricette kijken.
+// Bij je Ricette horen alleen recepten met r.shared = true; wie mag kijken stel je in bij Instellingen.
 
 const SHARE_KEY = 'ricetta-share';   // laatst bekende eigen instellingen (voor nieuwe recepten)
 const shareCache = () => { try { return JSON.parse(localStorage.getItem(SHARE_KEY)) || {}; } catch { return {}; } };
@@ -2737,7 +2737,7 @@ function loaderHtml(text = 'Laden…') {
 }
 
 // Oudere server zonder deze functies: begrijpelijke melding
-const shareErr = err => /Onbekende actie/.test(err.message) ? 'Delen werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message.replace(/Dit (kookboek|receptenboek) wordt|Deze Ricettario worden/, 'Dit Ricettario wordt');
+const shareErr = err => /Onbekende actie/.test(err.message) ? 'Delen werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message.replace(/Dit (kookboek|receptenboek|Ricettario) wordt/, 'Deze Ricette worden');
 const avatarHtml = name => `<div class="acc-avatar" aria-hidden="true">${esc(String(name || '?').charAt(0).toUpperCase())}</div>`;
 
 // Kleine foto voor in andermans overzicht (de grote foto wordt pas bij openen opgehaald)
@@ -2958,7 +2958,7 @@ async function renderReceived(inboxId) {
   });
 }
 
-/* Ricettari van anderen: wat je eerder zag meteen tonen en op de achtergrond verversen */
+/* Ricette van anderen: wat je eerder zag meteen tonen en op de achtergrond verversen */
 const shareStore = {
   key: k => `ricetta-cache-${Sync.status().user?.id || 0}-${k}`,
   get(k) { try { return JSON.parse(localStorage.getItem(this.key(k)) || 'null'); } catch { return null; } },
@@ -2976,13 +2976,13 @@ async function cachedLoad(seq, key, fetcher, show, fail) {
   if (!old || JSON.stringify(old) !== JSON.stringify(fresh)) show(fresh);
 }
 
-/* Ricettari van anderen: '#/kookboeken' */
+/* Ricette van anderen: '#/kookboeken' */
 async function renderBooks() {
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
-  setHeader({ title: 'Ricettari', close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
-  if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de Ricettari van anderen te bekijken.</p></div></section>`; return; }
-  view.innerHTML = `<section class="settings">${loaderHtml('Ricettari ophalen…')}</section>`;
+  setHeader({ title: 'Ricette', close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de Ricette van anderen te bekijken.</p></div></section>`; return; }
+  view.innerHTML = `<section class="settings">${loaderHtml('Ricette ophalen…')}</section>`;
   await cachedLoad(seq, 'books', () => Sync.call('books'), books => showBooks(books),
     err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
 }
@@ -2997,16 +2997,16 @@ function showBooks(books) {
       : `<span class="cover"><img src="${s}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.src='${free[0]}'"></span>`).join('');
   };
   view.innerHTML = `<section class="settings">
-    <div class="page-flag">${flagHtml('Ricettari')}</div>
-    <p class="books-intro">Recepten van mensen die hun Ricettario met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
+    <div class="page-flag">${flagHtml('Ricette')}</div>
+    <p class="books-intro">Recepten van mensen die hun Ricette met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
     ${books.length ? `<ul class="books">${books.map(b => `
       <li><a class="book" href="#/kookboek/${b.id}"><div class="covers">${covers(b)}</div>
-        <div><b>Ricettario di ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
-      : `<div class="card-box"><p>Er deelt nog niemand een Ricettario met je.</p><p>Deel je eigen Ricettario bij <a href="#/settings" class="link">Instellingen → Delen met anderen</a>.</p></div>`}
+        <div><b>Ricette di ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
+      : `<div class="card-box"><p>Er deelt nog niemand Ricette met je.</p><p>Deel je eigen Ricette bij <a href="#/settings" class="link">Instellingen → Delen met anderen</a>.</p></div>`}
   </section>`;
 }
 
-/* Iemands Ricettario: '#/kookboek/<id>' en een recept daaruit: '#/kookboek/<id>/<recept-id>' */
+/* Iemands Ricette: '#/kookboek/<id>' en een recept daaruit: '#/kookboek/<id>/<recept-id>' */
 const bookCache = new Map();
 async function loadBook(ownerId) {
   const d = await Sync.call('book', { owner: ownerId });
@@ -3022,8 +3022,8 @@ async function renderBook(ownerId) {
   const head = title => setHeader({ title, back: true, close: true, timer: false, actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
-  head('Ricettario');
-  view.innerHTML = `<section class="book-page">${loaderHtml('Ricettario openen…')}</section>`;
+  head('Ricette');
+  view.innerHTML = `<section class="book-page">${loaderHtml('Ricette openen…')}</section>`;
   await cachedLoad(seq, `book-${ownerId}`, () => Sync.call('book', { owner: ownerId }), d => { bookCache.set(ownerId, d); showBook(ownerId, d, head, filtersOpen); },
     err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
 }
@@ -3051,9 +3051,9 @@ function showBook(ownerId, d, head, filtersOpen) {
 
   view.innerHTML = `<section class="book-page">
     <div class="book-top" id="bookTop">
-    <div class="book-flag"><div class="acc-flag"><span><small>Ricettario di</small>${esc(d.owner.name)}</span></div></div>
+    <div class="book-flag"><div class="acc-flag"><span><small>Ricette di</small>${esc(d.owner.name)}</span></div></div>
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
-      <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit Ricettario" value="${esc(f.q)}" autocomplete="off"></div>
+      <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze Ricette" value="${esc(f.q)}" autocomplete="off"></div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
       ${chips.length > 1 ? `<div class="chips">${chips.map(([k, l]) => k.startsWith('diet:')
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
@@ -3085,9 +3085,9 @@ function showBook(ownerId, d, head, filtersOpen) {
         href: r => `#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}`,
         courses: rCourses, cats: rCats,
         fillers: [
-          { id: 'bkSurprise', icon: 'dice', title: 'Verras me', sub: 'Dit Ricettario husselen', on: () => { Mag.shuffle(); f.hero = {}; draw(); window.scrollTo({ top: 0, behavior: 'smooth' }); } },
-          { id: 'bkBooks', icon: 'book', title: 'Ricettari', sub: 'Ricettari van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
-          { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen Ricettario', on: () => { location.hash = '#/'; } },
+          { id: 'bkSurprise', icon: 'dice', title: 'Verras me', sub: 'Deze Ricette husselen', on: () => { Mag.shuffle(); f.hero = {}; draw(); window.scrollTo({ top: 0, behavior: 'smooth' }); } },
+          { id: 'bkBooks', icon: 'book', title: 'Ricette', sub: 'Ricette van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
+          { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen Ricette', on: () => { location.hash = '#/'; } },
         ],
         // Uitgelicht recept: de volle foto ophalen (de kleine is te klein voor zo'n grote plaat)
         onHero: async (hero, img) => {
@@ -3181,14 +3181,14 @@ async function bindShareSettings() {
   const sharedCount = () => state.recipes.filter(r => r.shared).length;
   const draw = () => {
     box.innerHTML = `
-      <p class="opt-head">Wie mag mijn Ricettario bekijken?</p>
+      <p class="opt-head">Wie mag mijn Ricette bekijken?</p>
       <div class="choice-list">
         <label><input type="radio" name="vis" value="none" ${st.visibility === 'none' ? 'checked' : ''}><span><strong>Niemand</strong><small>Je recepten zijn alleen van jou.</small></span></label>
         <label><input type="radio" name="vis" value="some" ${st.visibility === 'some' ? 'checked' : ''}><span><strong>Alleen deze mensen</strong></span></label>
         ${st.visibility === 'some' ? `<div class="mini-chips">${st.people.map(p => `<span class="chip on">${esc(p.name)}</span>`).join('')}<button class="chip link-add" id="pickViewers">${st.people.length ? 'Wijzig' : '+ Kies mensen'}</button></div>` : ''}
         <label><input type="radio" name="vis" value="all" ${st.visibility === 'all' ? 'checked' : ''}><span><strong>Iedereen in Ricetta</strong></span></label>
       </div>
-      ${st.visibility !== 'none' ? `<button class="btn ghost" id="pickRecipes">Recepten kiezen</button><p class="small-note share-count">${sharedCount()} van je ${state.recipes.length} recepten ${sharedCount() === 1 ? 'staat' : 'staan'} in je Ricettario.</p>` : ''}
+      ${st.visibility !== 'none' ? `<button class="btn ghost" id="pickRecipes">Recepten kiezen</button><p class="small-note share-count">${sharedCount()} van je ${state.recipes.length} recepten ${sharedCount() === 1 ? 'hoort' : 'horen'} bij je Ricette.</p>` : ''}
       <p class="opt-head">Recepten ontvangen</p>
       <div class="choice-list"><label><input type="checkbox" id="acceptSend" ${st.accept ? 'checked' : ''}><span><strong>Anderen mogen mij recepten sturen</strong><small>Ze komen eerst in je postvak; jij kiest of je ze bewaart.</small></span></label></div>`;
     const badge = $('#badge-sharing');
@@ -3231,8 +3231,8 @@ async function bindShareSettings() {
   const openRecipePicker = first => {
     const chosen = new Set(state.recipes.filter(r => r.shared).map(r => r.id));
     const s = openAccSheet(`
-      <div class="sheet-head"><h3>${first ? 'Welke recepten wil je delen?' : 'Recepten in je Ricettario'}</h3><button class="text-btn" data-close>Annuleer</button></div>
-      ${first ? '<p class="acc-sheet-text">Kies welke recepten anderen in je Ricettario zien. Je kunt dit later per recept aanpassen.</p>' : ''}
+      <div class="sheet-head"><h3>${first ? 'Welke recepten wil je delen?' : 'Je Ricette'}</h3><button class="text-btn" data-close>Annuleer</button></div>
+      ${first ? '<p class="acc-sheet-text">Kies welke recepten anderen in je Ricette zien. Je kunt dit later per recept aanpassen.</p>' : ''}
       <div class="pick-tools"><input type="search" id="recQ" placeholder="Zoek een recept" autocomplete="off"><button class="chip" id="allBtn"></button></div>
       <ul class="pick rec-pick" id="recList"></ul>
       <button class="btn" id="recSave">Opslaan</button>`, 'Welke recepten');
@@ -3257,7 +3257,7 @@ async function bindShareSettings() {
       if (changed.length) await DB.putMany(changed);
       await loadRecipes();
       s.close();
-      toast(`${chosen.size} ${chosen.size === 1 ? 'recept staat' : 'recepten staan'} in je Ricettario`);
+      toast(`${chosen.size} ${chosen.size === 1 ? 'recept hoort' : 'recepten horen'} bij je Ricette`);
       draw();
       ensureThumbs();
     };

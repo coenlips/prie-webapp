@@ -128,7 +128,7 @@ function db(): PDO {
     if (!has_column($pdo, 'recepten_inbox', 'user_id')) {
         $pdo->exec("ALTER TABLE recepten_inbox ADD COLUMN user_id INT NOT NULL DEFAULT 0 AFTER id");
     }
-    // Delen met andere gebruikers: wie mag iemands Ricettario bekijken, en wie wil recepten ontvangen
+    // Delen met andere gebruikers: wie mag iemands Ricette bekijken, en wie wil recepten ontvangen
     if (!has_column($pdo, 'recepten_users', 'book_vis')) {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN book_vis VARCHAR(8) NOT NULL DEFAULT 'none', ADD COLUMN accept_send TINYINT(1) NOT NULL DEFAULT 1");
     }
@@ -138,7 +138,7 @@ function db(): PDO {
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_sends (
         id INT AUTO_INCREMENT PRIMARY KEY, from_id INT NOT NULL, to_id INT NOT NULL, at BIGINT NOT NULL, INDEX (from_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    // Lichte gegevens per recept (zonder grote foto), zodat de Ricettari van anderen snel laden
+    // Lichte gegevens per recept (zonder grote foto), zodat de Ricette van anderen snel laden
     if (!has_column($pdo, 'recepten', 'meta')) {
         $pdo->exec("ALTER TABLE recepten ADD COLUMN shared TINYINT(1) NOT NULL DEFAULT 0, ADD COLUMN meta MEDIUMTEXT NULL,
             ADD COLUMN thumb MEDIUMTEXT NULL, ADD COLUMN thumb_s MEDIUMTEXT NULL, ADD COLUMN light_v TINYINT NOT NULL DEFAULT 0,
@@ -410,7 +410,7 @@ function app_url(string $given): string {
 
 /* ---------- Delen ---------- */
 
-// Mag $viewer het Ricettario di $owner bekijken?
+// Mag $viewer de Ricette di $owner bekijken?
 function can_view(array $owner, int $viewerId): bool {
     if ((int) $owner['id'] === $viewerId) return false;
     if ($owner['book_vis'] === 'all') return true;
@@ -970,7 +970,7 @@ switch ($action) {
         out(['sent' => $sent]);
     }
 
-    // Ricettari die met mij gedeeld zijn
+    // Ricette die met mij gedeeld zijn
     case 'books': {
         $u = require_user();
         $rows = db()->query("SELECT * FROM recepten_users WHERE book_vis <> 'none' ORDER BY name")->fetchAll();
@@ -993,7 +993,7 @@ switch ($action) {
     case 'book': {
         $u = require_user();
         $o = find_user((int) (body()['owner'] ?? 0));
-        if (!can_view($o, (int) $u['id'])) fail(403, 'Dit Ricettario wordt niet (meer) met je gedeeld.');
+        if (!can_view($o, (int) $u['id'])) fail(403, 'Deze Ricette worden niet (meer) met je gedeeld.');
         out(['owner' => ['id' => (int) $o['id'], 'name' => $o['name']], 'recipes' => shared_recipes((int) $o['id'])]);
     }
 
@@ -1001,7 +1001,7 @@ switch ($action) {
         $u = require_user();
         $b = body();
         $o = find_user((int) ($b['owner'] ?? 0));
-        if (!can_view($o, (int) $u['id'])) fail(403, 'Dit Ricettario wordt niet (meer) met je gedeeld.');
+        if (!can_view($o, (int) $u['id'])) fail(403, 'Deze Ricette worden niet (meer) met je gedeeld.');
         backfill_light();
         $st = db()->prepare('SELECT data, updated_at FROM recepten WHERE user_id = ? AND id = ? AND shared = 1 AND deleted = 0');
         $st->execute([(int) $o['id'], (string) ($b['id'] ?? '')]);
