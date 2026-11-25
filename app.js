@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.5.3 · 25 november 2026';
+const APP_VERSION = '1.5.4 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2535,12 +2535,20 @@ async function renderUsers() {
           ${users.map(u => `
             <li>
               <div class="acc-avatar" aria-hidden="true">${esc(u.name.charAt(0).toUpperCase())}</div>
-              <div class="users-text"><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}</b>
+              <div class="users-text"><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}${u.test ? ' <span class="acc-role test-role">test</span>' : ''}</b>
                 <small>${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}${u.mustChange && u.lastSeen ? ' · moet nog een wachtwoord kiezen' : ''}</small></div>
               ${u.id === me.id ? '' : `<button class="icon-btn users-more" data-id="${u.id}" aria-label="Opties voor ${esc(u.name)}">⋯</button>`}
             </li>`).join('')}
         </ul>
         <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
+      </div>
+      <div class="card-box">
+        <h3>Testaccounts</h3>
+        <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricettario alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
+        ${users.some(u => u.test)
+          ? `<button class="btn ghost" id="testMake">Opnieuw aanmaken</button><button class="btn ghost danger" id="testRemove">Testaccounts verwijderen</button>`
+          : '<button class="btn ghost" id="testMake">Testaccounts aanmaken</button>'}
+        <p class="mail-result" id="testResult" hidden></p>
       </div>
       <div class="card-box">
         <h3>Mail</h3>
@@ -2549,6 +2557,24 @@ async function renderUsers() {
         <p class="mail-result" id="mailResult" hidden></p>
       </div>
     </section>`;
+
+  const testRun = async remove => {
+    if (remove && !confirm('De testaccounts en al hun recepten verwijderen?')) return;
+    if (!remove && users.some(u => u.test) && !confirm('De testaccounts opnieuw aanmaken? Hun recepten worden vervangen.')) return;
+    const res = $('#testResult'); res.hidden = false; res.textContent = 'Bezig…';
+    view.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = true; });
+    try {
+      const out = await Sync.call('test_accounts', remove ? { remove: true } : {});
+      shareStore.clear();
+      toast(remove ? 'Testaccounts verwijderd' : `Klaar: ${out.accounts.map(a => `${a.name} (${a.recipes})`).join(', ')}`);
+      renderUsers();
+    } catch (err) {
+      res.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
+      view.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = false; });
+    }
+  };
+  if ($('#testMake')) $('#testMake').onclick = () => testRun(false);
+  if ($('#testRemove')) $('#testRemove').onclick = () => testRun(true);
 
   view.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => {
     const q = requests.find(x => x.id === +b.dataset.approve);

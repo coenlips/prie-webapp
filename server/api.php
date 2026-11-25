@@ -144,6 +144,10 @@ function db(): PDO {
             ADD COLUMN thumb MEDIUMTEXT NULL, ADD COLUMN thumb_s MEDIUMTEXT NULL, ADD COLUMN light_v TINYINT NOT NULL DEFAULT 0,
             ADD INDEX user_shared (user_id, shared)");
     }
+    // Testaccounts (alleen zichtbaar voor de beheerder)
+    if (!has_column($pdo, 'recepten_users', 'is_test')) {
+        $pdo->exec("ALTER TABLE recepten_users ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0");
+    }
     // Foutmeldingen en ideeën van gebruikers (de beheerder ziet ze bij Instellingen → Wat is er nieuw)
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_feedback (
         id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, kind VARCHAR(8) NOT NULL, text TEXT NOT NULL,
@@ -193,7 +197,7 @@ function temp_password(): string {
 }
 
 function user_out(array $u): array {
-    return ['id' => (int) $u['id'], 'name' => $u['name'], 'admin' => (bool) $u['is_admin'], 'mustChange' => (bool) $u['must_change']];
+    return ['id' => (int) $u['id'], 'name' => $u['name'], 'admin' => (bool) $u['is_admin'], 'mustChange' => (bool) $u['must_change'], 'test' => !empty($u['is_test'])];
 }
 
 function new_token(int $userId): string {
@@ -259,6 +263,52 @@ function create_user(string $name): array {
         VALUES (?, ?, ?, 0, 1, ?, ?, 0)')
         ->execute([$name, name_key($name), password_hash($pw, PASSWORD_DEFAULT), bin2hex(random_bytes(16)), now_ms()]);
     return ['id' => (int) db()->lastInsertId(), 'name' => $name, 'password' => $pw];
+}
+
+// Een gebruiker met alles erop en eraan verwijderen
+function delete_user_all(int $id): void {
+    foreach (['recepten', 'recepten_tokens', 'recepten_inbox', 'recepten_feedback'] as $t) {
+        db()->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$id]);
+    }
+    db()->prepare('DELETE FROM recepten_book_access WHERE owner_id = ? OR viewer_id = ?')->execute([$id, $id]);
+    db()->prepare('DELETE FROM recepten_sends WHERE from_id = ? OR to_id = ?')->execute([$id, $id]);
+    db()->prepare('DELETE FROM recepten_users WHERE id = ?')->execute([$id]);
+}
+
+// Testaccounts: Italiaanse namen met 20, 30, 40 en 50 verzonnen recepten, alleen gedeeld met de beheerder
+const TEST_ACCOUNTS = ['Giulia' => 20, 'Marco' => 30, 'Francesca' => 40, 'Lorenzo' => 50];
+function test_recipes(int $count, int $seed): array {
+    mt_srand($seed);
+    $dishes = ['Risotto', 'Lasagne', 'Minestrone', 'Tiramisu', 'Focaccia', 'Gnocchi', 'Ossobuco', 'Panna cotta', 'Bruschetta', 'Saltimbocca',
+        'Pasta carbonara', 'Pasta pesto', 'Spaghetti vongole', 'Ribollita', 'Arancini', 'Caponata', 'Frittata', 'Polenta', 'Cannoli', 'Zuppa toscana',
+        'Paella', 'Tortilla', 'Gazpacho', 'Albóndigas', 'Pad thai', 'Nasi goreng', 'Ramen', 'Dumplings', 'Groene curry', 'Saté',
+        'Quiche lorraine', 'Quiche met spinazie', 'Erwtensoep', 'Tomatensoep', 'Kerststol', 'Pepernoten', 'Speculaas', 'Kerstrollade', 'Banketstaaf', 'Tarte tatin'];
+    $extra = ['', '', ' della nonna', ' alla siciliana', ' uit de oven', ' met paddenstoelen', ' met citroen', ' snel', ' met verse kruiden', ' feestelijk'];
+    $courses = ['Ontbijt', 'Lunch', 'Voorgerecht', 'Tussengerecht', 'Hoofdgerecht', 'Nagerecht', 'Patisserie'];
+    $cats = ['Italiaans', 'Oosters', 'Spaans', 'Kerst', 'Sinterklaas', 'Soep', 'Pasta', 'Quiche'];
+    $ingr = ['250 g bloem', '2 eieren', '1 ui', '2 tenen knoflook', '400 g tomaten', '200 g pasta', '1 el olijfolie', '100 g parmezaan', '500 ml bouillon',
+        '1 courgette', '200 g champignons', '1 citroen', '150 g room', 'snufje zout', 'versgemalen peper', '1 bos basilicum', '300 g kipfilet', '100 g boter', '75 g suiker', '1 tl kaneel'];
+    $stepsAll = ['Snijd de ui en knoflook fijn.', 'Verwarm de olie in een pan en fruit de ui glazig.', 'Voeg de groenten toe en bak ze 5 minuten.',
+        'Breng op smaak met zout en peper.', 'Laat 20 minuten zachtjes pruttelen.', 'Kook de pasta beetgaar volgens de verpakking.',
+        'Verwarm de oven voor op 180 °C.', 'Meng alles goed door elkaar.', 'Bak 25 minuten in de oven tot het goudbruin is.', 'Garneer met verse kruiden en serveer meteen.'];
+    $out = []; $used = [];
+    for ($i = 0; count($out) < $count && $i < 1000; $i++) {
+        $title = $dishes[mt_rand(0, count($dishes) - 1)] . $extra[mt_rand(0, count($extra) - 1)];
+        if (isset($used[$title])) continue;
+        $used[$title] = 1;
+        $ing = $ingr; shuffle($ing); $st = $stepsAll; shuffle($st);
+        $c = [$cats[mt_rand(0, count($cats) - 1)]];
+        if (mt_rand(0, 3) === 0) $c[] = $cats[mt_rand(0, count($cats) - 1)];
+        $n = count($out);
+        $out[] = ['title' => $title, 'description' => mt_rand(0, 2) ? '' : 'Een testrecept om de app uit te proberen.',
+            'courses' => [$courses[mt_rand(0, count($courses) - 1)]], 'categories' => array_values(array_unique($c)),
+            'diet' => ['', '', '', 'vegetarisch', 'vegan'][mt_rand(0, 4)], 'servings' => [2, 4, 4, 6, 8][mt_rand(0, 4)],
+            'prepTime' => mt_rand(1, 6) * 5, 'cookTime' => mt_rand(0, 12) * 5, 'favorite' => mt_rand(0, 5) === 0,
+            'ingredients' => implode("\n", array_slice($ing, 0, mt_rand(4, 9))), 'steps' => implode("\n", array_slice($st, 0, mt_rand(3, 6))),
+            'notes' => '', 'tags' => ['test'], 'photo' => '', 'shared' => true,
+            'createdAt' => now_ms() - ($n * 37 + mt_rand(0, 30)) * 3600 * 1000, 'updatedAt' => now_ms()];
+    }
+    return $out;
 }
 
 function clean_email(string $email): string {
@@ -613,7 +663,7 @@ switch ($action) {
 
     case 'users': {
         require_admin();
-        $rows = db()->query("SELECT u.id, u.name, u.is_admin, u.must_change, u.created_at, u.last_seen,
+        $rows = db()->query("SELECT u.id, u.name, u.is_admin, u.must_change, u.is_test, u.created_at, u.last_seen,
             (SELECT COUNT(*) FROM recepten r WHERE r.user_id = u.id AND r.deleted = 0 AND r.id NOT LIKE '\\_\\_%') AS recipes
             FROM recepten_users u ORDER BY u.is_admin DESC, u.name")->fetchAll();
         out(array_map(fn($r) => user_out($r) + ['recipes' => (int) $r['recipes'], 'created' => (int) $r['created_at'], 'lastSeen' => (int) $r['last_seen']], $rows));
@@ -745,13 +795,34 @@ switch ($action) {
         $me = require_admin();
         $u = find_user((int) (body()['id'] ?? 0));
         if ((int) $u['id'] === (int) $me['id']) fail(400, 'Je kunt jezelf niet verwijderen.');
-        foreach (['recepten', 'recepten_tokens', 'recepten_inbox'] as $t) {
-            db()->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$u['id']]);
-        }
-        db()->prepare('DELETE FROM recepten_book_access WHERE owner_id = ? OR viewer_id = ?')->execute([$u['id'], $u['id']]);
-        db()->prepare('DELETE FROM recepten_sends WHERE from_id = ? OR to_id = ?')->execute([$u['id'], $u['id']]);
-        db()->prepare('DELETE FROM recepten_users WHERE id = ?')->execute([$u['id']]);
+        delete_user_all((int) $u['id']);
         out(['ok' => true]);
+    }
+
+    // Testaccounts aanmaken (of opnieuw vullen) en weer weghalen. Alleen de beheerder ziet en bekijkt ze.
+    case 'test_accounts': {
+        $me = require_admin();
+        $pdo = db();
+        foreach ($pdo->query('SELECT id FROM recepten_users WHERE is_test = 1')->fetchAll(PDO::FETCH_COLUMN) as $id) delete_user_all((int) $id);
+        if (!empty(body()['remove'])) out(['ok' => true, 'accounts' => []]);
+        $made = [];
+        $ins = $pdo->prepare('INSERT INTO recepten (user_id, id, data, deleted, updated_at, shared, meta, thumb, thumb_s, light_v) VALUES (?, ?, ?, 0, ?, ?, ?, ?, ?, ?)');
+        $seed = 1;
+        foreach (TEST_ACCOUNTS as $name => $count) {
+            $nm = $name;
+            for ($k = 2; name_taken($nm); $k++) $nm = "$name $k";
+            $pdo->prepare('INSERT INTO recepten_users (name, name_key, pw_hash, is_admin, must_change, share_key, created_at, last_seen, is_test, book_vis, accept_send)
+                VALUES (?, ?, ?, 0, 0, ?, ?, 0, 1, ?, 1)')
+                ->execute([$nm, name_key($nm), password_hash(bin2hex(random_bytes(16)), PASSWORD_DEFAULT), bin2hex(random_bytes(16)), now_ms(), 'some']);
+            $uid = (int) $pdo->lastInsertId();
+            $pdo->prepare('INSERT INTO recepten_book_access (owner_id, viewer_id) VALUES (?, ?)')->execute([$uid, $me['id']]);
+            foreach (test_recipes($count, $seed++ * 1000) as $i => $r) {
+                $r['id'] = "test-$uid-$i";
+                $ins->execute([$uid, $r['id'], json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), now_ms(), ...light_cols($r), LIGHT_V]);
+            }
+            $made[] = ['name' => $nm, 'recipes' => $count];
+        }
+        out(['ok' => true, 'accounts' => $made]);
     }
 
     /* ---------- Recepten (elk ziet alleen de eigen recepten) ---------- */
@@ -849,7 +920,8 @@ switch ($action) {
     // Andere gebruikers (voor versturen en kiezen met wie je deelt), met de 3 met wie je het meest deelt
     case 'people': {
         $u = require_user();
-        $st = db()->prepare('SELECT id, name, accept_send FROM recepten_users WHERE id <> ? ORDER BY name');
+        // Testaccounts ziet alleen de beheerder
+        $st = db()->prepare('SELECT id, name, accept_send FROM recepten_users WHERE id <> ?' . ($u['is_admin'] ? '' : ' AND is_test = 0') . ' ORDER BY name');
         $st->execute([$u['id']]);
         $people = array_map(fn($r) => ['id' => (int) $r['id'], 'name' => $r['name'], 'accept' => (bool) $r['accept_send']], $st->fetchAll());
         $st = db()->prepare('SELECT to_id AS id, COUNT(*) AS n FROM recepten_sends WHERE from_id = ? GROUP BY to_id');
