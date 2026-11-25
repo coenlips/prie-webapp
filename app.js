@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.8 · 25 november 2026';
+const APP_VERSION = '1.6.9 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -482,7 +482,7 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 /* ---------- Lijst ---------- */
 
 function renderList() {
-  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open') !== '0'; } catch { return true; } })();
+  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
   setHeader({ lead: loggedIn() ? `<button class="icon-btn books-btn" data-go="#/kookboeken" aria-label="Ricette van anderen" title="Ricette van anderen">${ICONS.book}</button>` : '', actions: `
     <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
@@ -557,7 +557,7 @@ function renderList() {
     const open = btn.getAttribute('aria-expanded') !== 'true';
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open);
-    try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
+    try { localStorage.setItem('ricetta-filters-open2', open ? '1' : '0'); } catch {}
     foldFilters(head, open);
   };
   $('#surprise').onclick = () => {
@@ -3040,7 +3040,7 @@ const bookFilters = new Map();   // per persoon: zoekterm, gang en filter (blijf
 async function renderBook(ownerId) {
   const seq = routeSeq;
   document.body.dataset.page = 'book';
-  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open') !== '0'; } catch { return true; } })();
+  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
   const head = title => setHeader({ title, back: true, close: true, timer: false, actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
@@ -3155,7 +3155,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     const btn = $('#filterToggle'), open = btn.getAttribute('aria-expanded') !== 'true';
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open);
-    try { localStorage.setItem('ricetta-filters-open', open ? '1' : '0'); } catch {}
+    try { localStorage.setItem('ricetta-filters-open2', open ? '1' : '0'); } catch {}
     foldFilters($('#bookHead'), open, { also: [$('#bookCards')] });   // schuift onder het vaandel door, net als onder de kopbalk
   };
   draw();
