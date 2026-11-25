@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.4.0 · 25 november 2026';
+const APP_VERSION = '1.4.1 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -289,7 +289,7 @@ function catsByUse() {
   return [...count.keys()].sort((a, b) => count.get(b) - count.get(a) || a.localeCompare(b, 'nl'));
 }
 
-const CATEGORIES = ['Ontbijt', 'Lunch', 'Diner', 'Soep', 'Salade', 'Bijgerecht', 'Dessert', 'Gebak', 'Snack', 'Drinken'];
+const CATEGORIES = ['Italiaans', 'Oosters', 'Spaans', 'Kerst', 'Sinterklaas', 'Soep', 'Pasta', 'Quiche'];
 
 function toast(msg) {
   const t = $('#toast');
