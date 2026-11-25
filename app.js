@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.11 · 25 november 2026';
+const APP_VERSION = '1.6.12 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3091,8 +3091,6 @@ function showBook(ownerId, d, head, filtersOpen) {
   if (f.course && !courseNames.includes(f.course)) f.course = null;
 
   view.innerHTML = `<section class="book-page">
-    <div class="book-top" id="bookTop">
-    <div class="book-flag"><div class="acc-flag"><span><small>Le Ricette di</small>${esc(d.owner.name)}</span></div></div>
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
       <div class="list-tools"><div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze Ricette" value="${esc(f.q)}" autocomplete="off"></div>${shuffleBtnHtml('bookShuffle')}</div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -3100,7 +3098,7 @@ function showBook(ownerId, d, head, filtersOpen) {
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
         : `<button class="chip${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
     </div></div>
-    </div>
+    <div class="book-flag"><div class="acc-flag"><span><small>Le Ricette di</small>${esc(d.owner.name)}</span></div></div>
     <ul class="cards book-cards" id="bookCards"></ul>
   </section>`;
   const draw = () => {
@@ -3175,7 +3173,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     btn.classList.toggle('on', open);
     btn.setAttribute('aria-expanded', open);
     try { localStorage.setItem('ricetta-filters-open2', open ? '1' : '0'); } catch {}
-    foldFilters($('#bookHead'), open, { also: [$('#bookCards')] });   // schuift onder het vaandel door, net als onder de kopbalk
+    foldFilters($('#bookHead'), open);   // net als in je eigen overzicht: onder de kopbalk door, vaandel en recepten schuiven mee
   };
   draw();
   if (y > 0) scrollTo(0, y);   // ververst na het tonen van de bewaarde versie: op dezelfde plek blijven

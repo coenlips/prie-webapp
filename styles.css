@@ -1617,3 +1617,11 @@ body.cook .bon-appetit.feest { padding: 80px 0 90px; }
 @keyframes shuf-spin { to { transform: rotate(360deg); } }
 @media (min-width: 700px) { .book-head .list-tools .search { max-width: 620px; } }
 @media (prefers-reduced-motion: reduce) { .spin > .shuf .shuf-arrows { animation: none; } .shuf .sq { transition: none; } }
+
+/* Ricette van anderen: zoeken en filters bovenaan, precies zoals in je eigen overzicht; het vaandel scrolt mee met de recepten */
+body[data-page=book] .list-head { position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5; background: var(--bg); box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
+body[data-page=book] .list-head.closed { box-shadow: none; }
+@media (max-width: 699.98px) { body[data-page=book] .list-head { margin: -12px -16px 12px; padding: 14px 16px 10px; } }
+@media (min-width: 700px) { body[data-page=book] .list-head { margin: 0; padding: 18px var(--gutter) 14px; } }
+.book-page > .book-flag { margin: 10px 0 18px; }
+@media (min-width: 700px) { .book-page > .book-flag { margin: 26px 0 22px; } }
