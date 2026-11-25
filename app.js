@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.1 · 25 november 2026';
+const APP_VERSION = '1.6.2 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1443,15 +1443,27 @@ function recipeAsText(r, servings, factor) {
 }
 
 // Bovenaan de gedeelde tekst: de deellink (als die er is) en een klein reclamezinnetje voor Ricetta
-const APP_URL = () => `${location.origin}${location.pathname}`;
+// Adres voor deellinks: het eigen domein (config.js → publicUrl) als dat bereikbaar is, anders het huidige adres
+let publicBase = `${location.origin}${location.pathname}`;
+const APP_URL = () => publicBase;
+const checkPublicUrl = (() => {
+  let done = null;
+  return () => done || (done = (async () => {
+    const want = (typeof SYNC_CONFIG !== 'undefined' && SYNC_CONFIG.publicUrl) || '';
+    if (!want || want === publicBase) return;
+    try {
+      await Promise.race([fetch(`${want}manifest.webmanifest`, { mode: 'no-cors', cache: 'no-store' }), new Promise((_, no) => setTimeout(no, 4000))]);
+      publicBase = want;
+    } catch { /* eigen domein (nog) niet bereikbaar */ }
+  })());
+})();
+const shortUrl = u => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
 function shareIntro(link) {
-  return [
-    link ? `📖 Open dit recept direct in Ricetta:\n${link}` : '',
-    `🍝 Gedeeld met Ricetta, de receptenapp met kookstand, timers en een slimme boodschappenlijst. Probeer hem: ${APP_URL()}`,
-    '────────────',
-  ].filter(Boolean).join('\n\n');
+  const pitch = 'Ricetta, de receptenapp met kookstand, timers en een slimme boodschappenlijst';
+  return `${link ? `📖 Open dit recept direct in ${pitch}:\n${link}` : `🍝 Gedeeld met ${pitch}: ${shortUrl(APP_URL())}`}\n\n────────────`;
 }
 async function shareRecipe(r, servings, factor, link = '') {
+  await checkPublicUrl();
   const text = `${shareIntro(link)}\n\n${recipeAsText(r, servings, factor)}`;
   if (navigator.share) {
     try { await navigator.share({ title: r.title, text }); } catch { /* geannuleerd */ }
@@ -2798,7 +2810,8 @@ async function openPdfSheet(r) {
     <div id="pdfBody">${loaderHtml('Pdf maken…')}</div>`, 'Pdf maken');
   try {
     const { token } = await Sync.call('link_create', { recipe: r });
-    const url = `${location.origin}${location.pathname}#/deel/${token}`;
+    await checkPublicUrl();
+    const url = `${APP_URL()}#/deel/${token}`;
     const blob = await RecipePdf.make(r, { url, from: Sync.status().user?.name || '', placeholder: placeholder(r.id) });
     const name = `${(r.title || 'recept').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase() || 'recept'}.pdf`;
     const file = new File([blob], name, { type: 'application/pdf' });
@@ -2873,18 +2886,19 @@ async function openShareSheet(r, servings, factor) {
   // Delen als tekst, met de deellink erin. Bestaat die link nog niet, dan eerst maken en daarna
   // nog één tik (de iPhone staat delen alleen direct na een tik toe).
   let shareLink = '';
+  checkPublicUrl();
   const linkOf = token => `${APP_URL()}#/deel/${token}`;
   s.$('#sysShare').onclick = async () => {
     const btn = s.$('#sysShare');
     if (shareLink) { s.close(); shareRecipe(r, servings, factor, shareLink); return; }
     btn.disabled = true; btn.textContent = 'Link maken…';
-    try { shareLink = linkOf((await Sync.call('link_create', { recipe: r })).token); }
+    try { const { token } = await Sync.call('link_create', { recipe: r }); await checkPublicUrl(); shareLink = linkOf(token); }
     catch { s.close(); shareRecipe(r, servings, factor); return; }   // geen link (bijv. oude server): gewoon de tekst
     btn.disabled = false; btn.innerHTML = `${ICONS.share} Klaar: tik om te delen`;
     btn.classList.remove('ghost');
   };
   s.$('#pdfShare').onclick = () => { s.close(); openPdfSheet(r); };
-  Sync.call('link_status', { id: r.id }).then(st => {
+  Promise.all([Sync.call('link_status', { id: r.id }), checkPublicUrl()]).then(([st]) => {
     if (!st.token || !s.el.isConnected) return;
     shareLink = linkOf(st.token);
     const p = s.$('#pdfLink'); p.hidden = false;
