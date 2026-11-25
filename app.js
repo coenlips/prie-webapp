@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.9.8 · 25 november 2026';
+const APP_VERSION = '1.10.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1846,6 +1846,7 @@ async function drawFeedbackAdmin() {
         <div class="fb-meta"><span class="fb-tag fb-${f.kind}">${FB_KINDS[f.kind]?.short || f.kind}</span><b>${esc(f.name)}</b><span>${day(f.created)}${f.version ? ` · ${esc(f.version)}` : ''}</span></div>
         <p>${esc(f.text).replace(/\n/g, '<br>')}</p>
         ${f.device ? `<small class="fb-device">${esc(f.device)}</small>` : ''}
+        ${f.email ? `<a class="fb-mail" href="mailto:${esc(f.email)}?subject=${encodeURIComponent('Je ' + (f.kind === 'idee' ? 'idee' : 'melding') + ' over Ricetta')}">✉ ${esc(f.email)}</a>` : ''}
         <div class="fb-actions"><button type="button" class="link" data-fb-done="${f.id}" data-v="${f.done ? 0 : 1}">${f.done ? 'Weer open zetten' : 'Afgehandeld'}</button>
           <button type="button" class="link danger" data-fb-del="${f.id}">Verwijderen</button></div>
       </li>`).join('')}</ul>` : ''}`;
@@ -2381,6 +2382,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.10.0', date: '25 november 2026', sections: [{ items: [
+    'Je kunt nu je e-mailadres opgeven (Instellingen → Account). Dan kan de beheerder je bereiken als er iets misgaat. Alleen de beheerder ziet het.',
+  ] }] },
   { v: '1.9.0', date: '25 november 2026', sections: [{ items: [
     'Rustiger menubalk: Recepten, Menu’s, Boodschappen en Ricette staan nu als tabbladen onderin (iPhone) of in de menubalk (iPad en laptop).',
   ] }] },
@@ -2606,7 +2610,8 @@ async function renderUsers() {
             <li>
               <div class="acc-avatar" aria-hidden="true">${esc(u.name.charAt(0).toUpperCase())}</div>
               <div class="users-text"><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}${u.test ? ' <span class="acc-role test-role">test</span>' : ''}</b>
-                <small>${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}${u.mustChange && u.lastSeen ? ' · moet nog een wachtwoord kiezen' : ''}</small></div>
+                <small>${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}${u.mustChange && u.lastSeen ? ' · moet nog een wachtwoord kiezen' : ''}</small>
+                ${u.email ? `<a class="users-mail" href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : u.test ? '' : '<small class="users-nomail">geen e-mailadres</small>'}</div>
               ${u.id === me.id ? '' : `<button class="icon-btn users-more" data-id="${u.id}" aria-label="Opties voor ${esc(u.name)}">⋯</button>`}
             </li>`).join('')}
         </ul>
@@ -2773,6 +2778,47 @@ Sync.onSignIn = async user => {
 };
 Sync.onSignOut = afterSignOut;
 Sync.onPasswordButton = openPasswordSheet;
+Sync.onEmailButton = () => openEmailSheet(false);
+
+/* ---------- E-mailadres: één keer vriendelijk vragen, aan te passen bij Account ---------- */
+const EMAIL_ASKED = 'ricetta-email-asked';
+function openEmailSheet(ask) {
+  const cur = Sync.status().me?.email || '';
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>${ask ? 'Je e-mailadres' : 'E-mailadres'}</h3><button class="text-btn" data-close>${ask ? 'Later' : 'Annuleer'}</button></div>
+    <form id="emForm" autocomplete="on">
+      <p class="acc-sheet-text">${ask ? 'Mag Ricetta je e-mailadres? Dan kan de beheerder je bereiken als er iets misgaat, bijvoorbeeld bij een foutmelding die je instuurde of als je je wachtwoord kwijt bent.' : 'Zo kan de beheerder je bereiken als er iets misgaat.'}</p>
+      <label class="sheet-label">E-mailadres<input type="email" name="email" autocomplete="email" inputmode="email" value="${esc(cur)}" placeholder="naam@voorbeeld.nl"${ask ? ' required' : ''}></label>
+      <p class="small-note">Alleen de beheerder ziet je e-mailadres. Het wordt niet gedeeld en niet voor reclame gebruikt.</p>
+      <p class="sync-msg" id="emMsg" hidden></p>
+      <button class="btn" type="submit">Bewaar</button>
+      ${!ask && cur ? '<button type="button" class="link danger em-remove" id="emRemove">E-mailadres weghalen</button>' : ''}
+    </form>`, 'E-mailadres');
+  const save = async email => {
+    const msg = s.$('#emMsg');
+    try {
+      await Sync.call('set_email', { email });
+      try { localStorage.setItem(EMAIL_ASKED, String(Date.now())); } catch { /* */ }
+      await Sync.refreshMe().catch(() => {});
+      s.close(); toast(email ? 'E-mailadres bewaard' : 'E-mailadres weggehaald');
+    } catch (err) { msg.hidden = false; msg.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message; }
+  };
+  s.$('#emForm').onsubmit = e => { e.preventDefault(); save(s.$('#emForm').email.value.trim()); };
+  if (s.$('#emRemove')) s.$('#emRemove').onclick = () => save('');
+  // 'Later' of wegtikken: over twee weken nog eens vragen
+  if (ask) s.el.addEventListener('click', e => { if (e.target === s.el || e.target.closest('[data-close]')) { try { localStorage.setItem(EMAIL_ASKED, String(Date.now())); } catch { /* */ } } });
+  if (!ask) setTimeout(() => s.$('#emForm').email.focus(), 250);
+}
+let emailChecked = false;
+async function maybeAskEmail() {
+  if (emailChecked || !loggedIn() || Sync.status().user?.mustChange) return;
+  emailChecked = true;
+  let last = 0; try { last = +localStorage.getItem(EMAIL_ASKED) || 0; } catch { /* */ }
+  if (Date.now() - last < 14 * 864e5) return;
+  const me = await Sync.refreshMe().catch(() => null);
+  if (!me || me.email || !('email' in me)) return;   // al ingevuld, of oude server zonder e-mail
+  setTimeout(() => { if (!document.querySelector('.sheet-backdrop')) openEmailSheet(true); }, 1500);
+}
 
 /* ---------- Delen met andere gebruikers ---------- */
 // Recepten sturen (komen in het postvak van de ander) en in elkaars Ricette kijken.
@@ -3380,6 +3426,7 @@ async function route() {
   if (page === 'kookboeken') return renderBooks();
   if (page === 'kookboek' && id && sub) return renderBookRecipe(+id, decodeURIComponent(sub));
   if (page === 'kookboek' && id) return renderBook(+id);
+  if (!page) maybeAskEmail();
   if (!page || page === 'menus') state.fromMenu = null;   // terug in het overzicht: niet meer 'vanuit een menu'
   if (page === 'menus') return Menus.renderList(view);
   if (page === 'menu' && id && sub === 'bewerk') return Menus.renderEdit(view, decodeURIComponent(id));

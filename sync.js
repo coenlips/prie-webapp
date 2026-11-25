@@ -287,6 +287,7 @@ const Sync = (() => {
           <small>${me ? `${me.recipes} ${me.recipes === 1 ? 'recept' : 'recepten'} · ` : ''}${s.busy ? 'bezig met back-up…' : `back-up ${when(s.last)}`}</small></div>
       </div>
       ${s.error ? `<p class="sync-state bad">⚠️ ${esc(s.error)}</p>` : ''}
+      <div class="acc-email"><span>E-mail</span><b>${me && me.email ? esc(me.email) : '<i>nog niet ingevuld</i>'}</b><button class="link" id="emailBtn">${me && me.email ? 'Wijzigen' : 'Invullen'}</button></div>
       <div class="acc-actions">
         <button class="btn ghost" id="pwBtn">Wachtwoord wijzigen</button>
       </div>
@@ -311,6 +312,7 @@ const Sync = (() => {
     if (form) bindLoginForm(form, user => { render(); if (typeof Sync.onSignIn === 'function') Sync.onSignIn(user); });
     el.querySelector('#syncNowBtn')?.addEventListener('click', () => syncNow());
     el.querySelector('#pwBtn')?.addEventListener('click', () => Sync.onPasswordButton && Sync.onPasswordButton());
+    el.querySelector('#emailBtn')?.addEventListener('click', () => Sync.onEmailButton && Sync.onEmailButton());
     el.querySelector('#usersBtn')?.addEventListener('click', () => { location.hash = '#/gebruikers'; });
     el.querySelector('#requestBtn')?.addEventListener('click', () => Sync.onRequestButton && Sync.onRequestButton());
     el.querySelector('#signOutBtn')?.addEventListener('click', async () => {
@@ -348,5 +350,5 @@ const Sync = (() => {
   }
 
   return { syncNow, cardHtml, bindCard, status, onChange, call, publicCall, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
-    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onRequestButton: null };
+    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onEmailButton: null, onRequestButton: null };
 })();

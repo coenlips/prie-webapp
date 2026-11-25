@@ -155,6 +155,10 @@ function db(): PDO {
         id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, site VARCHAR(190) NOT NULL, url VARCHAR(500) NOT NULL DEFAULT '',
         reason VARCHAR(16) NOT NULL, status INT NOT NULL DEFAULT 0, at BIGINT NOT NULL, INDEX (site)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // E-mailadres per account (optioneel; alleen de beheerder ziet het, om mensen te kunnen bereiken)
+    if (!has_column($pdo, 'recepten_users', 'email')) {
+        $pdo->exec("ALTER TABLE recepten_users ADD COLUMN email VARCHAR(190) NULL");
+    }
     // Testaccounts (alleen zichtbaar voor de beheerder)
     if (!has_column($pdo, 'recepten_users', 'is_test')) {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0");
@@ -647,7 +651,7 @@ switch ($action) {
             $extra['requests'] = (int) db()->query('SELECT COUNT(*) FROM recepten_requests')->fetchColumn();
             $extra['feedback'] = (int) db()->query('SELECT COUNT(*) FROM recepten_feedback WHERE done = 0')->fetchColumn();
         }
-        out(user_out($u) + ['recipes' => (int) $st->fetchColumn(), 'shareKey' => $u['share_key']] + $extra);
+        out(user_out($u) + ['recipes' => (int) $st->fetchColumn(), 'shareKey' => $u['share_key'], 'email' => (string) ($u['email'] ?? '')] + $extra);
     }
 
     case 'change_password': {
@@ -674,10 +678,10 @@ switch ($action) {
 
     case 'users': {
         require_admin();
-        $rows = db()->query("SELECT u.id, u.name, u.is_admin, u.must_change, u.is_test, u.created_at, u.last_seen,
+        $rows = db()->query("SELECT u.id, u.name, u.email, u.is_admin, u.must_change, u.is_test, u.created_at, u.last_seen,
             (SELECT COUNT(*) FROM recepten r WHERE r.user_id = u.id AND r.deleted = 0 AND r.id NOT LIKE '\\_\\_%') AS recipes
             FROM recepten_users u ORDER BY u.is_admin DESC, u.name")->fetchAll();
-        out(array_map(fn($r) => user_out($r) + ['recipes' => (int) $r['recipes'], 'created' => (int) $r['created_at'], 'lastSeen' => (int) $r['last_seen']], $rows));
+        out(array_map(fn($r) => user_out($r) + ['email' => (string) ($r['email'] ?? ''), 'recipes' => (int) $r['recipes'], 'created' => (int) $r['created_at'], 'lastSeen' => (int) $r['last_seen']], $rows));
     }
 
     case 'user_create': {
@@ -727,6 +731,7 @@ switch ($action) {
         if (!$req) fail(404, 'Deze aanvraag bestaat niet (meer).');
         $name = clean_name((string) (($b['name'] ?? '') !== '' ? $b['name'] : $req['name']));
         $user = create_user($name);
+        db()->prepare('UPDATE recepten_users SET email = ? WHERE id = ?')->execute([$req['email'], $user['id']]);
         $url = app_url((string) ($b['appUrl'] ?? ''));
         $body = "Hoi $name,\n\nJe account voor Ricetta is klaar.\n\n"
             . "Open de app: $url\nNaam: $name\nTijdelijk wachtwoord: {$user['password']}\n\n"
@@ -771,9 +776,9 @@ switch ($action) {
 
     case 'feedback_list': {
         require_admin();
-        $rows = db()->query('SELECT f.*, u.name FROM recepten_feedback f LEFT JOIN recepten_users u ON u.id = f.user_id ORDER BY f.done, f.created_at DESC LIMIT 200')->fetchAll();
+        $rows = db()->query('SELECT f.*, u.name, u.email FROM recepten_feedback f LEFT JOIN recepten_users u ON u.id = f.user_id ORDER BY f.done, f.created_at DESC LIMIT 200')->fetchAll();
         out(array_map(fn($r) => ['id' => (int) $r['id'], 'kind' => $r['kind'], 'text' => $r['text'], 'done' => (bool) $r['done'],
-            'name' => $r['name'] ?? 'Verwijderde gebruiker', 'version' => $r['app_version'], 'device' => $r['device'], 'created' => (int) $r['created_at']], $rows));
+            'name' => $r['name'] ?? 'Verwijderde gebruiker', 'email' => (string) ($r['email'] ?? ''), 'version' => $r['app_version'], 'device' => $r['device'], 'created' => (int) $r['created_at']], $rows));
     }
 
     case 'feedback_set': {
@@ -783,6 +788,15 @@ switch ($action) {
         if (!empty($b['delete'])) db()->prepare('DELETE FROM recepten_feedback WHERE id = ?')->execute([$id]);
         else db()->prepare('UPDATE recepten_feedback SET done = ? WHERE id = ?')->execute([empty($b['done']) ? 0 : 1, $id]);
         out(['ok' => true]);
+    }
+
+    // Eigen e-mailadres instellen of weghalen (leeg)
+    case 'set_email': {
+        $u = require_user();
+        $raw = trim((string) (body()['email'] ?? ''));
+        $email = $raw === '' ? null : clean_email($raw);
+        db()->prepare('UPDATE recepten_users SET email = ? WHERE id = ?')->execute([$email, $u['id']]);
+        out(['ok' => true, 'email' => (string) $email]);
     }
 
     case 'request_reject': {

@@ -1781,3 +1781,18 @@ body.no-fab-btn .fab { display: none; }
     background-size: 125% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
   }
 }
+
+/* E-mailadres bij Account en voor de beheerder */
+.acc-email { display: flex; align-items: baseline; gap: 10px; margin: 12px 0 4px; padding: 10px 12px; background: var(--bg); border: 1px solid var(--line); }
+.acc-email span { font: 500 11px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--mustard); }
+.acc-email b { flex: 1; min-width: 0; font-weight: 500; overflow-wrap: anywhere; }
+.acc-email b i { color: var(--muted); font-weight: 400; }
+.acc-email .link { font-size: 14px; }
+.users-mail { display: block; font-size: 13px; color: var(--accent); overflow-wrap: anywhere; }
+.users-nomail { display: block; color: var(--muted); font-style: italic; }
+.fb-mail { display: inline-block; margin-top: 4px; font-size: 13px; color: var(--accent); overflow-wrap: anywhere; }
+.em-remove { display: block; margin: 12px auto 0; }
+.sheet-backdrop { z-index: 50; }   /* vensters boven de tabbalk */
+.acc-email { flex-wrap: wrap; row-gap: 2px; }
+.acc-email span { flex: 0 0 100%; }
+.acc-email b { font-size: 16px; }
