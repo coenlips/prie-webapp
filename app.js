@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.9.7 · 25 november 2026';
+const APP_VERSION = '1.9.8 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3091,7 +3091,7 @@ async function renderBook(ownerId) {
   const seq = routeSeq;
   document.body.dataset.page = 'book';
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
-  const head = title => setHeader({ title, back: true, timer: false, actions: `
+  const head = title => setHeader({ title: 'Ricetta', docTitle: title, back: true, timer: false, actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   head('Ricette');
