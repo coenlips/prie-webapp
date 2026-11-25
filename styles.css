@@ -1553,3 +1553,27 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .book .cover:has(img:not(.in):not([hidden])) { animation: cover-pulse 1.2s ease-in-out infinite alternate; }
 @keyframes cover-pulse { from { background: #ecdfca; } to { background: #f4ead9; } }
 @media (prefers-reduced-motion: reduce) { .book .cover { animation: none !important; } }
+
+/* Feestbanners: Kerst (hulst) en Sinterklaas (Sint op paard, piet aan de band) */
+.holly, .sint-svg, .piet-svg { stroke: none; stroke-width: 1; }
+.bon-appetit.feest { padding-top: 80px; padding-bottom: 90px; }
+body.cook .bon-appetit.feest { padding: 80px 0 90px; }
+.feest .ba-ribbon { animation: none; }
+.feest-kerst .ba-band { padding: 12px 34px 9px; }
+.holly { position: absolute; z-index: 2; width: 74px; height: 50px; top: -26px; left: -30px; transform: rotate(-12deg); }
+.holly.r { left: auto; right: -30px; transform: scaleX(-1) rotate(-12deg); }
+.feest-kerst .ba-band::after { content: ''; position: absolute; inset: 0; background-image: radial-gradient(circle, rgba(255,255,255,.55) 1px, transparent 1.6px); background-size: 14px 12px; opacity: .5; pointer-events: none; }
+.sint { position: absolute; z-index: 2; bottom: calc(100% - 13px); left: 0; width: 84px; height: 80px; animation: sint-walk 9s linear infinite; }
+.sint-svg { width: 100%; height: 100%; animation: sint-bob .5s ease-in-out infinite alternate; }
+.legs-a { animation: legs .5s ease-in-out infinite alternate; transform-origin: 50% 61%; }
+.legs-b { animation: legs .5s ease-in-out infinite alternate-reverse; transform-origin: 50% 61%; }
+@keyframes legs { from { transform: skewX(10deg); } to { transform: skewX(-10deg); } }
+@keyframes sint-bob { from { transform: translateY(0); } to { transform: translateY(-1.5px); } }
+@keyframes sint-walk { 0% { left: -10px; transform: scaleX(1); } 48% { left: calc(100% - 74px); transform: scaleX(1); } 50% { left: calc(100% - 74px); transform: scaleX(-1); } 98% { left: -10px; transform: scaleX(-1); } 100% { left: -10px; transform: scaleX(1); } }
+.piet { position: absolute; z-index: 2; top: calc(100% - 6px); right: 30px; width: 46px; height: 80px; transform-origin: 50% 4px; animation: piet-swing 2.4s ease-in-out infinite alternate; }
+.piet-svg { width: 100%; height: 100%; overflow: visible; }
+.piet-legs { transform-origin: 50% 66%; animation: piet-kick 1.2s ease-in-out infinite alternate; }
+@keyframes piet-swing { from { transform: rotate(-7deg); } to { transform: rotate(7deg); } }
+@keyframes piet-kick { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
+@media (prefers-reduced-motion: reduce) { .sint, .sint-svg, .legs-a, .legs-b, .piet, .piet-legs { animation: none !important; } .sint { left: 12%; } }
+.feest .ba-band { font-size: clamp(24px, 6.8vw, 32px); }

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.4.1 · 25 november 2026';
+const APP_VERSION = '1.5.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -250,6 +250,54 @@ const Tip = (() => {
 })();
 
 
+// Feestbanners onder een recept (categorie Kerst of Sinterklaas), als alle stappen klaar zijn
+const FEEST_LEAF = 'M0,0 Q4,-6 8,-5 L10,-10 L14,-6 Q18,-9 22,-7 L25,-12 L28,-7 Q33,-8 36,-5 L42,0 L36,5 Q33,8 28,7 L25,12 L22,7 Q18,9 14,6 L10,10 L8,5 Q4,6 0,0Z';
+const feestOf = r => { const c = catsOf(r).map(x => x.toLowerCase()); return c.includes('sinterklaas') ? 'sint' : c.includes('kerst') ? 'kerst' : ''; };
+function bonAppHtml(r) {
+  const kind = feestOf(r);
+  const LEAF = FEEST_LEAF;
+  const sprig = flip => `<svg class="holly${flip ? ' r' : ''}" viewBox="0 0 90 60" aria-hidden="true">
+  <g transform="translate(46 30) rotate(-28)"><path d="${LEAF}" fill="#2f7a3d"/><path d="M2,0 L38,0" stroke="#1d5228" stroke-width="1.4"/></g>
+  <g transform="translate(44 34) rotate(200)"><path d="${LEAF}" fill="#3b8f4a"/><path d="M2,0 L38,0" stroke="#1d5228" stroke-width="1.4"/></g>
+  <g transform="translate(46 31) rotate(95) scale(.8)"><path d="${LEAF}" fill="#286c35"/><path d="M2,0 L38,0" stroke="#1d5228" stroke-width="1.4"/></g>
+  <circle cx="42" cy="30" r="5.5" fill="#c62d1f"/><circle cx="51" cy="33" r="5" fill="#b02418"/><circle cx="45" cy="39" r="5" fill="#d23a2a"/>
+  <circle cx="40.5" cy="28.5" r="1.6" fill="#fff" opacity=".7"/><circle cx="49.5" cy="31.5" r="1.4" fill="#fff" opacity=".7"/><circle cx="43.5" cy="37.5" r="1.4" fill="#fff" opacity=".7"/>
+</svg>`;
+  if (kind === 'kerst') return `<span class="ba-ribbon">${sprig(false)}<span class="ba-band">Fijne kerst!</span>${sprig(true)}</span>`;
+  if (kind === 'sint') return `<span class="ba-ribbon"><span class="sint"><svg class="sint-svg" viewBox="0 0 96 92" aria-hidden="true">
+  <path d="M15,50 C6,52 4,64 8,74 C10,66 12,60 18,56Z" fill="#dcd6cc"/>
+  <g class="legs-a"><rect x="24" y="56" width="5" height="22" rx="2" fill="#f4f1ea" stroke="#cfc6b8"/><rect x="24" y="75" width="5" height="4" fill="#5a4a3c"/>
+    <rect x="57" y="56" width="5" height="22" rx="2" fill="#f4f1ea" stroke="#cfc6b8"/><rect x="57" y="75" width="5" height="4" fill="#5a4a3c"/></g>
+  <g class="legs-b"><rect x="31" y="56" width="5" height="22" rx="2" fill="#e9e4dc" stroke="#cfc6b8"/><rect x="31" y="75" width="5" height="4" fill="#5a4a3c"/>
+    <rect x="64" y="56" width="5" height="22" rx="2" fill="#e9e4dc" stroke="#cfc6b8"/><rect x="64" y="75" width="5" height="4" fill="#5a4a3c"/></g>
+  <ellipse cx="44" cy="52" rx="28" ry="12" fill="#f7f4ee" stroke="#cfc6b8" stroke-width="1.4"/>
+  <path d="M64,50 L72,30 L80,33 L72,55Z" fill="#f7f4ee" stroke="#cfc6b8" stroke-width="1.4"/>
+  <ellipse cx="82" cy="33" rx="10" ry="6" transform="rotate(28 82 33)" fill="#f7f4ee" stroke="#cfc6b8" stroke-width="1.4"/>
+  <path d="M73,28 L75,21 L78,28Z" fill="#f7f4ee" stroke="#cfc6b8"/><circle cx="81" cy="31" r="1.2" fill="#2b1d14"/>
+  <path d="M70,31 C66,38 65,44 64,50" stroke="#d8d0c2" stroke-width="3" fill="none" stroke-linecap="round"/>
+  <path d="M30,40 L58,40 L60,54 L28,54Z" fill="#c62d1f"/><path d="M28,54 L60,54" stroke="#e7b43c" stroke-width="2.5"/>
+  <path d="M36,40 L52,40 L56,20 L32,20Z" fill="#c62d1f"/><path d="M44,20 L44,40" stroke="#e7b43c" stroke-width="1.6"/>
+  <path d="M38,18 C38,30 44,34 44,34 C44,34 50,30 50,18Z" fill="#fff"/>
+  <circle cx="44" cy="15" r="4.6" fill="#f1c9a5"/>
+  <path d="M38.5,13 L44,-1 L49.5,13Z" fill="#c62d1f" stroke="#e7b43c" stroke-width="1.2" stroke-linejoin="round"/>
+  <path d="M44,3 L44,10 M41.5,6 L46.5,6" stroke="#e7b43c" stroke-width="1.4"/>
+  <path d="M55,44 L57,4 C57,-1 51,-1 51,3 C51,5 53,6 54,5" fill="none" stroke="#e7b43c" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M50,26 L56,30" stroke="#c62d1f" stroke-width="4" stroke-linecap="round"/>
+</svg></span><span class="ba-band">Heerlijk avondje!</span><span class="piet"><svg class="piet-svg" viewBox="0 0 44 76" aria-hidden="true">
+  <path d="M13,4 L15,22 M31,4 L29,22" stroke="#2d5aa8" stroke-width="6" stroke-linecap="round"/>
+  <circle cx="13" cy="4" r="3.6" fill="#e9b48e"/><circle cx="31" cy="4" r="3.6" fill="#e9b48e"/>
+  <rect x="12" y="22" width="20" height="20" rx="6" fill="#f2b51c"/><path d="M22,22 L22,42" stroke="#c62d1f" stroke-width="5"/>
+  <path d="M13,21 l3,-3 l3,3 l3,-3 l3,3 l3,-3 l3,3 l3,-3" fill="#fff" stroke="#fff" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="22" cy="13.5" r="6.5" fill="#e9b48e"/>
+  <ellipse cx="18.5" cy="15" rx="1.8" ry="1.1" fill="#4a4440" opacity=".55"/><ellipse cx="25" cy="11" rx="1.4" ry=".9" fill="#4a4440" opacity=".5"/>
+  <circle cx="19.8" cy="12.5" r=".9" fill="#2b1d14"/><circle cx="24.2" cy="12.5" r=".9" fill="#2b1d14"/><path d="M19.5,16 Q22,18 24.5,16" stroke="#9a4a3a" stroke-width="1" fill="none"/>
+  <ellipse cx="23" cy="5.6" rx="8" ry="2.8" fill="#c62d1f"/><path d="M28,4.5 C33,0 37,2 40,-1" stroke="#fff" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+  <path d="M12,41 L32,41 L33,50 L11,50Z" fill="#2d5aa8"/>
+  <g class="piet-legs"><path d="M16,50 L15,66 M28,50 L29,66" stroke="#c62d1f" stroke-width="4.5" stroke-linecap="round"/>
+  <ellipse cx="14" cy="68" rx="4.5" ry="2.6" fill="#2b1d14"/><ellipse cx="30" cy="68" rx="4.5" ry="2.6" fill="#2b1d14"/></g>
+</svg></span></span>`;
+  return `<span class="ba-ribbon"><span class="ba-band">${isDrink(r) ? 'Proost!' : 'Eet smakelijk!'}</span></span>`;
+}
 // Is dit een drankje? Dan 'Proost!' in plaats van 'Eet smakelijk!'. Kijkt naar categorieën, gangen en
 // tags, met woordstammen zodat ook vervoegingen en andere talen meetellen (drank, dranken, drinken,
 // drinks, softdrinks, Getränke, boissons, bebidas, bevande, cocktails, beverages, ...).
@@ -1149,8 +1197,8 @@ async function renderDetail(id, opts = {}) {
               : `<li data-s="${i}" class="${done.has('s' + i) ? 'done' : ''}${curStep === 's' + i ? ' current' : ''}"><span class="num">${++n}</span><p>${Timers.linkify(esc(l), esc(`${r.title} · stap ${n}`))}</p></li>`).join('');
           })()}
         </ol>
-        <div class="bon-appetit" id="bonApp" ${allStepsDone() ? '' : 'hidden'} aria-live="polite">
-          <span class="ba-ribbon"><span class="ba-band">${isDrink(r) ? 'Proost!' : 'Eet smakelijk!'}</span></span>
+        <div class="bon-appetit${feestOf(r) ? ` feest feest-${feestOf(r)}` : ''}" id="bonApp" ${allStepsDone() ? '' : 'hidden'} aria-live="polite">
+          ${bonAppHtml(r)}
         </div>
         </div>
 
@@ -2276,6 +2324,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.5.0', date: '25 november 2026', sections: [{ items: [
+    'Feestelijk koken: heb je alle stappen van een recept met de categorie Kerst of Sinterklaas afgestreept, dan krijg je een feestbanner.',
+  ] }] },
   { v: '1.4.0', date: '25 november 2026', sections: [{ items: [
     'De Ricettari van anderen laden veel sneller; de fotootjes verschijnen rustig.',
     'Recepten zonder foto krijgen een getekend bord, zodat het overzicht er mooi vol uitziet.',
