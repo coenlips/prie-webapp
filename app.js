@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.10 · 25 november 2026';
+const APP_VERSION = '1.6.11 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -967,7 +967,7 @@ const Mag = (() => {
   }
 
   const FILLERS = [
-    { id: 'fillSurprise', icon: 'dice', title: 'Verras me', sub: 'Alles opnieuw husselen' },
+    { id: 'fillSurprise', icon: 'shuffle', title: 'Even doorroeren…', sub: '' },
     { id: 'fillNew', icon: 'plus', title: 'Nieuw recept', sub: 'Van een website of zelf invullen' },
     { id: 'fillShop', icon: 'basket', title: 'Boodschappen', sub: 'Naar je lijstje' },
   ];
@@ -993,7 +993,7 @@ const Mag = (() => {
       const pos = `grid-row:${row0 + cell.row}${cell.big ? ' / span 2' : ''};grid-column:${cell.col + 1}${cell.big ? ' / span 2' : ''}`;
       if (cell.filler !== undefined) {
         const f = (opts.fillers || FILLERS)[cell.filler];
-        return `<li class="mag-filler" style="${pos}"><button id="${f.id}">${ICONS[f.icon]}<b>${f.title}</b><small>${f.sub}</small></button></li>`;
+        return `<li class="mag-filler" style="${pos}"><button id="${f.id}">${ICONS[f.icon]}<b>${f.title}</b>${f.sub ? `<small>${f.sub}</small>` : ''}</button></li>`;
       }
       const r = cell.r, zone = cell.big ? .22 : .36;
       const kicker = coursesOfR(r)[0] || catsOfR(r)[0] || '';
@@ -1027,7 +1027,12 @@ const Mag = (() => {
     const on = (id, fn) => { const b = el.querySelector('#' + id); if (b) b.onclick = fn; };
     if (opts.fillers) opts.fillers.forEach(f => on(f.id, f.on));
     else {
-      on('fillSurprise', () => { shuffle(); render(el, list); window.scrollTo({ top: 0, behavior: 'smooth' }); });
+      on('fillSurprise', () => {
+        const b = el.querySelector('#fillSurprise');
+        b.classList.add('spin', 'swapped');
+        setTimeout(() => { const g = b.querySelector('.shuf-sq'); if (g) g.appendChild(g.firstElementChild); }, 300);
+        setTimeout(() => { shuffle(); render(el, list); window.scrollTo({ top: 0, behavior: 'smooth' }); }, matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 700);
+      });
       on('fillNew', () => Importer.openSheet());
       on('fillShop', () => { location.hash = '#/boodschappen'; });
     }

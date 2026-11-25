@@ -1609,9 +1609,11 @@ body.cook .bon-appetit.feest { padding: 80px 0 90px; }
 .shuf .sq { stroke: currentColor; stroke-width: 2.2; transition: transform .6s cubic-bezier(.5, 0, .3, 1); }
 .shuf .sq-a { fill: var(--bg); }
 .shuf .sq-b { fill: currentColor; }
-.shuf-btn.swapped .sq-a { transform: translate(6px, 6px); fill: currentColor; }
-.shuf-btn.swapped .sq-b { transform: translate(-6px, -6px); fill: var(--bg); }
-.shuf-btn.spin .shuf-arrows { animation: shuf-spin .7s cubic-bezier(.5, 0, .3, 1); }
+.swapped > .shuf .sq-a { transform: translate(6px, 6px); fill: currentColor; }
+.swapped > .shuf .sq-b { transform: translate(-6px, -6px); fill: var(--bg); }
+.spin > .shuf .shuf-arrows { animation: shuf-spin .7s cubic-bezier(.5, 0, .3, 1); }
+.mag-filler .shuf { width: 66px; height: 66px; }
+.mag-filler .shuf .sq-a { fill: var(--surface); }
 @keyframes shuf-spin { to { transform: rotate(360deg); } }
 @media (min-width: 700px) { .book-head .list-tools .search { max-width: 620px; } }
-@media (prefers-reduced-motion: reduce) { .shuf-btn.spin .shuf-arrows { animation: none; } .shuf .sq { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .spin > .shuf .shuf-arrows { animation: none; } .shuf .sq { transition: none; } }
