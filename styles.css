@@ -1766,3 +1766,7 @@ body.no-fab-btn .fab { display: none; }
   body.has-tabbar .topbar { padding-left: max(24px, calc((100% - var(--page-w)) / 2 + 24px)); padding-right: max(24px, calc((100% - var(--page-w)) / 2 + 32px)); background-color: var(--bg); }
   body.has-tabbar .topbar-actions { align-items: center; gap: 6px; }
 }
+/* Tabbalk: rood streepje knopbreed tussen de twee turquoise lijnen; bolletje bij Boodschappen klein en rond */
+.tabbar::before { top: -7px; height: 7px; box-sizing: border-box; }
+.tabbar a.on::after { top: -12px; left: 0; right: 0; height: 5px; }
+.tabbar .tb-badge { position: absolute; top: 0; left: calc(50% + 6px); right: auto; width: auto; min-width: 18px; height: 18px; padding: 0 5px; transform: none; }
