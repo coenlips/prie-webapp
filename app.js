@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.5.1 · 25 november 2026';
+const APP_VERSION = '1.5.2 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2270,7 +2270,7 @@ function renderWelcome() {
   bareHeader();
   view.innerHTML = `
     <section class="acc-welcome${isDesktop ? ' acc-split' : ''}">
-      ${flagHtml('Ricetta')}
+      <h1 class="welcome-logo">Ricetta</h1>
       ${installCardHtml()}
       <div class="login-col">
       <h2 class="login-title">Inloggen</h2>
