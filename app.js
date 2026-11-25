@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.14 · 25 november 2026';
+const APP_VERSION = '1.6.15 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3124,7 +3124,7 @@ function showBook(ownerId, d, head, filtersOpen) {
         browsing: !q && f.filter === 'all' && !f.course,
         href: r => `#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}`,
         keep: (r, where) => where === 'hero'
-          ? (mine(r) ? `<span class="btn ghost mag-keep hero done">✓ Bewaard</span>` : `<button class="btn ghost mag-keep hero" data-keep="${esc(r.id)}">+ Bewaar</button>`)
+          ? (mine(r) ? `<span class="btn ghost mag-keep in-hero done">✓ Bewaard</span>` : `<button class="btn ghost mag-keep in-hero" data-keep="${esc(r.id)}">+ Bewaar</button>`)
           : (mine(r) ? `<span class="keep-done mag-keep card">✓ Bewaard</span>` : `<button class="keep-btn mag-keep card" data-keep="${esc(r.id)}">+ Bewaar</button>`),
         courses: rCourses, cats: rCats,
         fillers: [
