@@ -111,50 +111,57 @@ const Menus = (() => {
   }
 
   // Boodschappen voor het hele menu: per gerecht omgerekend naar het aantal personen; wat meestal in huis is staat uit
+  // Boodschappen voor het hele menu. Elk gerecht en elk gekoppeld onderdeel (bijv. oubliehoorntjes) is een groep
+  // met een eigen portiekiezer; alles begint op het aantal personen van het menu.
   function openShop(m, dishes) {
-    const rows = [];
-    const add = (r, f, owner, src) => lines(src.ingredients).forEach((l, i) => {
-      if (l.startsWith('#') || owner.skip.has(i)) return;
-      const tmp = document.createElement('div'); tmp.innerHTML = scaleLine(l, f);
-      const home = inPantry(l);
-      rows.push({ key: src.id + '@' + r.id + ':' + i, r: src, line: l, f, text: tmp.textContent, buy: !home, home });
-    });
+    const groups = [];
     dishes.forEach(({ r }) => {
-      const f = m.persons / Math.max(1, +r.servings || 1);
-      // Onderdelen (bijv. oubliehoorntjes als eigen recept): hun ingrediënten in plaats van de regel zelf
       const parts = relatedOf(r).parts.filter(Boolean);
       const linked = ingredientLinks(lines(r.ingredients), parts);
-      rows.push({ head: r.title });
-      add(r, f, { skip: new Set(linked.keys()) }, r);
-      for (const p of parts) {
-        rows.push({ head: `${p.title}`, sub: `onderdeel van ${r.title}` });
-        add(r, 1, { skip: new Set() }, p);
-      }
+      groups.push({ g: r.id, src: r, title: r.title, skip: new Set(linked.keys()) });
+      parts.forEach(p => groups.push({ g: r.id + '>' + p.id, src: p, title: p.title, sub: `onderdeel van ${r.title}`, skip: new Set() }));
     });
+    groups.forEach(gr => { gr.base = Math.max(1, +gr.src.servings || 1); gr.serv = m.persons; });
+    const rows = [];
+    groups.forEach(gr => lines(gr.src.ingredients).forEach((l, i) => {
+      if (l.startsWith('#') || gr.skip.has(i)) return;
+      const home = inPantry(l);
+      rows.push({ key: gr.g + ':' + i, gr, line: l, buy: !home, home });
+    }));
+    const tmp = document.createElement('div');
+    const textOf = x => { tmp.innerHTML = scaleLine(x.line, x.gr.serv / x.gr.base); return tmp.textContent; };
     const s = openAccSheet(`
       <div class="sheet-head shop-sheet-head"><button class="text-btn" data-close>Annuleer</button><button class="btn small" id="shopAddTop"></button></div>
       <h3 class="shop-title">Boodschappen voor ${esc(m.title)}</h3>
-      <p class="acc-sheet-text">Omgerekend naar ${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}. Tik weg wat je al in huis hebt.</p>
+      <p class="acc-sheet-text">Omgerekend naar ${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}; per gerecht of onderdeel aan te passen. Tik weg wat je al in huis hebt.</p>
       <div class="shop-pick" id="shopPick"></div>
       <button class="btn" id="shopAdd"></button>`, 'Boodschappen voor het menu');
     const draw = () => {
-      s.$('#shopPick').innerHTML = rows.map(x => x.head != null
-        ? `<div class="shop-head mx-shop-head"><b>${esc(x.head)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</div>`
-        : `<button type="button" class="shop-row${x.buy ? ' on' : ''}" data-k="${esc(x.key)}" role="checkbox" aria-checked="${x.buy}">
-            <span class="tick" aria-hidden="true">${x.buy ? '✓' : ''}</span><span class="shop-text"><span class="shop-name">${esc(x.text)}</span>${x.home && !x.buy ? '<small>meestal in huis</small>' : ''}</span></button>`).join('');
-      const n = rows.filter(x => x.key && x.buy).length;
+      s.$('#shopPick').innerHTML = groups.map(gr => {
+        const rs = rows.filter(x => x.gr === gr);
+        if (!rs.length) return '';
+        return `<div class="shop-group">
+          <div class="shop-head mx-shop-head"><span class="mx-shop-title"><b>${esc(gr.title)}</b>${gr.sub ? `<small>${esc(gr.sub)}</small>` : ''}</span>
+            <span class="stepper shop-stepper" aria-label="Aantal porties"><button type="button" data-min="${esc(gr.g)}" aria-label="Minder porties">−</button><span>${ICONS.people} ${gr.serv}</span><button type="button" data-plus="${esc(gr.g)}" aria-label="Meer porties">+</button></span></div>
+          ${rs.map(x => `<button type="button" class="shop-row${x.buy ? ' on' : ''}" data-k="${esc(x.key)}" role="checkbox" aria-checked="${x.buy}">
+            <span class="tick" aria-hidden="true">${x.buy ? '✓' : ''}</span><span class="shop-text"><span class="shop-name">${esc(textOf(x))}</span>${x.home && !x.buy ? '<small>meestal in huis</small>' : ''}</span></button>`).join('')}
+        </div>`;
+      }).join('');
+      const n = rows.filter(x => x.buy).length;
       for (const id of ['#shopAdd', '#shopAddTop']) { s.$(id).textContent = n ? `Toevoegen (${n})` : 'Niets toevoegen'; s.$(id).disabled = !n; }
       s.el.querySelectorAll('.shop-row').forEach(b => b.onclick = () => { const x = rows.find(y => y.key === b.dataset.k); x.buy = !x.buy; draw(); });
+      s.el.querySelectorAll('[data-min]').forEach(b => b.onclick = () => { const gr = groups.find(g => g.g === b.dataset.min); if (gr.serv > 1) { gr.serv--; draw(); } });
+      s.el.querySelectorAll('[data-plus]').forEach(b => b.onclick = () => { const gr = groups.find(g => g.g === b.dataset.plus); gr.serv++; draw(); });
     };
     draw();
     s.$('#shopAddTop').onclick = () => s.$('#shopAdd').click();
     s.$('#shopAdd').onclick = async () => {
-      const pick = rows.filter(x => x.key && x.buy);
-      // per recept (en onderdeel) met de eigen omrekenfactor
-      const groups = new Map();
-      pick.forEach(x => { const k = x.r.id + '|' + x.f; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); });
-      for (const ls of groups.values()) await Shopping.addFromRecipe(ls.map(x => x.line), ls[0].f, ls[0].r.title);
-      await rememberPantry(rows.filter(x => x.key).map(x => ({ line: x.line, buy: x.buy })));
+      const pick = rows.filter(x => x.buy);
+      for (const gr of groups) {
+        const ls = pick.filter(x => x.gr === gr);
+        if (ls.length) await Shopping.addFromRecipe(ls.map(x => x.line), gr.serv / gr.base, gr.title);
+      }
+      await rememberPantry(rows.map(x => ({ line: x.line, buy: x.buy })));
       s.close(); Shopping.updateBadge();
       toast(`${pick.length} ${pick.length === 1 ? 'boodschap' : 'boodschappen'} op de lijst`);
     };
