@@ -1770,3 +1770,4 @@ body.no-fab-btn .fab { display: none; }
 .tabbar::before { top: -7px; height: 7px; box-sizing: border-box; }
 .tabbar a.on::after { top: -12px; left: 0; right: 0; height: 5px; }
 .tabbar .tb-badge { position: absolute; top: 0; left: calc(50% + 6px); right: auto; width: auto; min-width: 18px; height: 18px; padding: 0 5px; transform: none; }
+.tabbar a.on:first-child::after { left: -4px; } .tabbar a.on:last-child::after { right: -4px; }
