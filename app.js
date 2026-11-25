@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.3.2 · 25 november 2026';
+const APP_VERSION = '1.4.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -147,6 +147,10 @@ function ingredientLinks(ingrLines, parts) {
   }
   return found;
 }
+// Recept zonder foto: één van 8 getekende borden, vast per recept (zelfde recept = zelfde plaatje)
+const PLACEHOLDERS = 8;
+const hashStr = s => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
+const placeholder = key => `images/placeholders/p${hashStr(key) % PLACEHOLDERS + 1}.svg`;
 const escRe = s => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 function linkIngredientHtml(html, link) {
   const re = new RegExp(escRe(esc(link.phrase)), 'i');
@@ -156,7 +160,7 @@ function linkIngredientHtml(html, link) {
 }
 function linkCard(x) {
   return `<a class="link-card" href="#/r/${esc(x.id)}" data-link="${esc(x.id)}">${x.photo
-    ? `<img src="${x.photo}" alt="" loading="lazy">` : `<span class="link-nophoto">${ICONS.plate}</span>`}<b>${esc(x.title)}</b></a>`;
+    ? `<img src="${x.photo}" alt="" loading="lazy">` : `<img src="${placeholder(x.id)}" alt="" loading="lazy">`}<b>${esc(x.title)}</b></a>`;
 }
 function relatedHtml(r) {
   const { parts, usedIn, withs } = relatedOf(r);
@@ -599,7 +603,7 @@ function renderCards() {
     const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
     return `
       <li><a class="card" href="#/r/${esc(r.id)}">
-        <div class="thumb">${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
+        <div class="thumb"><img src="${r.photo || placeholder(r.id)}" alt="" loading="lazy"></div>
         <div class="card-body">
           <div class="card-title">${esc(r.title)}${r.favorite ? ' <span class="fav">♥</span>' : ''}</div>
           <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[coursesOf(r).join(', '), catsOf(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div>
@@ -942,7 +946,7 @@ const Mag = (() => {
       const cls = (cell.big ? ' big' : '') + (r.photo && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
       const img = r.photo
         ? `<img src="${r.photo}" alt="" loading="lazy"${f ? ` class="cropped" style="${PhotoFocus.style(f)}"` : ''}>`
-        : `<span class="mag-nophoto">${ICONS.plate}</span>`;
+        : `<img src="${placeholder(r.id)}" alt="" loading="lazy">`;
       return `
         <li class="mag-card${cls}" data-id="${esc(r.id)}" data-zone="${zone}" style="${pos}"><a href="${hrefOf(r)}">
           <div class="mc-photo">${img}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
@@ -1548,7 +1552,7 @@ async function renderEdit(id) {
       const list = others.filter(x => !q || x.title.toLowerCase().includes(q));
       s.$('#pickList').innerHTML = list.length ? list.map(x => {
         const cur = links.find(l => l.id === x.id)?.kind;
-        return `<li>${x.photo ? `<img src="${x.photo}" alt="" loading="lazy">` : `<span class="pick-nophoto">${ICONS.plate}</span>`}<b>${esc(x.title)}</b>
+        return `<li><img src="${x.photo || placeholder(x.id)}" alt="" loading="lazy"><b>${esc(x.title)}</b>
           <span class="seg">${Object.entries(LINK_KINDS).map(([k, label]) => `<button type="button" class="${cur === k ? 'on' : ''}" data-pick="${esc(x.id)}" data-kind="${k}" aria-pressed="${cur === k}">${label}</button>`).join('')}</span></li>`;
       }).join('') : `<li class="pick-none">Geen recepten gevonden.</li>`;
       s.el.querySelectorAll('[data-pick]').forEach(b => b.onclick = () => {
@@ -2272,6 +2276,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.4.0', date: '25 november 2026', sections: [{ items: [
+    'De Ricettari van anderen laden veel sneller; de fotootjes verschijnen rustig.',
+    'Recepten zonder foto krijgen een getekend bord, zodat het overzicht er mooi vol uitziet.',
+  ] }] },
   { v: '1.3.0', date: '24 november 2026', sections: [{ items: [
     'Fout gezien of een idee? Bovenaan dit onderdeel staat nu een knop om een fout te melden of een idee in te sturen.',
   ] }] },
@@ -2784,8 +2792,12 @@ async function renderBooks() {
 function showBooks(books) {
   const covers = b => {
     const t = b.thumbs.slice(0, 4);
-    while (t.length < 4) t.push('');
-    return t.map(s => s ? `<span class="cover"><img src="${s}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.hidden=true"></span>` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
+    // Minder dan 4 foto's: aanvullen met getekende borden (verschillend, vast per persoon)
+    const free = Array.from({ length: PLACEHOLDERS }, (_, i) => `images/placeholders/p${i + 1}.svg`);
+    let k = hashStr(b.id);
+    while (t.length < 4) t.push({ ph: free.splice(k++ % free.length, 1)[0] });
+    return t.map(s => s.ph ? `<span class="cover"><img class="in" src="${s.ph}" alt=""></span>`
+      : `<span class="cover"><img src="${s}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.src='${free[0]}'"></span>`).join('');
   };
   view.innerHTML = `<section class="settings">
     <div class="page-flag">${flagHtml('Ricettari')}</div>
@@ -2889,7 +2901,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     el.innerHTML = list.length ? list.map(r => {
       const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
       return `<li><a class="card" href="#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}">
-        <div class="thumb">${r.thumbS || r.thumb ? `<img class="fade" src="${r.thumbS || r.thumb}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.hidden=true">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
+        <div class="thumb">${r.thumbS || r.thumb ? `<img class="fade" src="${r.thumbS || r.thumb}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.src='${placeholder(r.id)}'">` : `<img src="${placeholder(r.id)}" alt="" loading="lazy">`}</div>
         <div class="card-body"><div class="card-title">${esc(r.title)}</div>
           <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[rCourses(r).join(', '), rCats(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div></div>
         ${mine(r) ? `<span class="keep-done">✓ bewaard</span>` : `<button class="keep-btn" data-keep="${esc(r.id)}">+ bewaar</button>`}
@@ -3031,7 +3043,7 @@ async function bindShareSettings() {
       const q = s.$('#recQ').value.trim().toLowerCase();
       const list = state.recipes.filter(r => !q || r.title.toLowerCase().includes(q));
       s.$('#recList').innerHTML = list.map(r => `<li data-rid="${esc(r.id)}" class="${chosen.has(r.id) ? 'on' : ''}">
-        ${r.photo ? `<img src="${r.photo}" alt="" loading="lazy">` : `<span class="pick-nophoto">${ICONS.plate}</span>`}<b>${esc(r.title)}</b><span class="tick">${chosen.has(r.id) ? '✓' : ''}</span></li>`).join('');
+        <img src="${r.photo || placeholder(r.id)}" alt="" loading="lazy"><b>${esc(r.title)}</b><span class="tick">${chosen.has(r.id) ? '✓' : ''}</span></li>`).join('');
       const all = state.recipes.every(r => chosen.has(r.id));
       s.$('#allBtn').textContent = all ? 'Niets kiezen' : 'Kies allemaal';
       s.$('#recSave').textContent = `Opslaan (${chosen.size} ${chosen.size === 1 ? 'recept' : 'recepten'})`;
