@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.9 · 25 november 2026';
+const APP_VERSION = '1.6.10 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -17,6 +17,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 const ICONS = {
   bug: '<svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5 9 3M14 5l1-2"/></svg>',
   pdf: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h4"/></svg>',
+  shuffle: '<svg viewBox="0 0 48 48" class="shuf"><g class="shuf-arrows"><path d="M38.7 15.5A17 17 0 0 0 9.3 15.5"/><path d="M9.3 32.5A17 17 0 0 0 38.7 32.5"/><path class="head" d="M7.2 19.1L6.6 12.1L13.5 16.1Z"/><path class="head" d="M40.8 28.9L41.4 35.9L34.5 31.9Z"/></g><g class="shuf-sq"><rect class="sq sq-a" x="15.5" y="15.5" width="11" height="11" rx="2"/><rect class="sq sq-b" x="21.5" y="21.5" width="11" height="11" rx="2"/></g></svg>',
   news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -507,7 +508,7 @@ function renderList() {
       <input type="search" id="q" placeholder="Zoek recept of ingrediënt" value="${esc(state.query)}" autocomplete="off">
       <button class="search-clear" id="qClear" aria-label="Zoekveld leegmaken" ${state.query ? '' : 'hidden'}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
     </div>
-    <button class="surprise" id="surprise">${ICONS.dice}<span>Verras me</span></button>
+    ${shuffleBtnHtml('surprise')}
     </div>
     ${usedCourses.length ? `<div class="chips course-chips" id="courseBar">${usedCourses.map(c =>
       `<button class="chip chip-course${state.course === c ? ' on' : ''}" data-course="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -560,11 +561,11 @@ function renderList() {
     try { localStorage.setItem('ricetta-filters-open2', open ? '1' : '0'); } catch {}
     foldFilters(head, open);
   };
-  $('#surprise').onclick = () => {
+  bindShuffle($('#surprise'), () => {
     Mag.shuffle();
     renderCards();
     window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  });
   renderCards();
   Importer.checkInbox({ maxAge: 20000 });   // toont meteen wat er al bekend is, en kijkt zo nu en dan op de server
 }
@@ -2980,6 +2981,19 @@ async function renderReceived(inboxId) {
   });
 }
 
+// Husselknop: pijltjes draaien, de vierkantjes wisselen van plek (halverwege ook van voor naar achter)
+function bindShuffle(btn, onShuffle) {
+  if (!btn) return;
+  btn.onclick = () => {
+    btn.classList.remove('spin'); void btn.offsetWidth; btn.classList.add('spin');
+    btn.classList.toggle('swapped');
+    setTimeout(() => { const g = btn.querySelector('.shuf-sq'); if (g) g.appendChild(g.firstElementChild); }, 300);
+    setTimeout(() => btn.classList.remove('spin'), 750);
+    onShuffle();
+  };
+}
+const shuffleBtnHtml = id => `<button class="shuf-btn" id="${id}" aria-label="Verras me" title="Verras me">${ICONS.shuffle}</button>`;
+
 /* Ricette van anderen: wat je eerder zag meteen tonen en op de achtergrond verversen */
 const shareStore = {
   key: k => `ricetta-cache-${Sync.status().user?.id || 0}-${k}`,
@@ -3075,7 +3089,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     <div class="book-top" id="bookTop">
     <div class="book-flag"><div class="acc-flag"><span><small>Le Ricette di</small>${esc(d.owner.name)}</span></div></div>
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
-      <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze Ricette" value="${esc(f.q)}" autocomplete="off"></div>
+      <div class="list-tools"><div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze Ricette" value="${esc(f.q)}" autocomplete="off"></div>${shuffleBtnHtml('bookShuffle')}</div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
       ${chips.length > 1 ? `<div class="chips">${chips.map(([k, l]) => k.startsWith('diet:')
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
@@ -3107,7 +3121,6 @@ function showBook(ownerId, d, head, filtersOpen) {
         href: r => `#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}`,
         courses: rCourses, cats: rCats,
         fillers: [
-          { id: 'bkSurprise', icon: 'dice', title: 'Verras me', sub: 'Deze Ricette husselen', on: () => { Mag.shuffle(); f.hero = {}; draw(); window.scrollTo({ top: 0, behavior: 'smooth' }); } },
           { id: 'bkBooks', icon: 'book', title: 'Ricette', sub: 'Ricette van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
           { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen Ricette', on: () => { location.hash = '#/'; } },
         ],
@@ -3151,6 +3164,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     draw();
   });
   // In- en uitklappen met het icoon in de menubalk, net als in je eigen overzicht (zelfde keuze onthouden)
+  bindShuffle($('#bookShuffle'), () => { Mag.shuffle(); f.hero = {}; draw(); window.scrollTo({ top: 0, behavior: 'smooth' }); });
   $('#filterToggle').onclick = () => {
     const btn = $('#filterToggle'), open = btn.getAttribute('aria-expanded') !== 'true';
     btn.classList.toggle('on', open);

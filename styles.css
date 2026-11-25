@@ -715,7 +715,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
 /* ================= Magazine op iPad en laptop ================= */
 .list-tools { display: flex; gap: 12px; align-items: stretch; }
 .list-tools .search { flex: 1; min-width: 0; }
-.surprise, .add-top { display: none; }
+.shuf-btn, .add-top { display: none; }
 
 @media (min-width: 700px) {
   body[data-page=list] { --page-w: 1320px; }
@@ -730,13 +730,7 @@ body.cook .part-steps { padding-bottom: 40vh; } /* ruimte zodat ook de laatste s
   .add-top svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; }
   .add-top:active { background: var(--accent-dark); }
   .list-tools .search { max-width: 620px; }
-  .surprise {
-    display: flex; align-items: center; gap: 8px; padding: 0 16px; border-radius: 3px;
-    border: 1.5px solid var(--accent); color: var(--accent);
-    font: 500 15px var(--font-label); letter-spacing: .08em; text-transform: uppercase;
-  }
-  .surprise svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.8; }
-  .surprise:active { background: var(--accent-soft); }
+  .shuf-btn { display: grid; }
   body[data-page=list] .chips { flex-wrap: wrap; overflow: visible; margin-left: 0; margin-right: 0; padding: 0; }
   body[data-page=list] .chip { cursor: pointer; }
 
@@ -1603,3 +1597,21 @@ body.cook .bon-appetit.feest { padding: 80px 0 90px; }
 .fails small { color: var(--muted); font-size: 13px; }
 .fail-url { font-size: 13px; color: var(--accent); word-break: break-all; }
 .fail-clear { position: absolute; top: 10px; right: 12px; font-size: 13px; }
+
+/* Husselknop (Verras me): twee vierkantjes met draaiende pijltjes, rechts naast het zoekveld */
+.list-tools { align-items: center; }
+.shuf-btn { margin-left: auto; width: 50px; height: 50px; flex: none; place-items: center; border-radius: 50%; color: var(--accent); }
+.shuf-btn:hover, .shuf-btn:active { background: var(--accent-soft); }
+.shuf { width: 38px; height: 38px; overflow: visible; }
+.shuf-arrows path { fill: none; stroke: currentColor; stroke-width: 2.6; stroke-linecap: round; stroke-linejoin: round; }
+.shuf-arrows path.head { fill: currentColor; stroke-width: 1.2; }
+.shuf-arrows { transform-origin: 24px 24px; }
+.shuf .sq { stroke: currentColor; stroke-width: 2.2; transition: transform .6s cubic-bezier(.5, 0, .3, 1); }
+.shuf .sq-a { fill: var(--bg); }
+.shuf .sq-b { fill: currentColor; }
+.shuf-btn.swapped .sq-a { transform: translate(6px, 6px); fill: currentColor; }
+.shuf-btn.swapped .sq-b { transform: translate(-6px, -6px); fill: var(--bg); }
+.shuf-btn.spin .shuf-arrows { animation: shuf-spin .7s cubic-bezier(.5, 0, .3, 1); }
+@keyframes shuf-spin { to { transform: rotate(360deg); } }
+@media (min-width: 700px) { .book-head .list-tools .search { max-width: 620px; } }
+@media (prefers-reduced-motion: reduce) { .shuf-btn.spin .shuf-arrows { animation: none; } .shuf .sq { transition: none; } }
