@@ -1419,7 +1419,7 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 @media (min-width: 900px) {
   body[data-page=welcome] main { max-width: 1080px; }
   .acc-welcome.acc-split:has(.install-card[open]) { max-width: none; display: grid; grid-template-columns: 1fr 1fr; gap: 0 64px; align-items: start; justify-content: stretch; padding-top: 28px; }
-  .acc-welcome.acc-split:has(.install-card[open]) > .welcome-logo { grid-column: 1 / -1; justify-self: center; margin-bottom: 30px; }
+  .acc-welcome.acc-split:has(.install-card[open]) > .welcome-logo { grid-column: 1 / -1; justify-self: center; margin-bottom: 30px; left: auto; transform: none; }
   .acc-split .install-card[open] { border-bottom: 0; margin: 0; padding-right: 64px; border-right: 1px dashed var(--line); min-width: 0; }
   .acc-split .install-card[open] > summary { padding-top: 0; }
   .acc-split .install-card[open] > summary h3 { font-size: clamp(22px, 2.6vw, 28px); white-space: nowrap; }
@@ -1581,7 +1581,7 @@ body.cook .bon-appetit.feest { padding: 80px 0 90px; }
 
 /* Inlogscherm: groot woordmerk Ricetta, zoals in de menubalk (rood met glans) */
 .welcome-logo {
-  margin: 0 auto 18px; text-align: center; font: 400 clamp(84px, 27vw, 150px)/.9 var(--font-title); letter-spacing: .05em;
+  position: relative; left: 50%; transform: translateX(-50%); margin: 0 0 18px; align-self: flex-start; width: max-content; padding-left: .05em; text-align: center; font: 400 clamp(84px, 27vw, 150px)/.9 var(--font-title); letter-spacing: .05em;
   background: linear-gradient(100deg, var(--accent-dark) 0%, var(--accent) 32%, #f0624f 46%, var(--accent) 60%, var(--accent-dark) 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent; padding-top: .06em;
 }
