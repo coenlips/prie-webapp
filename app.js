@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.9.5 · 25 november 2026';
+const APP_VERSION = '1.9.6 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -18,6 +18,7 @@ const ICONS = {
   bug: '<svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5 9 3M14 5l1-2"/></svg>',
   pdf: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h4"/></svg>',
   shuffle: '<svg viewBox="0 0 48 48" class="shuf"><g class="shuf-arrows"><path d="M38.7 15.5A17 17 0 0 0 9.3 15.5"/><path d="M9.3 32.5A17 17 0 0 0 38.7 32.5"/><path class="head" d="M7.2 19.1L6.6 12.1L13.5 16.1Z"/><path class="head" d="M40.8 28.9L41.4 35.9L34.5 31.9Z"/></g><g class="shuf-sq"><rect class="sq sq-a" x="15.5" y="15.5" width="11" height="11" rx="2"/><rect class="sq sq-b" x="21.5" y="21.5" width="11" height="11" rx="2"/></g></svg>',
+  pot: '<svg viewBox="0 0 24 24"><path d="M5 11h14v6a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/><path d="M3 11h18"/><path d="M6 8.5h12"/><path d="M10.5 8.5V7a1.5 1.5 0 0 1 3 0v1.5"/><path d="M3 13.5h2M19 13.5h2"/></svg>',
   news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -467,7 +468,7 @@ function updateTabs(page, sub) {
   const cur = page === 'kookboek' && !sub ? 'ricette' : TAB_PAGES[page || ''];
   const show = !!cur && !accountGate();
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
-  const tabs = [['recepten', '#/', ICONS.plate, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
+  const tabs = [['recepten', '#/', ICONS.pot, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
     ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Ricette']] : [])];
   const html = tabs.map(([k, href, icon, label]) => `<a href="${href}" class="${k === cur ? 'on' : ''}"${k === cur ? ' aria-current="page"' : ''}>${icon}<span>${label}</span>${k === 'boodschappen' ? '<span class="cart-badge tb-badge" hidden></span>' : ''}</a>`).join('');
   for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
