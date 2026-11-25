@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.0 · 25 november 2026';
+const APP_VERSION = '1.6.1 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1442,8 +1442,17 @@ function recipeAsText(r, servings, factor) {
   ].filter(Boolean).join('\n');
 }
 
-async function shareRecipe(r, servings, factor) {
-  const text = recipeAsText(r, servings, factor);
+// Bovenaan de gedeelde tekst: de deellink (als die er is) en een klein reclamezinnetje voor Ricetta
+const APP_URL = () => `${location.origin}${location.pathname}`;
+function shareIntro(link) {
+  return [
+    link ? `📖 Open dit recept direct in Ricetta:\n${link}` : '',
+    `🍝 Gedeeld met Ricetta, de receptenapp met kookstand, timers en een slimme boodschappenlijst. Probeer hem: ${APP_URL()}`,
+    '────────────',
+  ].filter(Boolean).join('\n\n');
+}
+async function shareRecipe(r, servings, factor, link = '') {
+  const text = `${shareIntro(link)}\n\n${recipeAsText(r, servings, factor)}`;
   if (navigator.share) {
     try { await navigator.share({ title: r.title, text }); } catch { /* geannuleerd */ }
   } else {
@@ -2861,10 +2870,23 @@ async function openShareSheet(r, servings, factor) {
     <button class="btn ghost" id="sysShare">${ICONS.share} Via WhatsApp, Mail, …</button>
     <button class="btn ghost" id="pdfShare">${ICONS.pdf} Als pdf met QR-code</button>
     <p class="small-note pdf-link" id="pdfLink" hidden></p>`, 'Recept delen');
-  s.$('#sysShare').onclick = () => { s.close(); shareRecipe(r, servings, factor); };
+  // Delen als tekst, met de deellink erin. Bestaat die link nog niet, dan eerst maken en daarna
+  // nog één tik (de iPhone staat delen alleen direct na een tik toe).
+  let shareLink = '';
+  const linkOf = token => `${APP_URL()}#/deel/${token}`;
+  s.$('#sysShare').onclick = async () => {
+    const btn = s.$('#sysShare');
+    if (shareLink) { s.close(); shareRecipe(r, servings, factor, shareLink); return; }
+    btn.disabled = true; btn.textContent = 'Link maken…';
+    try { shareLink = linkOf((await Sync.call('link_create', { recipe: r })).token); }
+    catch { s.close(); shareRecipe(r, servings, factor); return; }   // geen link (bijv. oude server): gewoon de tekst
+    btn.disabled = false; btn.innerHTML = `${ICONS.share} Klaar: tik om te delen`;
+    btn.classList.remove('ghost');
+  };
   s.$('#pdfShare').onclick = () => { s.close(); openPdfSheet(r); };
   Sync.call('link_status', { id: r.id }).then(st => {
     if (!st.token || !s.el.isConnected) return;
+    shareLink = linkOf(st.token);
     const p = s.$('#pdfLink'); p.hidden = false;
     p.innerHTML = `Er is een deellink (QR-code) voor dit recept${st.views ? `, ${st.views} keer geopend` : ''}. <button class="link danger" id="pdfRevoke">Link intrekken</button>`;
     s.$('#pdfRevoke').onclick = async () => {
