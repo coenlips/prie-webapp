@@ -113,15 +113,23 @@ const Menus = (() => {
   // Boodschappen voor het hele menu: per gerecht omgerekend naar het aantal personen; wat meestal in huis is staat uit
   function openShop(m, dishes) {
     const rows = [];
+    const add = (r, f, owner, src) => lines(src.ingredients).forEach((l, i) => {
+      if (l.startsWith('#') || owner.skip.has(i)) return;
+      const tmp = document.createElement('div'); tmp.innerHTML = scaleLine(l, f);
+      const home = inPantry(l);
+      rows.push({ key: src.id + '@' + r.id + ':' + i, r: src, line: l, f, text: tmp.textContent, buy: !home, home });
+    });
     dishes.forEach(({ r }) => {
       const f = m.persons / Math.max(1, +r.servings || 1);
+      // Onderdelen (bijv. oubliehoorntjes als eigen recept): hun ingrediënten in plaats van de regel zelf
+      const parts = relatedOf(r).parts.filter(Boolean);
+      const linked = ingredientLinks(lines(r.ingredients), parts);
       rows.push({ head: r.title });
-      lines(r.ingredients).forEach((l, i) => {
-        if (l.startsWith('#')) return;
-        const tmp = document.createElement('div'); tmp.innerHTML = scaleLine(l, f);
-        const home = inPantry(l);
-        rows.push({ key: r.id + ':' + i, r, line: l, f, text: tmp.textContent, buy: !home, home });
-      });
+      add(r, f, { skip: new Set(linked.keys()) }, r);
+      for (const p of parts) {
+        rows.push({ head: `${p.title}`, sub: `onderdeel van ${r.title}` });
+        add(r, 1, { skip: new Set() }, p);
+      }
     });
     const s = openAccSheet(`
       <div class="sheet-head shop-sheet-head"><button class="text-btn" data-close>Annuleer</button><button class="btn small" id="shopAddTop"></button></div>
@@ -131,7 +139,7 @@ const Menus = (() => {
       <button class="btn" id="shopAdd"></button>`, 'Boodschappen voor het menu');
     const draw = () => {
       s.$('#shopPick').innerHTML = rows.map(x => x.head != null
-        ? `<div class="shop-head mx-shop-head"><b>${esc(x.head)}</b></div>`
+        ? `<div class="shop-head mx-shop-head"><b>${esc(x.head)}</b>${x.sub ? `<small>${esc(x.sub)}</small>` : ''}</div>`
         : `<button type="button" class="shop-row${x.buy ? ' on' : ''}" data-k="${esc(x.key)}" role="checkbox" aria-checked="${x.buy}">
             <span class="tick" aria-hidden="true">${x.buy ? '✓' : ''}</span><span class="shop-text"><span class="shop-name">${esc(x.text)}</span>${x.home && !x.buy ? '<small>meestal in huis</small>' : ''}</span></button>`).join('');
       const n = rows.filter(x => x.key && x.buy).length;
@@ -142,10 +150,10 @@ const Menus = (() => {
     s.$('#shopAddTop').onclick = () => s.$('#shopAdd').click();
     s.$('#shopAdd').onclick = async () => {
       const pick = rows.filter(x => x.key && x.buy);
-      for (const { r } of dishes) {
-        const ls = pick.filter(x => x.r === r);
-        if (ls.length) await Shopping.addFromRecipe(ls.map(x => x.line), ls[0].f, r.title);
-      }
+      // per recept (en onderdeel) met de eigen omrekenfactor
+      const groups = new Map();
+      pick.forEach(x => { const k = x.r.id + '|' + x.f; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(x); });
+      for (const ls of groups.values()) await Shopping.addFromRecipe(ls.map(x => x.line), ls[0].f, ls[0].r.title);
       await rememberPantry(rows.filter(x => x.key).map(x => ({ line: x.line, buy: x.buy })));
       s.close(); Shopping.updateBadge();
       toast(`${pick.length} ${pick.length === 1 ? 'boodschap' : 'boodschappen'} op de lijst`);
