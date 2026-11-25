@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.10.0 · 25 november 2026';
+const APP_VERSION = '1.10.1 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -466,7 +466,10 @@ const TAB_PAGES = { '': 'recepten', menus: 'menus', boodschappen: 'boodschappen'
 function updateTabs(page, sub) {
   // ook in iemands Ricette (maar niet in een recept daaruit)
   const cur = page === 'kookboek' && !sub ? 'ricette' : TAB_PAGES[page || ''];
-  const show = !!cur && !accountGate();
+  // ook bij de instellingen (zonder tabblad aan)
+  const extra = page === 'settings' || page === 'gebruikers';
+  document.body.dataset.route = page || 'home';
+  const show = (!!cur || extra) && !accountGate();
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
   const tabs = [['recepten', '#/', ICONS.pot, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
     ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Ricette']] : [])];
@@ -1873,7 +1876,7 @@ function syncBadge() {
 }
 
 function renderSettings() {
-  setHeader({ title: 'Instellingen', back: true, timer: false });
+  setHeader({ title: 'Ricetta', docTitle: 'Instellingen', back: true, timer: false, actions: `<button class="icon-btn settings-btn on" data-go="#/settings" aria-label="Instellingen" aria-current="page">${ICONS.gear}</button>` });
   const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
   const sync = Sync.status();
 
@@ -2577,7 +2580,7 @@ function lastSeenText(u) {
 const FAIL_REASONS = { blocked: 'geblokkeerd', norecipe: 'geen recept gevonden', http: 'foutmelding van de site', error: 'mislukt', iphone: 'ook via iPhone niet' };
 async function renderUsers() {
   const seq = routeSeq;
-  setHeader({ title: 'Gebruikers', back: true, timer: false });
+  setHeader({ title: 'Ricetta', docTitle: 'Gebruikers', back: true, timer: false, actions: `<button class="icon-btn settings-btn on" data-go="#/settings" aria-label="Instellingen" aria-current="page">${ICONS.gear}</button>` });
   const me = Sync.status().user;
   if (!me || !me.admin) { location.hash = '#/settings'; return; }
   view.innerHTML = `<section class="settings">${loaderHtml('Gebruikers ophalen…')}</section>`;

@@ -1773,8 +1773,8 @@ body.no-fab-btn .fab { display: none; }
 .tabbar a.on:first-child::after { left: -4px; } .tabbar a.on:last-child::after { right: -4px; }
 /* iPad/laptop: in iemands Ricette dezelfde menubalk als bij alle Ricette (groot logo en tabbladen, geen terugknop) */
 @media (min-width: 700px) {
-  body.has-tabbar[data-page=book] #backBtn { display: none; }
-  body.has-tabbar[data-page=book] .topbar h1 {
+  body.has-tabbar[data-page=book] #backBtn, body.has-tabbar[data-route=settings] #backBtn { display: none; }
+  body.has-tabbar[data-page=book] .topbar h1, body.has-tabbar[data-route=settings] .topbar h1, body.has-tabbar[data-route=gebruikers] .topbar h1 {
     visibility: visible; flex: 0 1 auto; margin-right: 0; padding-right: .3em;
     font: 400 80px/.95 var(--font-title); letter-spacing: .05em; text-transform: uppercase;
     background: linear-gradient(100deg, var(--accent-dark) 0%, var(--accent) 32%, #f0624f 46%, var(--accent) 60%, var(--accent-dark) 100%);
@@ -1796,3 +1796,4 @@ body.no-fab-btn .fab { display: none; }
 .acc-email { flex-wrap: wrap; row-gap: 2px; }
 .acc-email span { flex: 0 0 100%; }
 .acc-email b { font-size: 16px; }
+.settings-btn.on { background: var(--accent-soft); }
