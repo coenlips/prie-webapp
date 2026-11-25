@@ -410,7 +410,7 @@ function app_url(string $given): string {
 
 /* ---------- Delen ---------- */
 
-// Mag $viewer het Ricettario van $owner bekijken?
+// Mag $viewer het Ricettario di $owner bekijken?
 function can_view(array $owner, int $viewerId): bool {
     if ((int) $owner['id'] === $viewerId) return false;
     if ($owner['book_vis'] === 'all') return true;

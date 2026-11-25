@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.3 · 25 november 2026';
+const APP_VERSION = '1.6.4 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3001,7 +3001,7 @@ function showBooks(books) {
     <p class="books-intro">Recepten van mensen die hun Ricettario met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
     ${books.length ? `<ul class="books">${books.map(b => `
       <li><a class="book" href="#/kookboek/${b.id}"><div class="covers">${covers(b)}</div>
-        <div><b>Ricettario van ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
+        <div><b>Ricettario di ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
       : `<div class="card-box"><p>Er deelt nog niemand een Ricettario met je.</p><p>Deel je eigen Ricettario bij <a href="#/settings" class="link">Instellingen → Delen met anderen</a>.</p></div>`}
   </section>`;
 }
@@ -3051,7 +3051,7 @@ function showBook(ownerId, d, head, filtersOpen) {
 
   view.innerHTML = `<section class="book-page">
     <div class="book-top" id="bookTop">
-    <div class="book-flag"><div class="acc-flag"><span><small>Ricettario van</small>${esc(d.owner.name)}</span></div></div>
+    <div class="book-flag"><div class="acc-flag"><span><small>Ricettario di</small>${esc(d.owner.name)}</span></div></div>
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
       <div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in dit Ricettario" value="${esc(f.q)}" autocomplete="off"></div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
