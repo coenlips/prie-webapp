@@ -1625,3 +1625,11 @@ body[data-page=book] .list-head.closed { box-shadow: none; }
 @media (min-width: 700px) { body[data-page=book] .list-head { margin: 0; padding: 18px var(--gutter) 14px; } }
 .book-page > .book-flag { margin: 10px 0 18px; }
 @media (min-width: 700px) { .book-page > .book-flag { margin: 26px 0 22px; } }
+
+/* Ricette van anderen (tijdschrift): + Bewaar op elke kaart en bij het uitgelichte recept */
+.mag-keep.card { position: absolute; z-index: 2; top: 12px; right: 12px; background: #fffdf8; box-shadow: 0 2px 6px rgba(43, 29, 20, .18); }
+.mag-keep.card.keep-done { background: #e6f3ea; }
+.mag-keep.card:hover { background: var(--accent); color: #fff; }
+.mag-keep.hero { aspect-ratio: auto; width: auto; height: auto; display: inline-flex; align-items: center; margin-left: 10px; padding: 12px 18px; font-size: 14px; align-self: center; }
+.mh-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.mc-photo { position: relative; }

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.12 · 25 november 2026';
+const APP_VERSION = '1.6.13 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -908,7 +908,7 @@ const Mag = (() => {
           ${leadOf(r) ? `<p class="mh-lead">${esc(leadOf(r))}</p>` : ''}
           ${metaOf(r) ? `<span class="mag-meta">${metaOf(r).replace('pers.', 'personen')}</span>` : ''}
           <div class="mh-actions">
-            <a class="btn mh-open" href="${hrefOf(r)}">Bekijk recept</a>
+            <a class="btn mh-open" href="${hrefOf(r)}">Bekijk recept</a>${O.keep ? O.keep(r, 'hero') : ''}
           </div>
         </div>
       </li>`;
@@ -1004,7 +1004,7 @@ const Mag = (() => {
         : `<img src="${placeholder(r.id)}" alt="" loading="lazy">`;
       return `
         <li class="mag-card${cls}" data-id="${esc(r.id)}" data-zone="${zone}" style="${pos}"><a href="${hrefOf(r)}">
-          <div class="mc-photo">${img}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}</div>
+          <div class="mc-photo">${img}${r.favorite ? `<span class="mc-fav" aria-label="Favoriet">${ICONS.heart}</span>` : ''}${O.keep ? O.keep(r, 'card') : ''}</div>
           <div class="mc-label">
             <span class="mag-kicker">N° ${String(start + nr++).padStart(2, '0')}${kicker ? ' · ' + esc(kicker) : ''}</span>
             <h3>${esc(r.title)}</h3>
@@ -3118,10 +3118,12 @@ function showBook(ownerId, d, head, filtersOpen) {
     if (isWide()) {
       if (!list.length) { el.innerHTML = `<li class="none">Geen recepten gevonden.</li>`; return; }
       const withPhoto = r => ({ ...r, photo: r.thumb || '' });
+      setTimeout(bindKeep);
       return Mag.render(el, list.map(withPhoto), {
         all: all.map(withPhoto), hero: f.hero || (f.hero = {}),
         browsing: !q && f.filter === 'all' && !f.course,
         href: r => `#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}`,
+        keep: (r, where) => mine(r) ? `<span class="keep-done mag-keep ${where}">✓ Bewaard</span>` : `<button class="keep-btn mag-keep ${where}" data-keep="${esc(r.id)}">+ Bewaar</button>`,
         courses: rCourses, cats: rCats,
         fillers: [
           { id: 'bkBooks', icon: 'book', title: 'Ricette', sub: 'Ricette van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
@@ -3142,6 +3144,9 @@ function showBook(ownerId, d, head, filtersOpen) {
         ${mine(r) ? `<span class="keep-done">✓ bewaard</span>` : `<button class="keep-btn" data-keep="${esc(r.id)}">+ bewaar</button>`}
       </a></li>`;
     }).join('') : `<li class="none">Geen recepten gevonden.</li>`;
+    bindKeep();
+  };
+  const bindKeep = () => {
     view.querySelectorAll('[data-keep]').forEach(bt => bt.onclick = async e => {
       e.preventDefault(); e.stopPropagation();
       bt.disabled = true; bt.textContent = 'Bezig…';
