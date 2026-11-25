@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.8.5 · 25 november 2026';
+const APP_VERSION = '1.8.6 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -471,6 +471,11 @@ $('#backBtn').addEventListener('click', () => {
   const page = (location.hash || '#/').split('/')[1];
   if (page === 'r' && state.backStack?.length) { location.hash = '#/r/' + encodeURIComponent(state.backStack.pop()); return; }
   const parts = (location.hash || '#/').split('/');
+  // Menu's: recept uit een menu → terug naar dat menu; menu aanpassen → menu; menu → overzicht van menu's
+  if (page === 'r' && state.fromMenu) { location.hash = `#/menu/${encodeURIComponent(state.fromMenu)}`; return; }
+  if (page === 'menu' && parts[3]) { location.hash = `#/menu/${parts[2]}`; return; }
+  if (page === 'menu') { location.hash = '#/menus'; return; }
+  if (page === 'menus') { location.hash = '#/'; return; }
   if (page === 'kookboek' && parts[3]) { location.hash = `#/kookboek/${parts[2]}`; return; }
   if (page === 'kookboek') { location.hash = '#/kookboeken'; return; }
   if (page === 'kookboeken' || page === 'ontvangen') { location.hash = '#/'; return; }
@@ -3354,6 +3359,7 @@ async function route() {
   if (page === 'kookboeken') return renderBooks();
   if (page === 'kookboek' && id && sub) return renderBookRecipe(+id, decodeURIComponent(sub));
   if (page === 'kookboek' && id) return renderBook(+id);
+  if (!page || page === 'menus') state.fromMenu = null;   // terug in het overzicht: niet meer 'vanuit een menu'
   if (page === 'menus') return Menus.renderList(view);
   if (page === 'menu' && id && sub === 'bewerk') return Menus.renderEdit(view, decodeURIComponent(id));
   if (page === 'menu' && id) return Menus.renderMenu(view, decodeURIComponent(id));

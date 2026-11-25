@@ -106,6 +106,7 @@ const Menus = (() => {
         <a class="btn ghost" href="#/menu/${encodeURIComponent(m.id)}/bewerk">${ICONS.edit} Menu aanpassen</a>
       </div>
     </section>`;
+    view.querySelectorAll('.mk-dish').forEach(el => el.addEventListener('click', () => { state.fromMenu = m.id; }));
     $('#mkShop').onclick = () => openShop(m, dishes);
     $('#mkPdf').onclick = () => openPdf(m, dishes, courses);
   }
