@@ -1577,3 +1577,4 @@ body.cook .bon-appetit.feest { padding: 80px 0 90px; }
 @keyframes piet-kick { from { transform: rotate(-4deg); } to { transform: rotate(5deg); } }
 @media (prefers-reduced-motion: reduce) { .sint, .sint-svg, .legs-a, .legs-b, .piet, .piet-legs { animation: none !important; } .sint { left: 12%; } }
 .feest .ba-band { font-size: clamp(24px, 6.8vw, 32px); }
+@media (max-width: 699px) { .feest-sint .ba-band { font-size: clamp(20px, 5.6vw, 26px); padding: 9px 18px 7px; } }
