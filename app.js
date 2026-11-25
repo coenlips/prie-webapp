@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.8.6 · 25 november 2026';
+const APP_VERSION = '1.9.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -446,7 +446,7 @@ async function loadRecipes() {
 /* ---------- Kopbalk ---------- */
 
 // close: kruisje links om snel terug te gaan naar je eigen overzicht; lead: iconen vóór de wekker
-function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = true, timerLabel = '' } = {}) {
+function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = true, timerLabel = '', docTitle = '' } = {}) {
   // In de menubalk alleen de naam Ricetta (op het overzicht); andere schermen geen titel, alleen de iconen.
   // De schermtitel blijft wel de titel van het tabblad en voor voorleessoftware.
   $('#title').textContent = title;
@@ -457,7 +457,23 @@ function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', 
   if (timer) $('#timerBtn').onclick = () => Timers.openSheet(timerLabel);
   document.body.classList.toggle('no-fab', !!(back || close));
   $('#addBtn').hidden = !!(back || close);
-  document.title = title === 'Ricetta' ? 'Ricetta' : `${title} · Ricetta`;
+  document.title = docTitle ? `${docTitle} · Ricetta` : title === 'Ricetta' ? 'Ricetta' : `${title} · Ricetta`;
+}
+
+/* ---------- Tabbladen: onderin op de iPhone, in de menubalk op iPad en laptop ---------- */
+const TAB_PAGES = { '': 'recepten', menus: 'menus', boodschappen: 'boodschappen', kookboeken: 'ricette' };
+function updateTabs(page) {
+  const cur = TAB_PAGES[page || ''];
+  const show = !!cur && !accountGate();
+  if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
+  const tabs = [['recepten', '#/', ICONS.plate, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
+    ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Ricette']] : [])];
+  const html = tabs.map(([k, href, icon, label]) => `<a href="${href}" class="${k === cur ? 'on' : ''}"${k === cur ? ' aria-current="page"' : ''}>${icon}<span>${label}</span>${k === 'boodschappen' ? '<span class="cart-badge tb-badge" hidden></span>' : ''}</a>`).join('');
+  for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
+  document.body.classList.toggle('has-tabbar', show);
+  // de plusknop alleen bij je recepten
+  if (show && cur !== 'recepten') { $('#addBtn').hidden = true; document.body.classList.add('no-fab-btn'); } else document.body.classList.remove('no-fab-btn');
+  if (show) Shopping.updateBadge();
 }
 
 $('#closeBtn').addEventListener('click', () => {
@@ -489,9 +505,7 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 
 function renderList() {
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
-  setHeader({ lead: loggedIn() ? `<button class="icon-btn books-btn" data-go="#/kookboeken" aria-label="Ricette van anderen" title="Ricette van anderen">${ICONS.book}</button>` : '', actions: `
-    <button class="icon-btn menus-btn" data-go="#/menus" aria-label="Menu's" title="Menu's">${Menus.MENU_ICON}</button>
-    <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
+  setHeader({ actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
     <button class="add-top" id="addTop" aria-label="Nieuw recept">${ICONS.plus}</button>` });
@@ -2364,6 +2378,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.9.0', date: '25 november 2026', sections: [{ items: [
+    'Rustiger menubalk: Recepten, Menu’s, Boodschappen en Ricette staan nu als tabbladen onderin (iPhone) of in de menubalk (iPad en laptop).',
+  ] }] },
   { v: '1.8.0', date: '25 november 2026', sections: [{ items: [
     'Menu’s: stel via het menukaart-icoon bovenaan een menu samen voor Kerst, Pasen of een etentje, met recepten per gang.',
     'Met één tik alle boodschappen voor het hele menu, omgerekend naar het aantal personen, en een mooie menukaart als pdf voor op tafel.',
@@ -3032,7 +3049,7 @@ async function cachedLoad(seq, key, fetcher, show, fail) {
 async function renderBooks() {
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
-  setHeader({ title: 'Ricette', close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  setHeader({ docTitle: 'Ricette', timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de Ricette van anderen te bekijken.</p></div></section>`; return; }
   view.innerHTML = `<section class="settings">${loaderHtml('Ricette ophalen…')}</section>`;
   await cachedLoad(seq, 'books', () => Sync.call('books'), books => showBooks(books),
@@ -3341,6 +3358,7 @@ async function route() {
   document.body.dataset.page = ({ menus: 'menus', menu: 'menus', r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
     ontvangen: 'detail', kookboeken: 'settings', kookboek: 'book' })[page] || 'list';
 
+  updateTabs(page);
   // Gedeeld recept via QR-code of link: ook zonder account te bekijken
   if (page === 'deel' && id) return renderSharedLink(id);
 
@@ -3364,7 +3382,7 @@ async function route() {
   if (page === 'menu' && id && sub === 'bewerk') return Menus.renderEdit(view, decodeURIComponent(id));
   if (page === 'menu' && id) return Menus.renderMenu(view, decodeURIComponent(id));
   if (page === 'boodschappen') {
-    setHeader({ title: 'Boodschappen', back: true, timer: false });
+    setHeader({ docTitle: 'Boodschappen', timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
     return Shopping.render(view);
   }
   return renderList();

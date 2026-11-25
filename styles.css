@@ -1732,3 +1732,37 @@ body[data-page=menus] main { max-width: 640px; }
 .mx-shop-head small { color: var(--muted); font-size: 13px; }
 .mx-shop-title { display: grid; min-width: 0; flex: 1; }
 .mx-shop-head { margin-top: 14px; }
+
+/* ---------- Tabbladen ---------- */
+.tabbar[hidden], .toptabs[hidden] { display: none !important; }
+.tabbar { position: fixed; z-index: 40; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: repeat(var(--tabs, 4), 1fr); background: var(--bg); box-shadow: 0 -6px 14px -10px rgba(40, 20, 10, .35); padding: 6px 4px calc(4px + var(--safe-bottom, 0px)); }
+.tabbar::before { content: ''; position: absolute; left: 0; right: 0; top: -5px; height: 3px; border-top: 1px solid var(--teal); border-bottom: 1px solid var(--teal); background: var(--bg); }
+.tabbar a { position: relative; display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 6px 0 4px; color: var(--muted); font: 500 11px var(--font-label); letter-spacing: .1em; text-transform: uppercase; -webkit-tap-highlight-color: transparent; }
+.tabbar a svg, .toptabs a svg { width: 26px; height: 26px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tabbar a.on { color: var(--accent); }
+.tabbar a.on::after { content: ''; position: absolute; top: -7px; left: 30%; right: 30%; height: 3px; background: var(--accent); }
+.tb-badge { position: absolute; top: 2px; left: calc(50% + 6px); min-width: 18px; height: 18px; padding: 0 5px; border-radius: 9px; background: var(--accent); color: #fff; font: 600 11px/18px -apple-system, system-ui, sans-serif; letter-spacing: 0; text-align: center; box-shadow: 0 0 0 2px var(--bg); }
+.tb-badge[hidden] { display: none; }
+body.has-tabbar main { padding-bottom: calc(96px + var(--safe-bottom, 0px)) !important; }
+body.has-tabbar .fab { bottom: calc(84px + var(--safe-bottom, 0px)); }
+body.no-fab-btn .fab { display: none; }
+.toptabs { display: none; }
+@media (min-width: 700px) {
+  .tabbar { display: none !important; }
+  body.has-tabbar main { padding-bottom: 64px !important; }
+  .toptabs:not([hidden]) { display: flex; gap: 2px; align-self: center; margin-left: 26px; margin-right: auto; }
+  .topbar:has(.toptabs:not([hidden])) h1 { margin-right: 0 !important; }
+  .toptabs a { position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 9px 12px; color: var(--muted); font: 500 15px var(--font-label); letter-spacing: .1em; text-transform: uppercase; border-radius: 3px; white-space: nowrap; }
+  .toptabs a svg { width: 20px; height: 20px; }
+  .toptabs a:hover { background: var(--accent-soft); color: var(--accent); }
+  .toptabs a.on { color: var(--accent); }
+  .toptabs a.on::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -12px; height: 3px; background: var(--accent); }
+  .toptabs .tb-badge { position: static; box-shadow: none; }
+}
+@media (min-width: 700px) and (max-width: 1100px) { .toptabs a span:not(.tb-badge) { display: none; } .toptabs a { padding: 9px 10px; } }
+/* iPad/laptop: op alle tabbladen dezelfde menubalk als op het overzicht (zelfde breedte en logo) */
+@media (min-width: 700px) {
+  body.has-tabbar { --page-w: 1320px; }
+  body.has-tabbar .topbar { padding-left: max(24px, calc((100% - var(--page-w)) / 2 + 24px)); padding-right: max(24px, calc((100% - var(--page-w)) / 2 + 32px)); background-color: var(--bg); }
+  body.has-tabbar .topbar-actions { align-items: center; gap: 6px; }
+}

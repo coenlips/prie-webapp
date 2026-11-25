@@ -47,7 +47,7 @@ const Menus = (() => {
   async function renderList(view) {
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
-    setHeader({ title: "Menu's", back: true, timer: false });
+    setHeader({ docTitle: "Menu's", timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
     const menus = await all();
     if (isStale(seq)) return;
     const t = today();
