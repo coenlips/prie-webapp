@@ -1213,8 +1213,12 @@ body.cook .from-strip, body.cook .save-bar { display: none; }
 .books-intro { color: var(--muted); margin: 4px 0 10px; }
 .books { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 14px; }
 .book { display: flex; align-items: center; gap: 14px; padding: 12px; background: var(--surface); outline: 3px double var(--teal); outline-offset: -6px; color: var(--text); }
-.book .covers { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 84px; height: 84px; flex: none; }
-.book .covers img, .cover-empty { width: 100%; height: 100%; object-fit: cover; }
+.book .covers { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 3px; width: 84px; height: 84px; flex: none; }
+.book .cover { position: relative; overflow: hidden; background: #ecdfca; }
+.book .cover img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
+.book .cover img.in, img.fade.in { opacity: 1; }
+img.fade { opacity: 0; transition: opacity .35s ease; }
+.cover-empty { width: 100%; height: 100%; }
 .cover-empty { display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
 .cover-empty svg { width: 20px; height: 20px; }
 .book b { display: block; font: 400 24px/1.05 var(--font-title); letter-spacing: .02em; }
@@ -1546,3 +1550,6 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .fb-device { display: block; color: var(--muted); font-size: 12px; }
 .fb-actions { display: flex; gap: 16px; margin-top: 6px; }
 .fb-actions .link { font-size: 14px; }
+.book .cover:has(img:not(.in):not([hidden])) { animation: cover-pulse 1.2s ease-in-out infinite alternate; }
+@keyframes cover-pulse { from { background: #ecdfca; } to { background: #f4ead9; } }
+@media (prefers-reduced-motion: reduce) { .book .cover { animation: none !important; } }

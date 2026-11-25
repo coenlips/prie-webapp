@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.3.1 · 25 november 2026';
+const APP_VERSION = '1.3.2 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2785,7 +2785,7 @@ function showBooks(books) {
   const covers = b => {
     const t = b.thumbs.slice(0, 4);
     while (t.length < 4) t.push('');
-    return t.map(s => s ? `<img src="${s}" alt="" loading="lazy" onerror="this.hidden=true">` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
+    return t.map(s => s ? `<span class="cover"><img src="${s}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.hidden=true"></span>` : `<span class="cover-empty">${ICONS.plate}</span>`).join('');
   };
   view.innerHTML = `<section class="settings">
     <div class="page-flag">${flagHtml('Ricettari')}</div>
@@ -2889,7 +2889,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     el.innerHTML = list.length ? list.map(r => {
       const time = formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
       return `<li><a class="card" href="#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}">
-        <div class="thumb">${r.thumbS || r.thumb ? `<img src="${r.thumbS || r.thumb}" alt="" loading="lazy" onerror="this.hidden=true">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
+        <div class="thumb">${r.thumbS || r.thumb ? `<img class="fade" src="${r.thumbS || r.thumb}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.hidden=true">` : `<span>${esc((r.title || '?')[0].toUpperCase())}</span>`}</div>
         <div class="card-body"><div class="card-title">${esc(r.title)}</div>
           <div class="card-meta">${dietBadge(dietOf(r), { text: false })}${[rCourses(r).join(', '), rCats(r).join(', '), time].filter(Boolean).map(esc).join(' · ')}</div></div>
         ${mine(r) ? `<span class="keep-done">✓ bewaard</span>` : `<button class="keep-btn" data-keep="${esc(r.id)}">+ bewaar</button>`}
