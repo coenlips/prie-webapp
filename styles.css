@@ -1722,3 +1722,7 @@ body[data-page=menus] main { max-width: 640px; }
 .mk-deco.r { right: -12px; }
 .mk { padding-top: 40px; }
 @media (min-width: 900px) { .mk-deco { width: 110px; height: 74px; top: -22px; left: -22px; } .mk-deco.r { right: -22px; } }
+
+/* Zoekvensters (recept kiezen): vaste hoogte, zodat zoekveld en resultaten boven het toetsenbord blijven */
+.sheet.tall { height: 88vh; height: 88dvh; display: flex; flex-direction: column; }
+.sheet.tall .pick { flex: 1; max-height: none; min-height: 0; }

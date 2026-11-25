@@ -218,6 +218,7 @@ const Menus = (() => {
         <div class="sheet-head"><h3>${esc(course)}</h3><button class="text-btn" data-close>Klaar</button></div>
         <input type="search" id="mpSearch" placeholder="Zoek een recept" autocomplete="off">
         <ul class="pick mp-pick" id="mpList"></ul>`, `Recept kiezen: ${course}`);
+      s.el.querySelector('.sheet').classList.add('tall');   // vaste hoogte: blijft boven het toetsenbord, ook met weinig resultaten
       const drawPick = () => {
         const q = s.$('#mpSearch').value.trim().toLowerCase();
         const list = state.recipes.filter(x => !q || x.title.toLowerCase().includes(q))

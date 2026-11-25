@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.8.1 · 25 november 2026';
+const APP_VERSION = '1.8.2 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1629,6 +1629,7 @@ async function renderEdit(id) {
       <div class="sheet-head"><h3>Recept koppelen</h3><button class="text-btn" data-close>Klaar</button></div>
       <input type="search" id="linkSearch" placeholder="Zoek een recept" autocomplete="off">
       <ul class="pick" id="pickList"></ul>`, 'Recept koppelen');
+    s.el.querySelector('.sheet').classList.add('tall');
     const drawPick = () => {
       const q = s.$('#linkSearch').value.trim().toLowerCase();
       const list = others.filter(x => !q || x.title.toLowerCase().includes(q));
