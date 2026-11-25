@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.2 · 25 november 2026';
+const APP_VERSION = '1.6.3 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1460,7 +1460,7 @@ const checkPublicUrl = (() => {
 const shortUrl = u => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
 function shareIntro(link) {
   const pitch = 'Ricetta, de receptenapp met kookstand, timers en een slimme boodschappenlijst';
-  return `${link ? `📖 Open dit recept direct in ${pitch}:\n${link}` : `🍝 Gedeeld met ${pitch}: ${shortUrl(APP_URL())}`}\n\n────────────`;
+  return `${link ? `🍝 Open dit recept direct in ${pitch}:\n${link}` : `🍝 Gedeeld met ${pitch}: ${shortUrl(APP_URL())}`}\n\n────────────`;
 }
 async function shareRecipe(r, servings, factor, link = '') {
   await checkPublicUrl();
