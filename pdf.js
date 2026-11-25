@@ -44,6 +44,8 @@ const RecipePdf = (() => {
   const fmtTime = m => { m = +m || 0; return m >= 60 ? `${Math.floor(m / 60)} u${m % 60 ? ` ${m % 60} min` : ''}` : `${m} min`; };
   const lines = s => String(s || '').split('\n').map(l => l.trim()).filter(Boolean);
 
+  // Plaatjes zonder vaste maat (getekende borden, svg) eerst op 800×600 tekenen, zodat het uitsnijden klopt
+  const rasterImg = img => { if (!img || !/^data:image\/svg|\.svg(\?|$)/i.test(img.src)) return img; const c = document.createElement('canvas'); c.width = 800; c.height = 600; c.getContext('2d').drawImage(img, 0, 0, 800, 600); return c; };
   function drawCover(ctx, img, x, y, w, h) {
     const r = Math.max(w / img.width, h / img.height), sw = w / r, sh = h / r;
     ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
@@ -143,7 +145,7 @@ const RecipePdf = (() => {
   async function render(r, { url, from, placeholder }) {
     await Promise.all(['400 40px "Bebas Neue"', '500 20px Oswald'].map(f => document.fonts.load(f).catch(() => {})));
     await loadQr();
-    const img = await loadImg(r.photo || placeholder);
+    const img = rasterImg(await loadImg(r.photo || placeholder));
     const pages = [];
     let { cv, ctx } = newPage(); pages.push(cv);
     // Foto
@@ -244,5 +246,78 @@ const RecipePdf = (() => {
     const { pages, links } = await render(r, opts);
     return toPdf(pages, links, opts.url, r.title || 'Recept');
   }
-  return { make, render };
+  // Menukaart (A4) voor op tafel of om te versturen
+  const MLEAF = 'M0,0 Q4,-6 8,-5 L10,-10 L14,-6 Q18,-9 22,-7 L25,-12 L28,-7 Q33,-8 36,-5 L42,0 L36,5 Q33,8 28,7 L25,12 L22,7 Q18,9 14,6 L10,10 L8,5 Q4,6 0,0Z';
+  function holly(ctx, x, y, s, flip) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(flip ? -s : s, s);
+    const leaf = new Path2D(MLEAF);
+    [[46, 30, -28, '#2f7a3d', 1], [44, 34, 200, '#3b8f4a', 1], [46, 31, 95, '#286c35', .8]].forEach(([tx, ty, rot, col, sc]) => {
+      ctx.save(); ctx.translate(tx, ty); ctx.rotate(rot * Math.PI / 180); ctx.scale(sc, sc); ctx.fillStyle = col; ctx.fill(leaf); ctx.restore();
+    });
+    [[42, 30, 5.5, '#c62d1f'], [51, 33, 5, '#b02418'], [45, 39, 5, '#d23a2a']].forEach(([cx, cy, r, col]) => { ctx.fillStyle = col; ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); });
+    ctx.restore();
+  }
+  function eggs(ctx, x, y, s, flip) {
+    ctx.save(); ctx.translate(x, y); ctx.scale(flip ? -s : s, s);
+    const egg = (cx, cy, rx, ry, rot, col) => { ctx.save(); ctx.translate(cx, cy); ctx.rotate(rot); ctx.fillStyle = col; ctx.beginPath(); ctx.ellipse(0, 0, rx, ry, 0, 0, 7); ctx.fill(); ctx.restore(); };
+    egg(38, 34, 13, 17, -.28, '#f2c94c'); egg(58, 38, 11, 14, .24, '#9fd3c7');
+    ctx.fillStyle = '#fff'; [[55, 34, 2], [61, 40, 2], [56, 44, 1.6]].forEach(([cx, cy, r]) => { ctx.beginPath(); ctx.arc(cx, cy, r, 0, 7); ctx.fill(); });
+    ctx.restore();
+  }
+  async function menu(m, groups) {
+    await Promise.all(['400 40px "Bebas Neue"', '500 20px Oswald'].map(f => document.fonts.load(f).catch(() => {})));
+    const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
+    const ctx = cv.getContext('2d');
+    ctx.fillStyle = C.cream; ctx.fillRect(0, 0, W, H);
+    // kaart met gouden lijst
+    const cx0 = mm(18), cy0 = mm(18), cw = W - mm(36), ch = H - mm(36);
+    ctx.fillStyle = C.paper; ctx.fillRect(cx0, cy0, cw, ch);
+    ctx.strokeStyle = '#c9a24a'; ctx.lineWidth = mm(.6); ctx.strokeRect(cx0 + mm(5), cy0 + mm(5), cw - mm(10), ch - mm(10));
+    ctx.strokeStyle = '#e8d9a8'; ctx.lineWidth = mm(.3); ctx.strokeRect(cx0 + mm(8), cy0 + mm(8), cw - mm(16), ch - mm(16));
+    if (m.kind === 'kerst') { holly(ctx, cx0 - mm(8), cy0 - mm(8), mm(.42), false); holly(ctx, cx0 + cw + mm(8), cy0 - mm(8), mm(.42), true); }
+    if (m.kind === 'pasen') { eggs(ctx, cx0 - mm(4), cy0 - mm(6), mm(.4), false); eggs(ctx, cx0 + cw + mm(4), cy0 - mm(6), mm(.4), true); }
+    // kop
+    let y = cy0 + mm(32);
+    ctx.fillStyle = C.mustard; ctx.font = `500 ${pt(11)}px Oswald`; spaced(ctx, 'MENU', W / 2, y, pt(11) * .34, 'center');
+    let ts = pt(46); const title = (m.title || 'Menu').toUpperCase();
+    ctx.font = `400 ${ts}px "Bebas Neue"`;
+    while (spacedWidth(ctx, title, ts * .04) > cw - mm(40) && ts > pt(26)) { ts *= .94; ctx.font = `400 ${ts}px "Bebas Neue"`; }
+    y += mm(4) + ts * .85; ctx.fillStyle = C.red; spaced(ctx, title, W / 2, y, ts * .04, 'center');
+    const sub = [m.dateText, `${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}`].filter(Boolean).join(' · ');
+    y += mm(9); ctx.fillStyle = C.muted; ctx.font = `italic 400 ${pt(12)}px ${SANS}`; ctx.textAlign = 'center'; ctx.fillText(sub, W / 2, y); ctx.textAlign = 'left';
+    const orn = yy => { ctx.fillStyle = '#c9a24a'; ctx.font = `400 ${pt(13)}px ${SANS}`; spaced(ctx, '✦ ✦ ✦', W / 2, yy, pt(13) * .4, 'center'); };
+    y += mm(12); orn(y);
+    // gangen en gerechten; ruimte gelijk verdelen over de kaart
+    const nDish = groups.reduce((s, g) => s + g.dishes.length, 0);
+    const avail = cy0 + ch - mm(30) - (y + mm(8));
+    const rowH = Math.min(mm(34), avail / Math.max(1, nDish + groups.length * .75));
+    const imgSize = Math.min(mm(25), rowH * .8);
+    // Plaatjes zonder vaste maat (getekende borden, svg) eerst op 400×300 tekenen, zodat het uitsnijden klopt
+    const imgs = (await Promise.all(groups.flatMap(g => g.dishes).map(r => loadImg(r.photo || r._ph)))).map(rasterImg);
+    let k = 0;
+    y += mm(8);
+    for (const g of groups) {
+      y += rowH * .45;
+      ctx.fillStyle = C.mustard; ctx.font = `500 ${pt(11)}px Oswald`; spaced(ctx, g.course.toUpperCase(), W / 2, y, pt(11) * .3, 'center');
+      y += rowH * .3;
+      for (const r of g.dishes) {
+        const img = imgs[k++];
+        ctx.font = `400 ${pt(24)}px "Bebas Neue"`;
+        const t = (r.title || '').toUpperCase();
+        let fs = pt(24); while (spacedWidth(ctx, t, fs * .03) > mm(110) && fs > pt(12)) { fs *= .94; ctx.font = `400 ${fs}px "Bebas Neue"`; }
+        const tw = spacedWidth(ctx, t, fs * .03), blockW = imgSize + mm(5) + tw, bx = W / 2 - blockW / 2, cy = y + rowH / 2;
+        if (img) {
+          ctx.save(); ctx.beginPath(); ctx.arc(bx + imgSize / 2, cy, imgSize / 2, 0, 7); ctx.clip(); drawCover(ctx, img, bx, cy - imgSize / 2, imgSize, imgSize); ctx.restore();
+          ctx.strokeStyle = '#e8d9a8'; ctx.lineWidth = mm(.4); ctx.beginPath(); ctx.arc(bx + imgSize / 2, cy, imgSize / 2 + mm(.8), 0, 7); ctx.stroke();
+        }
+        ctx.fillStyle = C.ink; spaced(ctx, t, bx + imgSize + mm(5), cy + fs * .32, fs * .03);
+        y += rowH;
+      }
+    }
+    orn(cy0 + ch - mm(22));
+    wordmark(ctx, W / 2, cy0 + ch - mm(12), pt(14), 'center');
+    return toPdf([cv], [], '', m.title || 'Menu');
+  }
+
+  return { make, render, menu };
 })();

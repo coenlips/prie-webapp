@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.7.2 · 25 november 2026';
+const APP_VERSION = '1.8.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -485,6 +485,7 @@ $('#addBtn').addEventListener('click', () => Importer.openSheet());
 function renderList() {
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
   setHeader({ lead: loggedIn() ? `<button class="icon-btn books-btn" data-go="#/kookboeken" aria-label="Ricette van anderen" title="Ricette van anderen">${ICONS.book}</button>` : '', actions: `
+    <button class="icon-btn menus-btn" data-go="#/menus" aria-label="Menu's" title="Menu's">${Menus.MENU_ICON}</button>
     <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
@@ -2357,6 +2358,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.8.0', date: '25 november 2026', sections: [{ items: [
+    'Menu’s: stel via het menukaart-icoon bovenaan een menu samen voor Kerst, Pasen of een etentje, met recepten per gang.',
+    'Met één tik alle boodschappen voor het hele menu, omgerekend naar het aantal personen, en een mooie menukaart als pdf voor op tafel.',
+  ] }] },
   { v: '1.6.0', date: '25 november 2026', sections: [{ items: [
     'Deel een recept als mooie pdf, als een bladzijde uit een kookmagazine: Delen → Als pdf met QR-code.',
     'Wie de QR-code scant, ziet het recept en bewaart het met één tik in zijn eigen Ricetta. De link kun je altijd weer intrekken.',
@@ -3327,7 +3332,7 @@ async function route() {
   if (page !== 'r' && state.cookMode) setCookMode(false);
   if (page !== 'r') state.backStack = [];
   document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
-  document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
+  document.body.dataset.page = ({ menus: 'menus', menu: 'menus', r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
     ontvangen: 'detail', kookboeken: 'settings', kookboek: 'book' })[page] || 'list';
 
   // Gedeeld recept via QR-code of link: ook zonder account te bekijken
@@ -3348,6 +3353,9 @@ async function route() {
   if (page === 'kookboeken') return renderBooks();
   if (page === 'kookboek' && id && sub) return renderBookRecipe(+id, decodeURIComponent(sub));
   if (page === 'kookboek' && id) return renderBook(+id);
+  if (page === 'menus') return Menus.renderList(view);
+  if (page === 'menu' && id && sub === 'bewerk') return Menus.renderEdit(view, decodeURIComponent(id));
+  if (page === 'menu' && id) return Menus.renderMenu(view, decodeURIComponent(id));
   if (page === 'boodschappen') {
     setHeader({ title: 'Boodschappen', back: true, timer: false });
     return Shopping.render(view);
