@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.9.0 · 25 november 2026';
+const APP_VERSION = '1.9.1 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -462,8 +462,9 @@ function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', 
 
 /* ---------- Tabbladen: onderin op de iPhone, in de menubalk op iPad en laptop ---------- */
 const TAB_PAGES = { '': 'recepten', menus: 'menus', boodschappen: 'boodschappen', kookboeken: 'ricette' };
-function updateTabs(page) {
-  const cur = TAB_PAGES[page || ''];
+function updateTabs(page, sub) {
+  // ook in iemands Ricette (maar niet in een recept daaruit)
+  const cur = page === 'kookboek' && !sub ? 'ricette' : TAB_PAGES[page || ''];
   const show = !!cur && !accountGate();
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
   const tabs = [['recepten', '#/', ICONS.plate, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
@@ -3088,7 +3089,7 @@ async function renderBook(ownerId) {
   const seq = routeSeq;
   document.body.dataset.page = 'book';
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
-  const head = title => setHeader({ title, back: true, close: true, timer: false, actions: `
+  const head = title => setHeader({ title, back: true, timer: false, actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
   head('Ricette');
@@ -3358,7 +3359,7 @@ async function route() {
   document.body.dataset.page = ({ menus: 'menus', menu: 'menus', r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
     ontvangen: 'detail', kookboeken: 'settings', kookboek: 'book' })[page] || 'list';
 
-  updateTabs(page);
+  updateTabs(page, sub);
   // Gedeeld recept via QR-code of link: ook zonder account te bekijken
   if (page === 'deel' && id) return renderSharedLink(id);
 
