@@ -33,7 +33,8 @@ const Menus = (() => {
     for (let i = 0; imgs.length < n; i++) imgs.push(`images/placeholders/p${(hashStr(m.id) + i) % 8 + 1}.svg`);
     return imgs;
   };
-  const MENU_ICON = '<svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="1.5"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>';
+  // Serveerstolp
+  const MENU_ICON = '<svg viewBox="0 0 24 24"><path d="M3 18.5a9 9 0 0 1 18 0"/><path d="M1.8 18.5h20.4"/><path d="M12 9.5V7.5M10.3 7.5h3.4"/><path d="M6.6 15a5.6 5.6 0 0 1 2.9-3.1"/></svg>';
 
   async function create(kind) {
     const k = KINDS[kind] || KINDS.anders;
