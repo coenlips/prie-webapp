@@ -150,6 +150,11 @@ function db(): PDO {
         revoked TINYINT(1) NOT NULL DEFAULT 0, views INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL,
         INDEX user_recipe (user_id, recipe_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Mislukte imports (recept van een website ophalen), zodat de beheerder ziet welke sites niet lukken
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_import_fails (
+        id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, site VARCHAR(190) NOT NULL, url VARCHAR(500) NOT NULL DEFAULT '',
+        reason VARCHAR(16) NOT NULL, status INT NOT NULL DEFAULT 0, at BIGINT NOT NULL, INDEX (site)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     // Testaccounts (alleen zichtbaar voor de beheerder)
     if (!has_column($pdo, 'recepten_users', 'is_test')) {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0");
@@ -273,7 +278,7 @@ function create_user(string $name): array {
 
 // Een gebruiker met alles erop en eraan verwijderen
 function delete_user_all(int $id): void {
-    foreach (['recepten', 'recepten_tokens', 'recepten_inbox', 'recepten_feedback', 'recepten_links'] as $t) {
+    foreach (['recepten', 'recepten_tokens', 'recepten_inbox', 'recepten_feedback', 'recepten_links', 'recepten_import_fails'] as $t) {
         db()->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$id]);
     }
     db()->prepare('DELETE FROM recepten_book_access WHERE owner_id = ? OR viewer_id = ?')->execute([$id, $id]);
@@ -1028,6 +1033,46 @@ switch ($action) {
         header('Cache-Control: public, max-age=' . max(60, $exp - time()) . ', immutable');
         echo base64_decode(substr($data, strlen($m[0])));
         exit;
+    }
+
+    /* ---------- Mislukte imports ---------- */
+
+    // De app meldt een mislukte import: site, adres en reden (geblokkeerd, geen recept, foutmelding van de site)
+    case 'import_fail': {
+        $u = require_user();
+        $b = body();
+        $site = strtolower(preg_replace('/^www\./', '', mb_substr(trim((string) ($b['site'] ?? '')), 0, 190)));
+        if ($site === '' || !preg_match('/^[a-z0-9.-]+$/', $site)) out(['ok' => true]);
+        $reason = in_array($b['reason'] ?? '', ['blocked', 'norecipe', 'http', 'error', 'iphone'], true) ? $b['reason'] : 'error';
+        $st = db()->prepare('SELECT COUNT(*) FROM recepten_import_fails WHERE user_id = ? AND at > ?');
+        $st->execute([$u['id'], now_ms() - 86400 * 1000]);
+        if ((int) $st->fetchColumn() < 100) {
+            db()->prepare('INSERT INTO recepten_import_fails (user_id, site, url, reason, status, at) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$u['id'], $site, mb_substr((string) ($b['url'] ?? ''), 0, 500), $reason, (int) ($b['status'] ?? 0), now_ms()]);
+        }
+        out(['ok' => true]);
+    }
+
+    // Beheerder: per site hoe vaak het misging, waarom, door hoeveel mensen, en het laatste adres
+    case 'import_fails': {
+        require_admin();
+        $rows = db()->query("SELECT site, COUNT(*) AS n, COUNT(DISTINCT user_id) AS users, MAX(at) AS last,
+            SUM(reason = 'blocked') AS blocked, SUM(reason = 'norecipe') AS norecipe, SUM(reason = 'http') AS http, SUM(reason = 'error') AS error, SUM(reason = 'iphone') AS iphone
+            FROM recepten_import_fails GROUP BY site ORDER BY n DESC, last DESC LIMIT 100")->fetchAll();
+        $last = db()->prepare('SELECT url, status FROM recepten_import_fails WHERE site = ? ORDER BY at DESC LIMIT 1');
+        out(array_map(function ($r) use ($last) {
+            $last->execute([$r['site']]); $l = $last->fetch() ?: ['url' => '', 'status' => 0];
+            return ['site' => $r['site'], 'count' => (int) $r['n'], 'users' => (int) $r['users'], 'last' => (int) $r['last'], 'url' => $l['url'], 'status' => (int) $l['status'],
+                'reasons' => array_filter(['blocked' => (int) $r['blocked'], 'norecipe' => (int) $r['norecipe'], 'http' => (int) $r['http'], 'error' => (int) $r['error'], 'iphone' => (int) $r['iphone']])];
+        }, $rows));
+    }
+
+    case 'import_fails_clear': {
+        require_admin();
+        $site = (string) (body()['site'] ?? '');
+        if ($site === '') db()->exec('DELETE FROM recepten_import_fails');
+        else db()->prepare('DELETE FROM recepten_import_fails WHERE site = ?')->execute([$site]);
+        out(['ok' => true]);
     }
 
     /* ---------- Deellinks (QR-code op een pdf) ---------- */

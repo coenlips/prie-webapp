@@ -149,6 +149,11 @@ const Importer = (() => {
   /* ---------- Ophalen via de eigen server ---------- */
 
   const hostOf = u => { try { return new URL(u).hostname.replace(/^www\./, ''); } catch { return ''; } };
+  // Mislukte import doorgeven aan de server (de beheerder ziet per site wat er misgaat); stil als dat niet lukt
+  const reportFail = (url, reason, status = 0) => {
+    const site = hostOf(/^https?:\/\//i.test(url) ? url : 'https://' + url);
+    if (site) Sync.call('import_fail', { site, url, reason, status }).catch(() => {});
+  };
 
   async function importUrl(url, status) {
     url = url.trim();
@@ -160,11 +165,11 @@ const Importer = (() => {
     status('Pagina ophalen…');
     const page = await Sync.call('fetch', { url });
     const site = hostOf(page.url || url);
-    if (page.blocked || [401, 403, 405, 429].includes(page.status)) return { blocked: site };
-    if (page.status >= 400) throw new Error(`De pagina gaf een foutmelding (${page.status}). Klopt het adres?`);
+    if (page.blocked || [401, 403, 405, 429].includes(page.status)) { reportFail(page.url || url, 'blocked', page.status); return { blocked: site }; }
+    if (page.status >= 400) { reportFail(page.url || url, 'http', page.status); throw new Error(`De pagina gaf een foutmelding (${page.status}). Klopt het adres?`); }
 
     const recipe = findRecipe(page.jsonld || []);
-    if (!recipe) return { noRecipe: site };
+    if (!recipe) { reportFail(page.url || url, 'norecipe', page.status); return { noRecipe: site }; }
     const draft = fromRecipe(recipe, page);
     draft.source = page.url || url;
 
@@ -255,6 +260,8 @@ const Importer = (() => {
           openDraft(res.draft);
         }
       } catch (e) {
+        const u = $$('[name=url]').value.trim();
+        if (!/foutmelding \(\d+\)|Plak eerst|Log eerst/.test(e.message) && /\S+\.\S+/.test(u)) reportFail(u, 'error');
         msg(esc(e.message), 'bad');
       } finally {
         busy(false);
@@ -339,6 +346,7 @@ const Importer = (() => {
         if (fetched && !fetched.blocked && fetched.status < 400 && findRecipe(fetched.jsonld || [])) {
           Object.assign(page, { jsonld: fetched.jsonld, og: fetched.og, title: fetched.title, text: '' });
         } else {
+          reportFail(page.url, 'iphone');
           await Sync.call('inbox_delete', { id: item.id }).catch(() => {});
           inbox = inbox.filter(x => x !== item); renderBanner();
           openSheet({ url: page.url, message: `<strong>${esc(site)}</strong> laat automatisch ophalen niet toe. Open het recept, kopieer de tekst en plak hem hieronder.` });

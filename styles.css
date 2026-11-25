@@ -1589,3 +1589,17 @@ body.cook .bon-appetit.feest { padding: 80px 0 90px; }
 
 .acc-role.test-role { background: var(--teal); color: #fff; }
 #testRemove { margin-top: 8px; }
+
+/* Beheerder: mislukte imports */
+.fails { list-style: none; margin: 8px 0 12px; padding: 0; display: grid; gap: 8px; }
+.fails li { position: relative; background: var(--bg); border: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 4px; }
+.fail-top { display: flex; align-items: baseline; gap: 8px; padding-right: 64px; }
+.fail-top b { font-size: 16px; word-break: break-all; }
+.fail-n { font: 400 20px/1 var(--font-title); color: var(--accent); }
+.fail-why { display: flex; flex-wrap: wrap; gap: 5px; }
+.fail-tag { font: 500 11px var(--font-label); letter-spacing: .08em; text-transform: uppercase; padding: 2px 7px; border-radius: 2px; background: var(--accent-soft); color: var(--accent); }
+.fail-tag.fail-norecipe { background: #f3e9cf; color: var(--mustard); }
+.fail-tag.fail-iphone { background: var(--text); color: var(--bg); }
+.fails small { color: var(--muted); font-size: 13px; }
+.fail-url { font-size: 13px; color: var(--accent); word-break: break-all; }
+.fail-clear { position: absolute; top: 10px; right: 12px; font-size: 13px; }

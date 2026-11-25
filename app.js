@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.6 · 25 november 2026';
+const APP_VERSION = '1.6.7 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2528,16 +2528,18 @@ function lastSeenText(u) {
   return `actief op ${d.toLocaleDateString('nl-NL', { day: 'numeric', month: 'long' })}`;
 }
 
+const FAIL_REASONS = { blocked: 'geblokkeerd', norecipe: 'geen recept gevonden', http: 'foutmelding van de site', error: 'mislukt', iphone: 'ook via iPhone niet' };
 async function renderUsers() {
   const seq = routeSeq;
   setHeader({ title: 'Gebruikers', back: true, timer: false });
   const me = Sync.status().user;
   if (!me || !me.admin) { location.hash = '#/settings'; return; }
   view.innerHTML = `<section class="settings">${loaderHtml('Gebruikers ophalen…')}</section>`;
-  let users, requests = [];
+  let users, requests = [], fails = null;
   try {
     users = await Sync.call('users');
     requests = await Sync.call('requests').catch(() => []);   // oudere server: geen aanvragen
+    fails = await Sync.call('import_fails').catch(() => null);   // oudere server: geen lijst
   }
   catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
   if (isStale(seq)) return;
@@ -2568,6 +2570,19 @@ async function renderUsers() {
         </ul>
         <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
       </div>
+      ${fails ? `<div class="card-box">
+        <h3>Mislukte imports</h3>
+        <p>Websites waarvan het ophalen van een recept niet lukte, met de meeste mislukte pogingen bovenaan.</p>
+        ${fails.length ? `<ul class="fails">${fails.map(f => `
+          <li>
+            <div class="fail-top"><b>${esc(f.site)}</b><span class="fail-n">${f.count}×</span></div>
+            <div class="fail-why">${Object.entries(f.reasons).map(([k, n]) => `<span class="fail-tag fail-${k}">${FAIL_REASONS[k] || k}${Object.keys(f.reasons).length > 1 ? ` ${n}` : ''}</span>`).join('')}</div>
+            <small>${f.users} ${f.users === 1 ? 'persoon' : 'mensen'} · laatst op ${new Date(f.last).toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' })}${f.status ? ` · code ${f.status}` : ''}</small>
+            ${f.url ? `<a class="fail-url" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.url.replace(/^https?:\/\/(www\.)?/, ''))}</a>` : ''}
+            <button class="link fail-clear" data-fail="${esc(f.site)}">Wissen</button>
+          </li>`).join('')}</ul>
+          <button class="btn ghost" id="failsClear">Alles wissen</button>` : '<p class="small-note">Nog geen mislukte imports. 🎉</p>'}
+      </div>` : ''}
       <div class="card-box">
         <h3>Testaccounts</h3>
         <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
@@ -2599,6 +2614,8 @@ async function renderUsers() {
       view.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = false; });
     }
   };
+  view.querySelectorAll('[data-fail]').forEach(b => b.onclick = async () => { await Sync.call('import_fails_clear', { site: b.dataset.fail }).catch(e => toast(e.message)); renderUsers(); });
+  if ($('#failsClear')) $('#failsClear').onclick = async () => { if (!confirm('Alle mislukte imports wissen?')) return; await Sync.call('import_fails_clear', {}).catch(e => toast(e.message)); renderUsers(); };
   if ($('#testMake')) $('#testMake').onclick = () => testRun(false);
   if ($('#testRemove')) $('#testRemove').onclick = () => testRun(true);
 
