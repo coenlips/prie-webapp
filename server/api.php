@@ -144,6 +144,12 @@ function db(): PDO {
             ADD COLUMN thumb MEDIUMTEXT NULL, ADD COLUMN thumb_s MEDIUMTEXT NULL, ADD COLUMN light_v TINYINT NOT NULL DEFAULT 0,
             ADD INDEX user_shared (user_id, shared)");
     }
+    // Deellinks (QR-code op de pdf): een kopie van het recept onder een korte, openbare code
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_links (
+        token VARCHAR(16) NOT NULL PRIMARY KEY, user_id INT NOT NULL, recipe_id VARCHAR(64) NOT NULL, data LONGTEXT NOT NULL,
+        revoked TINYINT(1) NOT NULL DEFAULT 0, views INT NOT NULL DEFAULT 0, created_at BIGINT NOT NULL, updated_at BIGINT NOT NULL,
+        INDEX user_recipe (user_id, recipe_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     // Testaccounts (alleen zichtbaar voor de beheerder)
     if (!has_column($pdo, 'recepten_users', 'is_test')) {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0");
@@ -267,7 +273,7 @@ function create_user(string $name): array {
 
 // Een gebruiker met alles erop en eraan verwijderen
 function delete_user_all(int $id): void {
-    foreach (['recepten', 'recepten_tokens', 'recepten_inbox', 'recepten_feedback'] as $t) {
+    foreach (['recepten', 'recepten_tokens', 'recepten_inbox', 'recepten_feedback', 'recepten_links'] as $t) {
         db()->prepare("DELETE FROM $t WHERE user_id = ?")->execute([$id]);
     }
     db()->prepare('DELETE FROM recepten_book_access WHERE owner_id = ? OR viewer_id = ?')->execute([$id, $id]);
@@ -1022,6 +1028,59 @@ switch ($action) {
         header('Cache-Control: public, max-age=' . max(60, $exp - time()) . ', immutable');
         echo base64_decode(substr($data, strlen($m[0])));
         exit;
+    }
+
+    /* ---------- Deellinks (QR-code op een pdf) ---------- */
+
+    // Link maken of bijwerken: zelfde recept houdt dezelfde code (dus dezelfde QR), met de nieuwste versie erachter
+    case 'link_create': {
+        $u = require_user();
+        $r = body()['recipe'] ?? null;
+        if (!is_array($r) || empty($r['id']) || !is_string($r['id']) || trim((string) ($r['title'] ?? '')) === '') fail(400, 'Geen recept meegestuurd.');
+        unset($r['links'], $r['favorite'], $r['notes'], $r['shared'], $r['_inboxId'], $r['thumb'], $r['thumbS'], $r['thumbV']);
+        $json = json_encode($r, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+        if (strlen($json) > 6 * 1024 * 1024) fail(413, 'Dit recept is te groot om te delen (de foto is erg groot).');
+        $st = db()->prepare('SELECT token FROM recepten_links WHERE user_id = ? AND recipe_id = ? AND revoked = 0 LIMIT 1');
+        $st->execute([$u['id'], $r['id']]);
+        $token = $st->fetchColumn();
+        if ($token) {
+            db()->prepare('UPDATE recepten_links SET data = ?, updated_at = ? WHERE token = ?')->execute([$json, now_ms(), $token]);
+        } else {
+            $abc = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+            do { $token = ''; for ($i = 0; $i < 10; $i++) $token .= $abc[random_int(0, strlen($abc) - 1)];
+                 $st = db()->prepare('SELECT 1 FROM recepten_links WHERE token = ?'); $st->execute([$token]); } while ($st->fetchColumn());
+            db()->prepare('INSERT INTO recepten_links (token, user_id, recipe_id, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
+                ->execute([$token, $u['id'], $r['id'], $json, now_ms(), now_ms()]);
+        }
+        out(['token' => $token]);
+    }
+
+    // Is er een (niet ingetrokken) link voor dit recept?
+    case 'link_status': {
+        $u = require_user();
+        $st = db()->prepare('SELECT token, views, created_at FROM recepten_links WHERE user_id = ? AND recipe_id = ? AND revoked = 0 LIMIT 1');
+        $st->execute([$u['id'], (string) (body()['id'] ?? '')]);
+        $row = $st->fetch();
+        out($row ? ['token' => $row['token'], 'views' => (int) $row['views'], 'created' => (int) $row['created_at']] : ['token' => null]);
+    }
+
+    case 'link_revoke': {
+        $u = require_user();
+        db()->prepare('UPDATE recepten_links SET revoked = 1, data = ? WHERE user_id = ? AND recipe_id = ?')->execute(['{}', $u['id'], (string) (body()['id'] ?? '')]);
+        out(['ok' => true]);
+    }
+
+    // Openbaar: het recept achter een code (iedereen met de QR-code of link mag kijken)
+    case 'link_get': {
+        $token = (string) (body()['token'] ?? ($_GET['t'] ?? ''));
+        if (!preg_match('/^[A-Za-z0-9]{6,16}$/', $token)) fail(404, 'Deze link klopt niet.');
+        $st = db()->prepare('SELECT l.data, l.revoked, u.name FROM recepten_links l LEFT JOIN recepten_users u ON u.id = l.user_id WHERE l.token = ?');
+        $st->execute([$token]);
+        $row = $st->fetch();
+        if (!$row) fail(404, 'Deze link klopt niet (meer).');
+        if ($row['revoked']) fail(410, 'Dit recept wordt niet meer gedeeld.');
+        db()->prepare('UPDATE recepten_links SET views = views + 1 WHERE token = ?')->execute([$token]);
+        out(['recipe' => json_decode((string) $row['data'], true), 'from' => $row['name'] ?? '']);
     }
 
     /* ---------- Postvak: recepten gedeeld vanaf de iPhone ---------- */

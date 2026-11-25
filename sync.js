@@ -341,6 +341,12 @@ const Sync = (() => {
     return api(action, body);
   }
 
-  return { syncNow, cardHtml, bindCard, status, onChange, call, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
+  // Zonder inloggen (bijv. een gedeeld recept via een QR-code openen)
+  function publicCall(action, body) {
+    if (!configured()) return Promise.reject(new Error('Deze app is niet met een server verbonden.'));
+    return api(action, body, { auth: false });
+  }
+
+  return { syncNow, cardHtml, bindCard, status, onChange, call, publicCall, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
     onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onRequestButton: null };
 })();

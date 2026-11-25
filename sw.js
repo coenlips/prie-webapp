@@ -1,7 +1,7 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js (major.minor.patch:
 // hele punt = grote vernieuwing, tiende = nieuwe functie, honderdste = kleine aanpassing of fix).
-const VERSION = 'v1.5.4';
+const VERSION = 'v1.6.0';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
@@ -14,6 +14,8 @@ const FILES = [
   'timer.js',
   'importer.js',
   'shopping.js',
+  'pdf.js',
+  'vendor/qrcode.js',
   'manifest.webmanifest',
   'icons/apple-touch-icon-r.png',
   'icons/icon-192-r.png',

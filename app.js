@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.5.4 · 25 november 2026';
+const APP_VERSION = '1.6.0 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -16,6 +16,7 @@ const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 
 
 const ICONS = {
   bug: '<svg viewBox="0 0 24 24"><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0z"/><path d="M12 9v9M4 13h4M16 13h4M5 7l3 2M19 7l-3 2M5 19l3-2M19 19l-3-2M10 5 9 3M14 5l1-2"/></svg>',
+  pdf: '<svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4"/><path d="M9 13h6M9 17h4"/></svg>',
   news: '<svg viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
@@ -2324,6 +2325,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.6.0', date: '25 november 2026', sections: [{ items: [
+    'Deel een recept als mooie pdf, als een bladzijde uit een kookmagazine: Delen → Als pdf met QR-code.',
+    'Wie de QR-code scant, ziet het recept en bewaart het met één tik in zijn eigen Ricetta. De link kun je altijd weer intrekken.',
+  ] }] },
   { v: '1.5.0', date: '25 november 2026', sections: [{ items: [
     'Feestelijk koken: heb je alle stappen van een recept met de categorie Kerst of Sinterklaas afgestreept, dan krijg je een feestbanner.',
   ] }] },
@@ -2776,6 +2781,73 @@ function peoplePicker(box, { people, top, selected, single = false, disabled = (
 }
 
 /* Delen-knop bij een recept: naar iemand in Ricetta, of via WhatsApp/mail */
+// Recept als pdf (met QR-code naar een deellink). Eerst maken, dan delen met een aparte tik:
+// de iPhone staat delen alleen toe direct na een tik.
+async function openPdfSheet(r) {
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Pdf maken</h3><button class="text-btn" data-close>Sluit</button></div>
+    <div id="pdfBody">${loaderHtml('Pdf maken…')}</div>`, 'Pdf maken');
+  try {
+    const { token } = await Sync.call('link_create', { recipe: r });
+    const url = `${location.origin}${location.pathname}#/deel/${token}`;
+    const blob = await RecipePdf.make(r, { url, from: Sync.status().user?.name || '', placeholder: placeholder(r.id) });
+    const name = `${(r.title || 'recept').replace(/[^\p{L}\p{N}]+/gu, '-').replace(/^-|-$/g, '').toLowerCase() || 'recept'}.pdf`;
+    const file = new File([blob], name, { type: 'application/pdf' });
+    const href = URL.createObjectURL(blob);
+    if (!s.el.isConnected) return;
+    s.$('#pdfBody').innerHTML = `
+      <p class="acc-sheet-text">De pdf van <strong>${esc(r.title)}</strong> is klaar (${Math.max(1, Math.round(blob.size / 1024))} kB). Wie de QR-code scant, kan het recept met één tik bewaren in Ricetta.</p>
+      ${navigator.canShare && navigator.canShare({ files: [file] }) ? `<button class="btn" id="pdfSend">${ICONS.share} Delen…</button>` : ''}
+      <a class="btn ghost" id="pdfOpen" href="${href}" download="${esc(name)}" target="_blank" rel="noopener">${ICONS.pdf} Pdf bekijken of bewaren</a>`;
+    const send = s.$('#pdfSend');
+    if (send) send.onclick = async () => { try { await navigator.share({ files: [file], title: r.title }); s.close(); } catch { /* geannuleerd */ } };
+  } catch (err) {
+    if (s.el.isConnected) s.$('#pdfBody').innerHTML = `<p class="sync-msg">${esc(/Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message)}</p>`;
+  }
+}
+
+// Een gedeeld recept (QR-code of link): ook te bekijken zonder account
+const PENDING_LINK = 'ricetta-pending-link';
+async function renderSharedLink(token) {
+  const seq = routeSeq;
+  document.body.dataset.page = 'detail';
+  setHeader({ title: 'Recept', back: false, timer: false });
+  view.innerHTML = loaderHtml('Recept ophalen…');
+  let d;
+  try { d = await Sync.publicCall('link_get', { token }); }
+  catch (err) {
+    if (isStale(seq)) return;
+    view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p><a class="btn" href="#/">Naar Ricetta</a></div></section>`;
+    return;
+  }
+  if (isStale(seq)) return;
+  const canSave = loggedIn() || tryMode();
+  const already = state.recipes.find(x => x.fromUser === d.from && x.title === d.recipe.title);
+  await renderDetail(null, {
+    recipe: { ...d.recipe, id: `deel-${token}` }, from: d.from || 'iemand', back: false,
+    message: canSave ? '' : 'Bewaar dit recept in je eigen Ricetta: log in of vraag een account aan.',
+    saveLabel: canSave ? (already ? 'Nog een keer bewaren' : 'Bewaar in mijn recepten') : 'Bewaren in Ricetta',
+    onSave: async () => {
+      if (!canSave) { try { sessionStorage.setItem(PENDING_LINK, token); } catch { /* */ } location.hash = '#/'; return; }
+      const copy = await saveCopy(d.recipe, d.from || '');
+      toast('Bewaard in je recepten');
+      location.hash = '#/r/' + encodeURIComponent(copy.id);
+    },
+  });
+}
+// Na inloggen of 'eerst proberen': een recept dat iemand wilde bewaren alsnog bewaren
+async function importPendingLink() {
+  let token = null;
+  try { token = sessionStorage.getItem(PENDING_LINK); sessionStorage.removeItem(PENDING_LINK); } catch { /* */ }
+  if (!token) return;
+  try {
+    const d = await Sync.publicCall('link_get', { token });
+    const copy = await saveCopy(d.recipe, d.from || '');
+    toast(`"${d.recipe.title}" bewaard in je recepten`);
+    location.hash = '#/r/' + encodeURIComponent(copy.id);
+  } catch (err) { toast(err.message); }
+}
+
 async function openShareSheet(r, servings, factor) {
   if (!loggedIn()) return shareRecipe(r, servings, factor);
   const s = openAccSheet(`
@@ -2786,8 +2858,20 @@ async function openShareSheet(r, servings, factor) {
     <p class="sync-msg" id="sendErr" hidden></p>
     <button class="btn" id="sendBtn" disabled>Kies iemand</button>
     <p class="share-or">of</p>
-    <button class="btn ghost" id="sysShare">${ICONS.share} Via WhatsApp, Mail, …</button>`, 'Recept delen');
+    <button class="btn ghost" id="sysShare">${ICONS.share} Via WhatsApp, Mail, …</button>
+    <button class="btn ghost" id="pdfShare">${ICONS.pdf} Als pdf met QR-code</button>
+    <p class="small-note pdf-link" id="pdfLink" hidden></p>`, 'Recept delen');
   s.$('#sysShare').onclick = () => { s.close(); shareRecipe(r, servings, factor); };
+  s.$('#pdfShare').onclick = () => { s.close(); openPdfSheet(r); };
+  Sync.call('link_status', { id: r.id }).then(st => {
+    if (!st.token || !s.el.isConnected) return;
+    const p = s.$('#pdfLink'); p.hidden = false;
+    p.innerHTML = `Er is een deellink (QR-code) voor dit recept${st.views ? `, ${st.views} keer geopend` : ''}. <button class="link danger" id="pdfRevoke">Link intrekken</button>`;
+    s.$('#pdfRevoke').onclick = async () => {
+      if (!confirm('De deellink intrekken? De QR-code op eerder gemaakte pdf\'s werkt dan niet meer.')) return;
+      try { await Sync.call('link_revoke', { id: r.id }); p.textContent = 'De deellink is ingetrokken.'; } catch (err) { toast(err.message); }
+    };
+  }).catch(() => {});
   const selected = new Set();
   let people = [];
   const btn = s.$('#sendBtn');
@@ -3164,9 +3248,13 @@ async function route() {
   document.body.dataset.page = ({ r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
     ontvangen: 'detail', kookboeken: 'settings', kookboek: 'book' })[page] || 'list';
 
+  // Gedeeld recept via QR-code of link: ook zonder account te bekijken
+  if (page === 'deel' && id) return renderSharedLink(id);
+
   // Nog niet ingelogd (en niet aan het uitproberen), of eerst een eigen wachtwoord kiezen?
   const gate = accountGate();
   if (gate) return gate();
+  if (!/^(deel)$/.test(page || '')) { try { if (sessionStorage.getItem(PENDING_LINK)) setTimeout(importPendingLink, 300); } catch { /* */ } }
 
   maybeShowNews();
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
