@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.9.2 · 25 november 2026';
+const APP_VERSION = '1.9.3 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1162,7 +1162,8 @@ async function renderDetail(id, opts = {}) {
   let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
 
   setHeader({
-    title: r.title, back: !foreign || opts.back !== false, close: foreign, timerLabel: r.title,
+    title: r.title, back: !foreign || opts.back !== false, close: foreign && opts.back === false,   // kruisje alleen als er geen terugknop is (geopende deellink)
+    timerLabel: r.title,
     actions: `
       <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
       ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : `<button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
