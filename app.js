@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.7 · 25 november 2026';
+const APP_VERSION = '1.6.8 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -867,7 +867,8 @@ const Mag = (() => {
   let heroId = null;
   const rnd = id => { if (!rank.has(id)) rank.set(id, Math.random()); return rank.get(id); };
   // Recepten met foto eerst, daarbinnen willekeurig
-  const order = list => [...list].sort((a, b) => (!!b.photo - !!a.photo) || rnd(a.id) - rnd(b.id));
+  const photoRank = r => (r.photo ? (r._ph ? 1 : 2) : 0);   // echte foto eerst, dan getekend bord
+  const order = list => [...list].sort((a, b) => (photoRank(b) - photoRank(a)) || rnd(a.id) - rnd(b.id));
   const shuffle = () => { rank = new Map(); heroId = null; };
 
   function pickHero(all, wanted = heroId) {
@@ -971,14 +972,18 @@ const Mag = (() => {
   ];
 
   // opts (andermans Ricette): all, browsing, href, courses, cats, fillers [{id, icon, title, sub, on}], hero ({ id })
+  // Recepten zonder foto krijgen een getekend bord, zodat ook zij groot of uitgelicht kunnen staan
+  const phCache = new WeakMap();
+  const withPh = r => r.photo ? r : (phCache.get(r) || (phCache.set(r, { ...r, photo: placeholder(r.id), _ph: true }), phCache.get(r)));
   function render(el, list, opts = {}) {
     O = opts;
-    const all = opts.all || state.recipes;
+    list = list.map(withPh);
+    const all = (opts.all || state.recipes).map(withPh);
     // Uitgelicht recept alleen als je niet zoekt of filtert
     const browsing = opts.browsing ?? (!state.query.trim() && state.filter === 'all' && !state.course);
     const hero = browsing ? pickHero(all, opts.hero ? opts.hero.id : heroId) : null;
     if (hero) { if (opts.hero) opts.hero.id = hero.id; else heroId = hero.id; }
-    const rest = order(list).filter(r => r !== hero);
+    const rest = order(list).filter(r => !hero || r.id !== hero.id);
     const many = all.filter(r => r.photo).length > 1;
     const start = hero ? 2 : 1, row0 = hero ? 2 : 1;
     const cells = plan(rest, magCols());
@@ -991,8 +996,8 @@ const Mag = (() => {
       }
       const r = cell.r, zone = cell.big ? .22 : .36;
       const kicker = coursesOfR(r)[0] || catsOfR(r)[0] || '';
-      const f = r.photo && PhotoFocus.peek(r, 1, zone);
-      const cls = (cell.big ? ' big' : '') + (r.photo && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
+      const f = r.photo && !r._ph && PhotoFocus.peek(r, 1, zone);
+      const cls = (cell.big ? ' big' : '') + (r.photo && !r._ph && !f ? ' focusing' : '') + (f && f.labelTop ? ' label-top' : '');
       const img = r.photo
         ? `<img src="${r.photo}" alt="" loading="lazy"${f ? ` class="cropped" style="${PhotoFocus.style(f)}"` : ''}>`
         : `<img src="${placeholder(r.id)}" alt="" loading="lazy">`;
