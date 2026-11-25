@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.6.13 · 25 november 2026';
+const APP_VERSION = '1.6.14 · 25 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3123,7 +3123,9 @@ function showBook(ownerId, d, head, filtersOpen) {
         all: all.map(withPhoto), hero: f.hero || (f.hero = {}),
         browsing: !q && f.filter === 'all' && !f.course,
         href: r => `#/kookboek/${d.owner.id}/${encodeURIComponent(r.id)}`,
-        keep: (r, where) => mine(r) ? `<span class="keep-done mag-keep ${where}">✓ Bewaard</span>` : `<button class="keep-btn mag-keep ${where}" data-keep="${esc(r.id)}">+ Bewaar</button>`,
+        keep: (r, where) => where === 'hero'
+          ? (mine(r) ? `<span class="btn ghost mag-keep hero done">✓ Bewaard</span>` : `<button class="btn ghost mag-keep hero" data-keep="${esc(r.id)}">+ Bewaar</button>`)
+          : (mine(r) ? `<span class="keep-done mag-keep card">✓ Bewaard</span>` : `<button class="keep-btn mag-keep card" data-keep="${esc(r.id)}">+ Bewaar</button>`),
         courses: rCourses, cats: rCats,
         fillers: [
           { id: 'bkBooks', icon: 'book', title: 'Ricette', sub: 'Ricette van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },

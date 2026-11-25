@@ -1630,6 +1630,11 @@ body[data-page=book] .list-head.closed { box-shadow: none; }
 .mag-keep.card { position: absolute; z-index: 2; top: 12px; right: 12px; background: #fffdf8; box-shadow: 0 2px 6px rgba(43, 29, 20, .18); }
 .mag-keep.card.keep-done { background: #e6f3ea; }
 .mag-keep.card:hover { background: var(--accent); color: #fff; }
-.mag-keep.hero { aspect-ratio: auto; width: auto; height: auto; display: inline-flex; align-items: center; margin-left: 10px; padding: 12px 18px; font-size: 14px; align-self: center; }
+/* Bekijk recept en Bewaar: twee even grote knoppen naast elkaar */
+.mag-hero .mh-actions { display: flex; align-items: stretch; gap: 10px; }
+.mag-hero .mh-actions > .btn { flex: 0 0 auto; width: 190px; min-width: 0; aspect-ratio: auto; height: auto; margin: 0; padding: 12px 18px; box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; }
+.mag-hero .mh-actions > .btn.ghost { border: 1.5px solid var(--accent); background: transparent; color: var(--accent); }
+.mag-hero .mh-actions > .btn.ghost:hover { background: var(--accent-soft); }
+.mag-hero .mh-actions > .btn.done { border-color: #2e7d4f; color: #2e7d4f; }
 .mh-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 .mc-photo { position: relative; }
