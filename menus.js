@@ -60,8 +60,8 @@ const Menus = (() => {
       <div class="page-flag">${flagHtml("Menu's")}</div>
       <p class="mx-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p>
       <div class="mx-new">
-        <button class="chip" data-new="anders">${MENU_ICON} Nieuw menu</button>
         ${['kerst', 'pasen', 'etentje'].map(k => `<button class="chip" data-new="${k}">${KINDS[k].emoji} ${KINDS[k].label}</button>`).join('')}
+        <button class="chip mx-new-btn" data-new="anders">${MENU_ICON} Nieuw menu</button>
       </div>
       ${menus.length ? `<ul class="mx-list">${menus.map(m => {
         const n = dishesOf(m).length;

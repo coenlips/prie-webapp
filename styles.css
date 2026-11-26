@@ -1984,3 +1984,6 @@ body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 
 .card .thumb { width: 104px; height: 104px; }
 /* Bereidingsstappen alleen in de kookstand aantikbaar */
 body:not(.cook) .steps li { cursor: default; }
+/* Menu's: 'Nieuw menu' als rode knop achteraan */
+.mx-new .chip.mx-new-btn { background: var(--accent); border-color: var(--accent); color: #fff; }
+.mx-new .chip.mx-new-btn svg { color: #fff; stroke: #fff; }
