@@ -1966,3 +1966,10 @@ body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 
 @media (max-width: 359px) { .cook-fs button { width: 28px; } }
 .cook-fs button span { min-width: 0 !important; display: inline; }
 .cook-fs button { color: var(--text); }
+
+/* Kookstand: vegen tussen ingrediënten en bereiding, met een korte schuif */
+@keyframes swipeInL { from { transform: translateX(40px); opacity: .3; } to { transform: none; opacity: 1; } }
+@keyframes swipeInR { from { transform: translateX(-40px); opacity: .3; } to { transform: none; opacity: 1; } }
+.swipe-in-l { animation: swipeInL .22s ease-out; }
+.swipe-in-r { animation: swipeInR .22s ease-out; }
+@media (prefers-reduced-motion: reduce) { .swipe-in-l, .swipe-in-r { animation: none; } }

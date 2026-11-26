@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.14.1 · 26 november 2026';
+const APP_VERSION = '1.15.0 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1196,6 +1196,26 @@ $('#cookOff').addEventListener('click', () => setCookMode(false));
 document.querySelectorAll('#cookSwitch [data-tab]').forEach(b => b.addEventListener('click', () => {
   if (state.cookTab !== b.dataset.tab) { showCookTab(b.dataset.tab); window.scrollTo(0, 0); }
 }));
+
+// Kookstand (iPhone, iPad staand): vegen wisselt tussen ingrediënten en bereiding.
+// Alleen een duidelijke horizontale veeg telt; niet vanaf de schermrand (daar ga je soms terug).
+{ let sx = null, sy = 0, st = 0;
+  const can = () => state.cookMode && !$('#cookSwitch').hidden && getComputedStyle($('#cookSwitch')).display !== 'none' && !document.querySelector('.sheet-backdrop');
+  document.addEventListener('touchstart', e => {
+    const t = e.touches[0];
+    sx = e.touches.length === 1 && can() && t.clientX > 24 && t.clientX < innerWidth - 24 ? t.clientX : null; sy = t.clientY; st = Date.now();
+  }, { passive: true });
+  document.addEventListener('touchend', e => {
+    if (sx === null) return;
+    const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy; sx = null;
+    if (Date.now() - st > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
+    const tab = dx < 0 ? 'steps' : 'ingr';
+    if (state.cookTab === tab) return;
+    showCookTab(tab); window.scrollTo(0, 0);
+    const box = document.querySelector(tab === 'steps' ? '.part-steps' : '.part-ingr');
+    if (box) { box.classList.remove('swipe-in-l', 'swipe-in-r'); void box.offsetWidth; box.classList.add(dx < 0 ? 'swipe-in-l' : 'swipe-in-r'); }
+  }, { passive: true });
+}
 
 // opts.recipe: een recept dat (nog) niet van jou is, met opts.from (naam), opts.message,
 // opts.saveLabel/onSave en optioneel opts.onDiscard (onderaan een balk met knoppen)
@@ -2484,6 +2504,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.15.0', date: '26 november 2026', sections: [{ items: [
+    'Kookstand op de iPhone: veeg naar links voor de bereiding en naar rechts voor de ingrediënten.',
+  ] }] },
   { v: '1.14.0', date: '26 november 2026', sections: [{ items: [
     'Kookstand: met de twee A’s in de kopbalk maak je de tekst kleiner of groter. Ricetta onthoudt je keuze.',
   ] }] },
