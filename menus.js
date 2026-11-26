@@ -85,7 +85,7 @@ const Menus = (() => {
     const m = await DB.get(id);
     if (isStale(seq)) return;
     if (!m) { location.hash = '#/menus'; return; }
-    setHeader({ title: m.title, back: true, timer: false, actions: `<button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>` });
+    setHeader({ title: m.title, back: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
     Shopping.updateBadge();
     const dishes = dishesOf(m), kind = m.kind || 'anders';
     const courses = coursesOfMenu(m).filter(c => dishes.some(d => d.course === c));
