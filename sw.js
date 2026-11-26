@@ -1,7 +1,7 @@
 // Service worker: zorgt dat de app ook offline werkt.
 // Verhoog VERSION na elke wijziging, samen met APP_VERSION in app.js (major.minor.patch:
 // hele punt = grote vernieuwing, tiende = nieuwe functie, honderdste = kleine aanpassing of fix).
-const VERSION = 'v1.15.16';
+const VERSION = 'v1.15.17';
 const CACHE = `recepten-${VERSION}`;
 const FILES = [
   './',
