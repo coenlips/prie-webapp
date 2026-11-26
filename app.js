@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.13.2 · 26 november 2026';
+const APP_VERSION = '1.13.3 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -23,6 +23,7 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  timerPlus: '<svg viewBox="0 0 24 24"><circle cx="10" cy="14" r="7"/><path d="M10 10.5v3.5l2.2 1.6"/><path d="M8 3.5h4M10 3.5V7"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>',
   basketPlus: '<svg viewBox="0 0 24 24"><path d="M5.5 10V8.5a4.5 4.5 0 0 1 8.2-2.6"/><path d="M2 10h16l-1.5 9.2a1.5 1.5 0 0 1-1.5 1.3H5a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M7 13.5v3.5M10 13.5v3.5M13 13.5v3.5"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>',
   basket: '<svg viewBox="0 0 24 24"><path d="M7.5 10V8.5a4.5 4.5 0 0 1 9 0V10"/><path d="M3 10h18l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 13.5v3.5M12 13.5v3.5M15 13.5v3.5"/></svg>',
   cloud: '<svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.5 9.2 4.7 4.7 0 0 0 7 18.5z"/></svg>',
@@ -448,7 +449,7 @@ async function loadRecipes() {
 /* ---------- Kopbalk ---------- */
 
 // close: kruisje links om snel terug te gaan naar je eigen overzicht; lead: iconen vóór de wekker
-function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = true, timerLabel = '', docTitle = '' } = {}) {
+function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = false, timerLabel = '', docTitle = '' } = {}) {
   // In de menubalk alleen de naam Ricetta (op het overzicht); andere schermen geen titel, alleen de iconen.
   // De schermtitel blijft wel de titel van het tabblad en voor voorleessoftware.
   const brand = document.body.classList.contains('brand-head');   // iPad/laptop: altijd het logo
@@ -1169,6 +1170,9 @@ function showCookTab(tab) {
 }
 
 $('#cookOff').innerHTML = ICONS.cook;
+// Kookstand: wekker met plusje links van de koksmuts
+{ const t = document.createElement('button'); t.className = 'icon-btn cook-timer'; t.id = 'cookTimer'; t.setAttribute('aria-label', 'Kookwekker zetten'); t.title = 'Kookwekker zetten';
+  t.innerHTML = ICONS.timerPlus; t.onclick = () => Timers.openSheet(document.querySelector('.detail-title')?.textContent || ''); $('#cookOff').before(t); }
 // iPad/laptop: kruisje helemaal rechts om de kookstand te verlaten (in plaats van het pijltje links)
 { const x = document.createElement('button'); x.className = 'icon-btn cook-close'; x.id = 'cookClose'; x.setAttribute('aria-label', 'Kookstand sluiten'); x.title = 'Kookstand sluiten';
   x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>'; x.onclick = () => setCookMode(false); $('#cookOff').after(x); }
@@ -1258,7 +1262,7 @@ async function renderDetail(id, opts = {}) {
         </div>
 
         <div class="part-steps">
-        <h3>Bereiding</h3>
+        <h3>Bereiding</h3><button type="button" class="icon-btn timer-add" data-timer aria-label="Kookwekker zetten" title="Kookwekker zetten">${ICONS.timerPlus}</button>
         <ol class="steps">
           ${(() => {
             let n = 0; // nummering loopt door over de kopjes heen
@@ -1322,7 +1326,7 @@ async function renderDetail(id, opts = {}) {
     if (!cs) {
       cs = document.createElement('div');
       cs.className = 'stepper cook-stepper'; cs.id = 'cookServings'; cs.setAttribute('aria-label', 'Aantal porties');
-      $('#cookOff').before(cs);
+      ($('#cookTimer') || $('#cookOff')).before(cs);
     }
     cs.innerHTML = `<button aria-label="Minder porties">−</button><span>${ICONS.people} ${servings}</span><button aria-label="Meer porties">+</button>`;
     const [csMin, csPlus] = cs.querySelectorAll('button');
@@ -1363,6 +1367,7 @@ async function renderDetail(id, opts = {}) {
         if (show) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: state.cookMode ? 'end' : 'nearest' }));
       }
     });
+    view.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => Timers.openSheet(r.title));
     view.querySelectorAll('[data-cook]').forEach(b => b.onclick = async () => {
       setCookMode(!state.cookMode);
       const ok = await setWakeLock(state.cookMode);
