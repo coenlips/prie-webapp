@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.0 · 26 november 2026';
+const APP_VERSION = '1.15.1 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1129,7 +1129,7 @@ document.addEventListener('visibilitychange', () => {
 
 function setCookMode(on) {
   state.cookMode = on;
-  if (on) state.cookTab = 'ingr';
+  if (on) { state.cookTab = 'ingr'; for (const k in cookScroll) delete cookScroll[k]; }
   document.body.classList.toggle('cook', on);
   { const [, pg, , sb] = (location.hash || '#/').split('/'); updateTabs(pg, sb); if (!on && document.body.classList.contains('brand-head')) { $('#title').textContent = 'Ricetta'; } }
   $('#cookTabs').hidden = !on;
@@ -1194,8 +1194,18 @@ const COOK_FS = [0.8, 0.9, 1, 1.15, 1.3, 1.5], COOK_FS_KEY = 'ricetta-cook-fs';
 WIDE_MQ.addEventListener('change', () => { const [, pg, , sb] = (location.hash || '#/').split('/'); updateTabs(pg, sb); });
 $('#cookOff').addEventListener('click', () => setCookMode(false));
 document.querySelectorAll('#cookSwitch [data-tab]').forEach(b => b.addEventListener('click', () => {
-  if (state.cookTab !== b.dataset.tab) { showCookTab(b.dataset.tab); window.scrollTo(0, 0); }
+  if (state.cookTab !== b.dataset.tab) switchCookTab(b.dataset.tab);
 }));
+
+// Wisselen tussen ingrediënten en bereiding zonder dat de pagina naar boven springt:
+// elke kant onthoudt waar je was; de eerste keer blijft de pagina op dezelfde hoogte staan.
+const cookScroll = {};
+function switchCookTab(tab) {
+  cookScroll[state.cookTab] = scrollY;
+  const y = cookScroll[tab] ?? scrollY;
+  showCookTab(tab);
+  requestAnimationFrame(() => window.scrollTo(0, Math.min(y, document.documentElement.scrollHeight - innerHeight)));
+}
 
 // Kookstand (iPhone, iPad staand): vegen wisselt tussen ingrediënten en bereiding.
 // Alleen een duidelijke horizontale veeg telt; niet vanaf de schermrand (daar ga je soms terug).
@@ -1211,7 +1221,7 @@ document.querySelectorAll('#cookSwitch [data-tab]').forEach(b => b.addEventListe
     if (Date.now() - st > 700 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.8) return;
     const tab = dx < 0 ? 'steps' : 'ingr';
     if (state.cookTab === tab) return;
-    showCookTab(tab); window.scrollTo(0, 0);
+    switchCookTab(tab);
     const box = document.querySelector(tab === 'steps' ? '.part-steps' : '.part-ingr');
     if (box) { box.classList.remove('swipe-in-l', 'swipe-in-r'); void box.offsetWidth; box.classList.add(dx < 0 ? 'swipe-in-l' : 'swipe-in-r'); }
   }, { passive: true });
