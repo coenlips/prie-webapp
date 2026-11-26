@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.13.7 · 26 november 2026';
+const APP_VERSION = '1.14.0 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1170,6 +1170,21 @@ function showCookTab(tab) {
 }
 
 $('#cookOff').innerHTML = ICONS.cook;
+// Kookstand: tekst kleiner/groter (links van de portiekiezer); onthouden op dit toestel
+const COOK_FS = [0.8, 0.9, 1, 1.15, 1.3, 1.5], COOK_FS_KEY = 'ricetta-cook-fs';
+{ let i = (() => { try { const v = +localStorage.getItem(COOK_FS_KEY); return COOK_FS.includes(v) ? COOK_FS.indexOf(v) : 2; } catch { return 2; } })();
+  const box = document.createElement('div'); box.className = 'stepper cook-fs'; box.id = 'cookFs'; box.setAttribute('role', 'group'); box.setAttribute('aria-label', 'Tekstgrootte');
+  box.innerHTML = '<button type="button" data-fs="-1" aria-label="Tekst kleiner" title="Tekst kleiner"><span class="fs-s">A</span></button><button type="button" data-fs="1" aria-label="Tekst groter" title="Tekst groter"><span class="fs-l">A</span></button>';
+  const apply = () => {
+    document.documentElement.style.setProperty('--cook-fs', COOK_FS[i]);
+    box.querySelector('[data-fs="-1"]').disabled = i === 0; box.querySelector('[data-fs="1"]').disabled = i === COOK_FS.length - 1;
+  };
+  box.querySelectorAll('[data-fs]').forEach(b => b.onclick = () => {
+    i = Math.max(0, Math.min(COOK_FS.length - 1, i + +b.dataset.fs)); apply();
+    try { localStorage.setItem(COOK_FS_KEY, COOK_FS[i]); } catch { /* geen opslag */ }
+    centerStep(document.querySelector('.steps li.current'));
+  });
+  apply(); $('#cookOff').before(box); }
 // Kookstand: wekker met plusje links van de koksmuts
 { const t = document.createElement('button'); t.className = 'icon-btn cook-timer'; t.id = 'cookTimer'; t.setAttribute('aria-label', 'Kookwekker zetten'); t.title = 'Kookwekker zetten';
   t.innerHTML = ICONS.timerPlus; t.onclick = () => Timers.openSheet(document.querySelector('.detail-title')?.textContent || ''); $('#cookOff').before(t); }
@@ -2469,6 +2484,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.14.0', date: '26 november 2026', sections: [{ items: [
+    'Kookstand: met de twee A’s in de kopbalk maak je de tekst kleiner of groter. Ricetta onthoudt je keuze.',
+  ] }] },
   { v: '1.13.0', date: '26 november 2026', sections: [{ items: [
     'Ricetta staat nu altijd bovenin, ook op de iPhone. Terug gaat via de rode regel bij het recept, die zegt waar je heen gaat (bijvoorbeeld ‹ Recepten of ‹ Kerstdiner). Tik op het logo om naar je recepten te gaan.',
     'De tabbladen staan nu ook bij een recept. Open je een recept vanuit een menu, dan staat het tabblad Menu’s aan.',

@@ -1953,3 +1953,15 @@ body.cook .cook-timer { display: grid; }
 /* iPhone: ook in de kookstand de portiekiezer in de kopbalk */
 body.cook .cook-tabs .cook-stepper { display: flex; flex: none; margin: 0; height: 36px; }
 @media (max-width: 359px) { body.cook .cook-tabs .cook-stepper span { min-width: 30px; } body.cook .cook-tabs .cook-stepper button { width: 24px; } }
+
+/* Kookstand: tekstgrootte (A A) naast de portiekiezer */
+.cook-fs { display: none; }
+body.cook .cook-tabs .cook-fs { display: flex; flex: none; margin: 0; height: 36px; gap: 0; }
+.cook-fs button { width: 32px; height: 100%; display: grid; place-items: center; color: var(--accent); font-family: var(--font-title); line-height: 1; }
+.cook-fs button + button { border-left: 1px solid var(--line); }
+.cook-fs button:disabled { opacity: .3; }
+.cook-fs .fs-s { font-size: 15px; } .cook-fs .fs-l { font-size: 23px; }
+body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: calc(21px * var(--cook-fs, 1)); }
+@media (min-width: 900px) { body.cook .ingredients li:not(.sub) { font-size: calc(19px * var(--cook-fs, 1)); } }
+@media (max-width: 359px) { .cook-fs button { width: 28px; } }
+.cook-fs button span { min-width: 0 !important; display: inline; }
