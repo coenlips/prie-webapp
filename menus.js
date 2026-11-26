@@ -86,9 +86,11 @@ const Menus = (() => {
     const m = await DB.get(id);
     if (isStale(seq)) return;
     if (!m) { location.hash = '#/menus'; return; }
-    setHeader({ title: m.title, back: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
-    Shopping.updateBadge();
     const dishes = dishesOf(m), kind = m.kind || 'anders';
+    setHeader({ title: m.title, back: true, timer: false, actions: `
+      <button class="icon-btn" id="mkPdf" aria-label="Menukaart als pdf" title="Menukaart als pdf"${dishes.length ? '' : ' disabled'}>${ICONS.pdf}</button>
+      <button class="icon-btn" data-go="#/menu/${encodeURIComponent(m.id)}/bewerk" aria-label="Menu aanpassen" title="Menu aanpassen">${ICONS.edit}</button>` });
+    Shopping.updateBadge();
     const courses = coursesOfMenu(m).filter(c => dishes.some(d => d.course === c));
     const timeOf = r => formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
     view.innerHTML = `<section class="mx-wide">
@@ -105,8 +107,6 @@ const Menus = (() => {
       </div></div>
       <div class="mk-actions">
         <button class="btn" id="mkShop"${dishes.length ? '' : ' disabled'}>${ICONS.basket} Boodschappen voor ${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}</button>
-        <button class="btn ghost" id="mkPdf"${dishes.length ? '' : ' disabled'}>${ICONS.pdf} Menukaart als pdf</button>
-        <a class="btn ghost" href="#/menu/${encodeURIComponent(m.id)}/bewerk">${ICONS.edit} Menu aanpassen</a>
       </div>
     </section>`;
     view.querySelectorAll('.mk-dish').forEach(el => el.addEventListener('click', () => {
