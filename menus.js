@@ -36,6 +36,69 @@ const Menus = (() => {
   // Serveerstolp
   const MENU_ICON = '<svg viewBox="0 0 24 24"><path d="M3 18.5a9 9 0 0 1 18 0"/><path d="M1.8 18.5h20.4"/><path d="M12 9.5V7.5M10.3 7.5h3.4"/><path d="M6.6 15a5.6 5.6 0 0 1 2.9-3.1"/></svg>';
 
+  // Eerstvolgende menu's bovenaan, dan zonder datum, dan voorbije (nieuwste eerst)
+  function sortMenus(menus) {
+    const t = today();
+    return menus.sort((a, b) => {
+      const ga = !a.date ? 1 : a.date >= t ? 0 : 2, gb = !b.date ? 1 : b.date >= t ? 0 : 2;
+      return ga - gb || (ga === 2 ? b.date.localeCompare(a.date) : (a.date || '').localeCompare(b.date || '')) || (b.updatedAt || 0) - (a.updatedAt || 0);
+    });
+  }
+  // Serveerstolp met plusje: recept toevoegen aan een menu
+  const MENU_PLUS = '<svg viewBox="0 0 24 24"><path d="M2.5 19a8 8 0 0 1 16 0"/><path d="M1.5 19h18"/><path d="M10.5 11V9M9 9h3"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>';
+  const NEXT = '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>';
+
+  // Vanuit een recept: kies een menu, dan een gang
+  async function openAddSheet(r) {
+    const menus = sortMenus(await all());
+    const s = openAccSheet(`<div id="tmBody"></div>`, 'Toevoegen aan menu');
+    const body = s.$('#tmBody');
+    const short = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'short' }) : '';
+    const step1 = () => {
+      body.innerHTML = `<div class="sheet-head"><h3>Toevoegen aan menu</h3><button class="text-btn" data-close>Annuleer</button></div>
+        <p class="tm-sub">${esc(r.title)}</p>
+        ${menus.length ? `<ul class="tm-list">${menus.map(m => {
+          const n = dishesOf(m).length, inIt = (m.dishes || []).some(d => d.id === r.id);
+          return `<li><button type="button" class="tm-row${m.date && m.date < today() ? ' past' : ''}" data-m="${esc(m.id)}"><span class="tm-covers">${coverImgs(m).map(x => `<img src="${x}" alt="" loading="lazy">`).join('')}</span>
+            <span class="tm-tx"><small>${esc([KINDS[m.kind]?.label, short(m.date)].filter(Boolean).join(' · '))}</small><b>${esc(m.title || 'Menu')}</b><span>${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'} · ${n ? `${n} ${n === 1 ? 'gerecht' : 'gerechten'}` : 'nog leeg'}</span></span>
+            ${inIt ? '<span class="tm-in">✓ staat erin</span>' : ''}<span class="tm-chev">${NEXT}</span></button></li>`;
+        }).join('')}</ul>` : '<p class="tm-sub">Je hebt nog geen menu\'s.</p>'}
+        <button type="button" class="btn ghost tm-new" id="tmNew">${MENU_ICON} Nieuw menu met dit recept</button>`;
+      body.querySelectorAll('[data-m]').forEach(b => b.onclick = () => step2(menus.find(m => m.id === b.dataset.m)));
+      body.querySelector('#tmNew').onclick = async () => {
+        const course = (r.courses || []).find(c => courseList().includes(c)) || courseList()[0] || 'Hoofdgerecht';
+        const k = KINDS.anders;
+        const m = { id: `__menu-${uid()}`, type: 'menu', kind: 'anders', title: k.title(), date: '', persons: +r.servings || 4, courses: [...new Set([...k.courses.filter(c => courseList().includes(c)), course])], dishes: [{ id: r.id, course }], createdAt: Date.now() };
+        await save(m); state.newMenu = m.id; s.close();
+        location.hash = `#/menu/${encodeURIComponent(m.id)}/bewerk`;
+      };
+    };
+    const step2 = m => {
+      const courses = coursesOfMenu(m);
+      let extra = false, pick = (r.courses || []).find(c => courses.includes(c)) || courses[0];
+      const draw = () => {
+        const shown = extra ? [...courses, ...courseList().filter(c => !courses.includes(c))] : courses;
+        const already = (m.dishes || []).some(d => d.id === r.id && d.course === pick);
+        body.innerHTML = `<div class="sheet-head"><h3>${esc(m.title || 'Menu')}</h3><button class="text-btn" data-close>Annuleer</button></div>
+          ${menus.length > 1 ? '<button type="button" class="tm-back" id="tmBack">‹ Ander menu</button>' : ''}
+          <p class="tm-q">In welke gang?</p>
+          <div class="tm-courses">${shown.map(c => `<button type="button" class="chip${c === pick ? ' on' : ''}" data-c="${esc(c)}">${esc(c)}</button>`).join('')}${extra ? '' : '<button type="button" class="chip" id="tmMore">+ Andere gang</button>'}</div>
+          <button type="button" class="btn tm-go" id="tmGo"${already || !pick ? ' disabled' : ''}>${already ? `Staat al bij ${esc(pick)}` : `Toevoegen aan ${esc(pick || '')}`}</button>`;
+        body.querySelectorAll('[data-c]').forEach(b => b.onclick = () => { pick = b.dataset.c; draw(); });
+        if (body.querySelector('#tmMore')) body.querySelector('#tmMore').onclick = () => { extra = true; draw(); };
+        if (body.querySelector('#tmBack')) body.querySelector('#tmBack').onclick = step1;
+        body.querySelector('#tmGo').onclick = async () => {
+          m.dishes = [...(m.dishes || []), { id: r.id, course: pick }];
+          if (!(m.courses || []).includes(pick)) m.courses = [...coursesOfMenu(m).filter(c => c !== pick), pick];
+          await save(m); s.close();
+          toast(`Toegevoegd aan ${m.title || 'menu'} · ${pick}`);
+        };
+      };
+      draw();
+    };
+    menus.length ? step1() : step1();
+  }
+
   async function create(kind) {
     const k = KINDS[kind] || KINDS.anders;
     const m = { id: `__menu-${uid()}`, type: 'menu', kind, title: k.title(), date: k.date(), persons: 4, courses: k.courses.filter(c => courseList().includes(c)), dishes: [], createdAt: Date.now() };
@@ -50,13 +113,9 @@ const Menus = (() => {
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
     setHeader({ docTitle: "Menu's", timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
-    const menus = await all();
+    const menus = sortMenus(await all());
     if (isStale(seq)) return;
     const t = today();
-    menus.sort((a, b) => {
-      const ga = !a.date ? 1 : a.date >= t ? 0 : 2, gb = !b.date ? 1 : b.date >= t ? 0 : 2;
-      return ga - gb || (ga === 2 ? b.date.localeCompare(a.date) : (a.date || '').localeCompare(b.date || '')) || (b.updatedAt || 0) - (a.updatedAt || 0);
-    });
     view.innerHTML = `<section class="mx">
       <div class="page-flag">${flagHtml("Menu's")}</div>
       <p class="mx-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p>
@@ -269,5 +328,5 @@ const Menus = (() => {
     draw();
   }
 
-  return { renderList, renderMenu, renderEdit, MENU_ICON, KINDS, easter };
+  return { renderList, renderMenu, renderEdit, openAddSheet, MENU_ICON, MENU_PLUS, KINDS, easter };
 })();

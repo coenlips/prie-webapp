@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.17 · 26 november 2026';
+const APP_VERSION = '1.16.0 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1243,6 +1243,7 @@ async function renderDetail(id, opts = {}) {
   // Kruimelpad met rechts hartje, koksmuts en potlood (twee keer: onder de foto en boven de ingrediënten; CSS kiest)
   const crumbRow = cls => `<div class="crumb-row ${cls}">${crumb ? crumbHtml(crumb[0], crumb[1]) : '<span></span>'}<span class="crumb-acts">
     ${foreign ? '' : `<button class="icon-btn fav-btn${r.favorite ? ' active' : ''}" data-fav aria-label="Favoriet" title="Favoriet">${ICONS.heart}</button>`}
+    ${foreign ? '' : `<button class="icon-btn" data-tomenu aria-label="Toevoegen aan menu" title="Toevoegen aan menu">${Menus.MENU_PLUS}</button>`}
     ${foreign ? '' : `<button class="icon-btn" data-share aria-label="Delen" title="Delen">${ICONS.share}</button>`}
     ${foreign ? '' : `<button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken" title="Bewerken">${ICONS.edit}</button>`}</span></div>`;
   const done = new Set();
@@ -1425,6 +1426,7 @@ async function renderDetail(id, opts = {}) {
     });
     if ($('#shareBtn')) $('#shareBtn').onclick = () => openShareSheet(r, servings, factor);
     view.querySelectorAll('[data-share]').forEach(b => b.onclick = () => openShareSheet(r, servings, factor));
+    view.querySelectorAll('[data-tomenu]').forEach(b => b.onclick = () => Menus.openAddSheet(r));
     if ($('#saveCopy')) $('#saveCopy').onclick = async e => { e.currentTarget.disabled = true; try { await opts.onSave(); } catch (err) { toast(err.message); e.currentTarget.disabled = false; } };
     if ($('#discardCopy')) $('#discardCopy').onclick = () => opts.onDiscard();
     $('#copyBtn').onclick = () => openShopSheet(r, ingr, done, factor);
@@ -2514,6 +2516,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.16.0', date: '26 november 2026', sections: [{ items: [
+    'Zet een recept meteen in een menu: tik bij het recept op de serveerstolp met het plusje, kies het menu en de gang. Of begin een nieuw menu met dit recept.',
+  ] }] },
   { v: '1.15.0', date: '26 november 2026', sections: [{ items: [
     'Kookstand op de iPhone: veeg naar links voor de bereiding en naar rechts voor de ingrediënten.',
   ] }] },

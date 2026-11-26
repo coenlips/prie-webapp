@@ -1995,3 +1995,27 @@ body[data-page=list] .list-head.closed { margin-bottom: 0; }
 .mp-search input { margin: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; padding: 11px 0 !important; }
 .topbar-actions .icon-btn:disabled { opacity: .35; }
 .crumb-acts .icon-btn:disabled { opacity: .35; }
+
+/* Recept toevoegen aan een menu */
+.tm-sub { color: var(--muted); margin: -4px 0 6px; font-size: 14px; }
+.tm-list { list-style: none; margin: 6px 0 0; padding: 0; max-height: 52vh; overflow-y: auto; }
+.tm-list li { border-bottom: 1px dashed var(--line); }
+.tm-row { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px 0; background: none; border: 0; text-align: left; color: var(--text); cursor: pointer; }
+.tm-row.past { opacity: .6; }
+.tm-covers { width: 52px; height: 52px; flex: none; display: grid; grid-template-columns: 1fr 1fr; gap: 2px; background: var(--line); }
+.tm-covers img { width: 100%; height: 100%; object-fit: cover; }
+.tm-tx { flex: 1; min-width: 0; }
+.tm-tx small { display: block; font: 500 11px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--mustard); }
+.tm-tx b { display: block; font: 400 22px/1.1 var(--font-title); letter-spacing: .03em; text-transform: uppercase; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tm-tx > span { display: block; color: var(--muted); font-size: 13px; }
+.tm-in { flex: none; font: 500 11px var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: #2f7a3d; border: 1px solid currentColor; padding: 2px 6px; border-radius: 2px; }
+.tm-chev { color: var(--muted); display: grid; }
+.tm-chev svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.tm-new { display: flex; align-items: center; justify-content: center; gap: 10px; margin-top: 14px; width: 100%; }
+.tm-new svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.tm-back { background: none; border: 0; padding: 0; color: var(--accent); font: 500 13px var(--font-label); letter-spacing: .12em; text-transform: uppercase; cursor: pointer; }
+.tm-q { font: 500 12px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); margin: 14px 0 8px; }
+.tm-courses { display: flex; flex-wrap: wrap; gap: 8px; }
+.tm-courses .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tm-go { margin-top: 18px; width: 100%; }
+@media (prefers-color-scheme: dark) { .tm-in { color: #7cc48a; } }
