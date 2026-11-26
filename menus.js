@@ -41,6 +41,7 @@ const Menus = (() => {
     const m = { id: `__menu-${uid()}`, type: 'menu', kind, title: k.title(), date: k.date(), persons: 4, courses: k.courses.filter(c => courseList().includes(c)), dishes: [], createdAt: Date.now() };
     if (!m.courses.length) m.courses = courseList().slice(0, 3);
     await save(m);
+    state.newMenu = m.id;   // Annuleer bij een nieuw menu: weer weghalen
     location.hash = `#/menu/${encodeURIComponent(m.id)}/bewerk`;
   }
 
@@ -197,15 +198,21 @@ const Menus = (() => {
     const m = await DB.get(id);
     if (isStale(seq)) return;
     if (!m) { location.hash = '#/menus'; return; }
-    setHeader({ title: 'Menu aanpassen', back: true, timer: false, actions: `<button class="text-btn" id="mkDone">Klaar</button>` });
-    $('#mkDone').onclick = () => { location.hash = `#/menu/${encodeURIComponent(m.id)}`; };
+    setHeader({ title: 'Menu aanpassen', back: true, timer: false, actions: `<button class="text-btn cancel-btn" id="mkCancel">Annuleer</button><button class="text-btn" id="mkDone">Bewaar</button>` });
+    // Wijzigingen worden tussendoor al bewaard; Annuleer zet de oude versie terug (of haalt een nieuw menu weg)
+    const orig = JSON.parse(JSON.stringify(m)), isNew = state.newMenu === m.id;
+    $('#mkDone').onclick = async () => { clearTimeout(timer); await save(m); if (isNew) state.newMenu = null; location.hash = `#/menu/${encodeURIComponent(m.id)}`; };
+    $('#mkCancel').onclick = async () => {
+      clearTimeout(timer);
+      if (isNew) { await DB.remove(m.id); state.newMenu = null; location.hash = '#/menus'; return; }
+      await DB.put(orig); location.hash = `#/menu/${encodeURIComponent(m.id)}`;
+    };
     let timer = null;
     const persist = () => { clearTimeout(timer); timer = setTimeout(() => save(m), 300); };
     const draw = () => {
       const courses = coursesOfMenu(m), dishes = dishesOf(m);
       const extra = courseList().filter(c => !courses.includes(c));
       view.innerHTML = `<section class="ms">
-        ${crumbHtml(m.title || 'Menu', '', 'crumb-top')}
         <div class="ms-top">
           <input id="msTitle" value="${esc(m.title || '')}" placeholder="Naam van het menu" aria-label="Naam van het menu">
           <div class="chips ms-kinds">${Object.entries(KINDS).map(([k, d]) => `<button type="button" class="chip${m.kind === k ? ' on' : ''}" data-kind="${k}">${d.emoji ? d.emoji + ' ' : ''}${d.label}</button>`).join('')}</div>
