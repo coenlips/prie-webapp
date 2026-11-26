@@ -1950,3 +1950,6 @@ body.cook .crumb-row { display: none !important; }
 body.cook .timer-add { display: none; }
 .cook-timer { display: none; flex: none; margin: 0; }
 body.cook .cook-timer { display: grid; }
+/* iPhone: ook in de kookstand de portiekiezer in de kopbalk */
+body.cook .cook-tabs .cook-stepper { display: flex; flex: none; margin: 0; height: 36px; }
+@media (max-width: 359px) { body.cook .cook-tabs .cook-stepper span { min-width: 30px; } body.cook .cook-tabs .cook-stepper button { width: 24px; } }
