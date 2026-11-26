@@ -1876,3 +1876,4 @@ div.st-row { cursor: default; }
 .st-fold-body .req-box { background: none; border: 0; padding: 0; }
 .st-users .fb-head { display: none; }
 @media (max-width: 699px) { .st-fold-body { padding-left: 16px; } }
+.st-subhead { margin: 26px 0 6px; padding-top: 18px; border-top: 1px dashed var(--line); font: 500 13px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); }

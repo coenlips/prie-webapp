@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.11.2 · 26 november 2026';
+const APP_VERSION = '1.11.3 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2640,11 +2640,10 @@ async function renderUsers(host) {
   const seq = routeSeq;
   const me = Sync.status().user;
   if (!host || !me || !me.admin) return;
-  host.innerHTML = `<section class="settings">${loaderHtml('Gebruikers ophalen…')}</section>`;
-  let users, requests = [], fails = null;
+  host.innerHTML = `<section class="settings">${loaderHtml('Beheer ophalen…')}</section>`;
+  let requests = [], fails = null;
   try {
-    users = await Sync.call('users');
-    requests = await Sync.call('requests').catch(() => []);   // oudere server: geen aanvragen
+    requests = await Sync.call('requests').catch(err => { if (!/Onbekende actie/.test(err.message)) throw err; return []; });   // oudere server: geen aanvragen
     fails = await Sync.call('import_fails').catch(() => null);   // oudere server: geen lijst
   }
   catch (err) { if (!isStale(seq)) host.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
@@ -2661,18 +2660,7 @@ async function renderUsers(host) {
             <li class="req-actions"><button class="btn" data-approve="${q.id}">Goedkeuren</button><button class="btn ghost" data-reject="${q.id}">Afwijzen</button></li>`).join('')}
         </ul></div>`, `<span class="st-dot">${requests.length}</span>`) : ''}
       ${stFold('meldingen', ICONS.bug, 'Meldingen', (Sync.status().me?.feedback ? `${Sync.status().me.feedback} open` : 'Fouten en ideeën van gebruikers'), '<div id="fbAdmin"></div>', Sync.status().me?.feedback ? `<span class="st-dot">${Sync.status().me.feedback}</span>` : '')}
-      ${stFold('gebruikers', ICONS.people, 'Gebruikers', `${users.length} ${users.length === 1 ? 'account' : 'accounts'}`, `<p>Iedereen heeft een eigen receptenverzameling. Alleen jij als beheerder ziet deze lijst; wélke recepten iemand heeft, zie je niet.</p>
-        <ul class="users">
-          ${users.map(u => `
-            <li>
-              <div class="acc-avatar" aria-hidden="true">${esc(u.name.charAt(0).toUpperCase())}</div>
-              <div class="users-text"><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}${u.test ? ' <span class="acc-role test-role">test</span>' : ''}</b>
-                <small>${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}${u.mustChange && u.lastSeen ? ' · moet nog een wachtwoord kiezen' : ''}</small>
-                ${u.email ? `<a class="users-mail" href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : u.test ? '' : '<small class="users-nomail">geen e-mailadres</small>'}</div>
-              ${u.id === me.id ? '' : `<button class="icon-btn users-more" data-id="${u.id}" aria-label="Opties voor ${esc(u.name)}">⋯</button>`}
-            </li>`).join('')}
-        </ul>
-        <button class="btn" id="newUser">+ Nieuwe gebruiker</button>`)}
+      ${stFold('gebruikers', ICONS.people, 'Gebruikers', 'Accounts en testaccounts', `<div id="userList">${loaderHtml('Gebruikers ophalen…')}</div>`)}
       ${fails ? stFold('imports', ICONS.search, 'Mislukte imports', fails.length ? `${fails.length} ${fails.length === 1 ? 'website' : 'websites'} · ${nFails}× mislukt` : 'Nog geen', `<p>Websites waarvan het ophalen van een recept niet lukte, met de meeste mislukte pogingen bovenaan.</p>
         ${fails.length ? `<ul class="fails">${fails.map(f => `
           <li>
@@ -2683,37 +2671,19 @@ async function renderUsers(host) {
             <button class="link fail-clear" data-fail="${esc(f.site)}">Wissen</button>
           </li>`).join('')}</ul>
           <button class="btn ghost" id="failsClear">Alles wissen</button>` : '<p class="small-note">Nog geen mislukte imports. 🎉</p>'}`) : ''}
-      ${stFold('test', ICONS.dice, 'Testaccounts', users.some(u => u.test) ? 'Giulia, Marco, Francesca en Lorenzo' : 'Niet aangemaakt', `<p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
-        ${users.some(u => u.test)
-          ? `<button class="btn ghost" id="testMake">Opnieuw aanmaken</button><button class="btn ghost danger" id="testRemove">Testaccounts verwijderen</button>`
-          : '<button class="btn ghost" id="testMake">Testaccounts aanmaken</button>'}
-        <p class="mail-result" id="testResult" hidden></p>`)}
       ${stFold('mail', ST_ICONS.mail, 'Mail', 'Testmail versturen', `<p>Controleer of de server mail kan versturen, bijvoorbeeld de inloggegevens bij een goedgekeurde aanvraag.</p>
         <button class="btn ghost" id="mailTest">Testmail versturen</button>
         <p class="mail-result" id="mailResult" hidden></p>`)}
     </ul>`;
   bindFolds(host);
   drawFeedbackAdmin();
+  // Gebruikers pas ophalen als je het kopje openklapt
+  const gf = host.querySelector('[data-f=gebruikers]');
+  if (gf.open) drawUserList($('#userList'));
+  gf.addEventListener('toggle', () => { if (gf.open && !gf.dataset.loaded) drawUserList($('#userList')); });
 
-  const testRun = async remove => {
-    if (remove && !confirm('De testaccounts en al hun recepten verwijderen?')) return;
-    if (!remove && users.some(u => u.test) && !confirm('De testaccounts opnieuw aanmaken? Hun recepten worden vervangen.')) return;
-    const res = $('#testResult'); res.hidden = false; res.textContent = 'Bezig…';
-    host.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = true; });
-    try {
-      const out = await Sync.call('test_accounts', remove ? { remove: true } : {});
-      shareStore.clear();
-      toast(remove ? 'Testaccounts verwijderd' : `Klaar: ${out.accounts.map(a => `${a.name} (${a.recipes})`).join(', ')}`);
-      renderUsers(host);
-    } catch (err) {
-      res.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
-      host.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = false; });
-    }
-  };
   host.querySelectorAll('[data-fail]').forEach(b => b.onclick = async () => { await Sync.call('import_fails_clear', { site: b.dataset.fail }).catch(e => toast(e.message)); renderUsers(host); });
   if ($('#failsClear')) $('#failsClear').onclick = async () => { if (!confirm('Alle mislukte imports wissen?')) return; await Sync.call('import_fails_clear', {}).catch(e => toast(e.message)); renderUsers(host); };
-  if ($('#testMake')) $('#testMake').onclick = () => testRun(false);
-  if ($('#testRemove')) $('#testRemove').onclick = () => testRun(true);
 
   host.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => {
     const q = requests.find(x => x.id === +b.dataset.approve);
@@ -2763,6 +2733,55 @@ async function renderUsers(host) {
     btn.disabled = false;
   };
 
+
+}
+
+// Instellingen → Beheer → Gebruikers: lijst met accounts en de testaccounts (pas bij openklappen opgehaald)
+async function drawUserList(box) {
+  if (!box) return;
+  const me = Sync.status().user;
+  box.closest('details').dataset.loaded = '1';
+  let users;
+  try { users = await Sync.call('users'); }
+  catch (err) { box.innerHTML = `<p>${esc(err.message)}</p>`; delete box.closest('details').dataset.loaded; return; }
+  if (!box.isConnected) return;
+  const sub = box.closest('details').querySelector('summary small');
+  if (sub) sub.textContent = `${users.filter(u => !u.test).length} ${users.filter(u => !u.test).length === 1 ? 'account' : 'accounts'}${users.some(u => u.test) ? ` · ${users.filter(u => u.test).length} testaccounts` : ''}`;
+  box.innerHTML = `<p>Iedereen heeft een eigen receptenverzameling. Alleen jij als beheerder ziet deze lijst; wélke recepten iemand heeft, zie je niet.</p>
+        <ul class="users">
+          ${users.map(u => `
+            <li>
+              <div class="acc-avatar" aria-hidden="true">${esc(u.name.charAt(0).toUpperCase())}</div>
+              <div class="users-text"><b>${esc(u.name)}${u.admin ? ' <span class="acc-role">beheerder</span>' : ''}${u.test ? ' <span class="acc-role test-role">test</span>' : ''}</b>
+                <small>${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}${u.mustChange && u.lastSeen ? ' · moet nog een wachtwoord kiezen' : ''}</small>
+                ${u.email ? `<a class="users-mail" href="mailto:${esc(u.email)}">${esc(u.email)}</a>` : u.test ? '' : '<small class="users-nomail">geen e-mailadres</small>'}</div>
+              ${u.id === me.id ? '' : `<button class="icon-btn users-more" data-id="${u.id}" aria-label="Opties voor ${esc(u.name)}">⋯</button>`}
+            </li>`).join('')}
+        </ul>
+        <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
+    <h4 class="st-subhead">Testaccounts</h4>
+    <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
+        ${users.some(u => u.test)
+          ? `<button class="btn ghost" id="testMake">Opnieuw aanmaken</button><button class="btn ghost danger" id="testRemove">Testaccounts verwijderen</button>`
+          : '<button class="btn ghost" id="testMake">Testaccounts aanmaken</button>'}
+        <p class="mail-result" id="testResult" hidden></p>`;
+  const testRun = async remove => {
+    if (remove && !confirm('De testaccounts en al hun recepten verwijderen?')) return;
+    if (!remove && users.some(u => u.test) && !confirm('De testaccounts opnieuw aanmaken? Hun recepten worden vervangen.')) return;
+    const res = $('#testResult'); res.hidden = false; res.textContent = 'Bezig…';
+    box.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = true; });
+    try {
+      const out = await Sync.call('test_accounts', remove ? { remove: true } : {});
+      shareStore.clear();
+      toast(remove ? 'Testaccounts verwijderd' : `Klaar: ${out.accounts.map(a => `${a.name} (${a.recipes})`).join(', ')}`);
+      drawUserList(box);
+    } catch (err) {
+      res.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
+      box.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = false; });
+    }
+  };
+  if ($('#testMake')) $('#testMake').onclick = () => testRun(false);
+  if ($('#testRemove')) $('#testRemove').onclick = () => testRun(true);
   $('#newUser').onclick = () => {
     const s = openAccSheet(`
       <div class="sheet-head"><h3>Nieuwe gebruiker</h3><button class="text-btn" data-close>Annuleer</button></div>
@@ -2780,12 +2799,12 @@ async function renderUsers(host) {
       try {
         const r = await Sync.call('user_create', { name: form.name.value });
         showTempPassword(s, r.name, r.password, `Account voor ${r.name}`);
-        renderUsers(host);
+        drawUserList(box);
       } catch (err) { msg.hidden = false; msg.textContent = err.message; btn.disabled = false; }
     };
   };
 
-  host.querySelectorAll('.users-more').forEach(b => b.onclick = () => {
+  box.querySelectorAll('.users-more').forEach(b => b.onclick = () => {
     const u = users.find(x => x.id === +b.dataset.id);
     const s = openAccSheet(`
       <div class="sheet-head"><h3>${esc(u.name)}</h3><button class="text-btn" data-close>Annuleer</button></div>
@@ -2796,15 +2815,16 @@ async function renderUsers(host) {
       <p class="sync-msg" id="optMsg" hidden></p>`, `Opties voor ${u.name}`);
     const msg = s.$('#optMsg');
     s.$('#resetPw').onclick = async () => {
-      try { const r = await Sync.call('user_reset', { id: u.id }); showTempPassword(s, r.name, r.password, 'Nieuw wachtwoord'); renderUsers(host); }
+      try { const r = await Sync.call('user_reset', { id: u.id }); showTempPassword(s, r.name, r.password, 'Nieuw wachtwoord'); drawUserList(box); }
       catch (err) { msg.hidden = false; msg.textContent = err.message; }
     };
     s.$('#delUser').onclick = async () => {
       if (!confirm(`${u.name} en ${u.recipes === 1 ? 'het recept' : `alle ${u.recipes} recepten`} van ${u.name} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
-      try { await Sync.call('user_delete', { id: u.id }); s.close(); toast(`${u.name} is verwijderd`); renderUsers(host); }
+      try { await Sync.call('user_delete', { id: u.id }); s.close(); toast(`${u.name} is verwijderd`); drawUserList(box); }
       catch (err) { msg.hidden = false; msg.textContent = err.message; }
     };
   });
+
 }
 
 // Na in- of uitloggen: alles opnieuw laden en naar het overzicht
