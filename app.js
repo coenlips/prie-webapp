@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.13.1 · 26 november 2026';
+const APP_VERSION = '1.13.2 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -23,6 +23,7 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  basketPlus: '<svg viewBox="0 0 24 24"><path d="M5.5 10V8.5a4.5 4.5 0 0 1 8.2-2.6"/><path d="M2 10h16l-1.5 9.2a1.5 1.5 0 0 1-1.5 1.3H5a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M7 13.5v3.5M10 13.5v3.5M13 13.5v3.5"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>',
   basket: '<svg viewBox="0 0 24 24"><path d="M7.5 10V8.5a4.5 4.5 0 0 1 9 0V10"/><path d="M3 10h18l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 13.5v3.5M12 13.5v3.5M15 13.5v3.5"/></svg>',
   cloud: '<svg viewBox="0 0 24 24"><path d="M7 18.5h10.5a4 4 0 0 0 .6-7.95A6 6 0 0 0 6.5 9.2 4.7 4.7 0 0 0 7 18.5z"/></svg>',
   dice: '<svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="17" height="17" rx="3"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="8.5" r="1.2" fill="currentColor"/><circle cx="12" cy="12" r="1.2" fill="currentColor"/><circle cx="8.5" cy="15.5" r="1.2" fill="currentColor"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor"/></svg>',
@@ -1202,7 +1203,6 @@ async function renderDetail(id, opts = {}) {
     title: r.title, back: !foreign || opts.back !== false, close: foreign && opts.back === false,   // kruisje alleen als er geen terugknop is (geopende deellink)
     timerLabel: r.title,
     actions: `
-      <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
       ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : ''}`,
   });
   Shopping.updateBadge();
@@ -1242,7 +1242,7 @@ async function renderDetail(id, opts = {}) {
         ${crumbRow('crumb-ingr')}
         <div class="section-head">
           <h3>Ingrediënten</h3>
-          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op de boodschappenlijst zetten" title="Op de boodschappenlijst">${ICONS.basket}</button>
+          <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op de boodschappenlijst zetten" title="Op de boodschappenlijst">${ICONS.basketPlus}</button>
           <div class="stepper" aria-label="Aantal porties">
             <button id="minus" aria-label="Minder porties">−</button>
             <span>${ICONS.people} ${servings}</span>
@@ -1482,7 +1482,7 @@ function openShopSheet(r, ingr, done, factor) {
     const btn = $('#copyBtn');
     if (btn) {
       btn.innerHTML = ICONS.check; btn.classList.add('copied');
-      setTimeout(() => { btn.innerHTML = ICONS.basket; btn.classList.remove('copied'); }, 1200);
+      setTimeout(() => { btn.innerHTML = ICONS.basketPlus; btn.classList.remove('copied'); }, 1200);
     }
   };
 }
