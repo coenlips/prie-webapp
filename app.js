@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.11.1 · 26 november 2026';
+const APP_VERSION = '1.11.2 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2001,11 +2001,7 @@ function stPage(k, sub) {
     <p class="version">Versie ${APP_VERSION}</p>`;
   if (k === 'beheer' && sub === 'meldingen') return `${stCrumb(g, 'Meldingen')}${stHead('', 'Meldingen')}<div class="card-box st-card"><div id="fbAdmin">${loaderHtml()}</div></div>`;
   if (k === 'beheer') {
-    const me = sync.me || {};
     return `${stHead(ST_ICONS.shield, 'Beheer')}
-      ${stList([
-        stRow({ icon: ICONS.bug, t: 'Meldingen', sub: 'Fouten en ideeën van gebruikers', href: '#/settings/beheer/meldingen', right: me.feedback ? `<span class="st-dot">${me.feedback}</span>` : undefined }),
-      ])}
       <div id="usersHost" class="st-users">${loaderHtml('Gebruikers ophalen…')}</div>`;
   }
   return '';
@@ -2631,6 +2627,14 @@ function lastSeenText(u) {
 }
 
 const FAIL_REASONS = { blocked: 'geblokkeerd', norecipe: 'geen recept gevonden', http: 'foutmelding van de site', error: 'mislukt', iphone: 'ook via iPhone niet' };
+// Inklapbaar kopje in de stijl van de instellingen; blijft open zolang je in de app bent
+const stOpen = new Set();
+function stFold(id, icon, t, sub, body, right = '') {
+  return `<li><details class="st-fold" data-f="${id}"${stOpen.has(id) ? ' open' : ''}><summary class="st-row"><span class="st-ic">${icon}</span><span class="st-tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span><span class="st-right">${right}<span class="st-chev st-fold-chev">${ST_ICONS.next}</span></span></summary><div class="st-fold-body">${body}</div></details></li>`;
+}
+function bindFolds(el) {
+  el.querySelectorAll('details.st-fold').forEach(d => d.addEventListener('toggle', () => { d.open ? stOpen.add(d.dataset.f) : stOpen.delete(d.dataset.f); }));
+}
 // Gebruikersbeheer, in Instellingen → Beheer (host = het vak waarin het komt)
 async function renderUsers(host) {
   const seq = routeSeq;
@@ -2645,22 +2649,19 @@ async function renderUsers(host) {
   }
   catch (err) { if (!isStale(seq)) host.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
   if (isStale(seq) || !host.isConnected) return;
+  const nFails = fails ? fails.reduce((n, f) => n + f.count, 0) : 0;
   host.innerHTML = `
-    <section class="settings">
-      ${requests.length ? `<div class="card-box req-box">
-        <h3>${requests.length === 1 ? 'Nieuwe aanvraag' : `${requests.length} nieuwe aanvragen`}</h3>
-        <ul class="users">
+    <ul class="st-list st-folds">
+      ${requests.length ? stFold('aanvragen', ST_ICONS.inbox, requests.length === 1 ? 'Nieuwe aanvraag' : `${requests.length} nieuwe aanvragen`, 'Goedkeuren of afwijzen', `<div class="req-box"><ul class="users">
           ${requests.map(q => `
             <li>
               <div class="acc-avatar req-avatar" aria-hidden="true">${esc(q.name.charAt(0).toUpperCase())}</div>
               <div class="users-text"><b>${esc(q.name)}</b><small>${esc(q.email)} · ${lastSeenText({ lastSeen: q.created }).replace('actief', 'aangevraagd').replace('vandaag aangevraagd', 'vandaag aangevraagd')}</small></div>
             </li>
             <li class="req-actions"><button class="btn" data-approve="${q.id}">Goedkeuren</button><button class="btn ghost" data-reject="${q.id}">Afwijzen</button></li>`).join('')}
-        </ul>
-      </div>` : ''}
-      <div class="card-box">
-        <h3>Gebruikers</h3>
-        <p>Iedereen heeft een eigen receptenverzameling. Alleen jij als beheerder ziet deze lijst; wélke recepten iemand heeft, zie je niet.</p>
+        </ul></div>`, `<span class="st-dot">${requests.length}</span>`) : ''}
+      ${stFold('meldingen', ICONS.bug, 'Meldingen', (Sync.status().me?.feedback ? `${Sync.status().me.feedback} open` : 'Fouten en ideeën van gebruikers'), '<div id="fbAdmin"></div>', Sync.status().me?.feedback ? `<span class="st-dot">${Sync.status().me.feedback}</span>` : '')}
+      ${stFold('gebruikers', ICONS.people, 'Gebruikers', `${users.length} ${users.length === 1 ? 'account' : 'accounts'}`, `<p>Iedereen heeft een eigen receptenverzameling. Alleen jij als beheerder ziet deze lijst; wélke recepten iemand heeft, zie je niet.</p>
         <ul class="users">
           ${users.map(u => `
             <li>
@@ -2671,11 +2672,8 @@ async function renderUsers(host) {
               ${u.id === me.id ? '' : `<button class="icon-btn users-more" data-id="${u.id}" aria-label="Opties voor ${esc(u.name)}">⋯</button>`}
             </li>`).join('')}
         </ul>
-        <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
-      </div>
-      ${fails ? `<div class="card-box">
-        <h3>Mislukte imports</h3>
-        <p>Websites waarvan het ophalen van een recept niet lukte, met de meeste mislukte pogingen bovenaan.</p>
+        <button class="btn" id="newUser">+ Nieuwe gebruiker</button>`)}
+      ${fails ? stFold('imports', ICONS.search, 'Mislukte imports', fails.length ? `${fails.length} ${fails.length === 1 ? 'website' : 'websites'} · ${nFails}× mislukt` : 'Nog geen', `<p>Websites waarvan het ophalen van een recept niet lukte, met de meeste mislukte pogingen bovenaan.</p>
         ${fails.length ? `<ul class="fails">${fails.map(f => `
           <li>
             <div class="fail-top"><b>${esc(f.site)}</b><span class="fail-n">${f.count}×</span></div>
@@ -2684,23 +2682,18 @@ async function renderUsers(host) {
             ${f.url ? `<a class="fail-url" href="${esc(f.url)}" target="_blank" rel="noopener">${esc(f.url.replace(/^https?:\/\/(www\.)?/, ''))}</a>` : ''}
             <button class="link fail-clear" data-fail="${esc(f.site)}">Wissen</button>
           </li>`).join('')}</ul>
-          <button class="btn ghost" id="failsClear">Alles wissen</button>` : '<p class="small-note">Nog geen mislukte imports. 🎉</p>'}
-      </div>` : ''}
-      <div class="card-box">
-        <h3>Testaccounts</h3>
-        <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
+          <button class="btn ghost" id="failsClear">Alles wissen</button>` : '<p class="small-note">Nog geen mislukte imports. 🎉</p>'}`) : ''}
+      ${stFold('test', ICONS.dice, 'Testaccounts', users.some(u => u.test) ? 'Giulia, Marco, Francesca en Lorenzo' : 'Niet aangemaakt', `<p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
         ${users.some(u => u.test)
           ? `<button class="btn ghost" id="testMake">Opnieuw aanmaken</button><button class="btn ghost danger" id="testRemove">Testaccounts verwijderen</button>`
           : '<button class="btn ghost" id="testMake">Testaccounts aanmaken</button>'}
-        <p class="mail-result" id="testResult" hidden></p>
-      </div>
-      <div class="card-box">
-        <h3>Mail</h3>
-        <p>Controleer of de server mail kan versturen, bijvoorbeeld de inloggegevens bij een goedgekeurde aanvraag.</p>
+        <p class="mail-result" id="testResult" hidden></p>`)}
+      ${stFold('mail', ST_ICONS.mail, 'Mail', 'Testmail versturen', `<p>Controleer of de server mail kan versturen, bijvoorbeeld de inloggegevens bij een goedgekeurde aanvraag.</p>
         <button class="btn ghost" id="mailTest">Testmail versturen</button>
-        <p class="mail-result" id="mailResult" hidden></p>
-      </div>
-    </section>`;
+        <p class="mail-result" id="mailResult" hidden></p>`)}
+    </ul>`;
+  bindFolds(host);
+  drawFeedbackAdmin();
 
   const testRun = async remove => {
     if (remove && !confirm('De testaccounts en al hun recepten verwijderen?')) return;

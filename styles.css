@@ -1865,3 +1865,14 @@ div.st-row { cursor: default; }
 .st-users { margin-top: 14px; }
 .st-users .card-box { border-radius: 0; }
 .st-users h3 { font: 400 22px/1.1 var(--font-title); letter-spacing: .03em; text-transform: uppercase; margin: 0 0 6px; }
+.st-fold > summary { list-style: none; }
+.st-fold > summary::-webkit-details-marker { display: none; }
+.st-fold-chev svg { transition: transform .2s; }
+.st-fold[open] .st-fold-chev svg { transform: rotate(90deg); }
+.st-fold[open] > summary .st-ic { background: var(--accent-soft); }
+.st-fold[open] > summary b { color: var(--accent); }
+.st-fold-body { padding: 2px 16px 16px 66px; }
+.st-fold-body > p:first-child { margin-top: 0; }
+.st-fold-body .req-box { background: none; border: 0; padding: 0; }
+.st-users .fb-head { display: none; }
+@media (max-width: 699px) { .st-fold-body { padding-left: 16px; } }
