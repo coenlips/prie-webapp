@@ -1896,3 +1896,33 @@ div.st-row { cursor: default; }
   body.cook .cook-close { display: grid; }
 }
 @media (max-width: 699px) { .cook-close { display: none; } }
+
+/* Altijd Ricetta in de kopbalk (ook op de iPhone); terug gaat via het kruimelpad boven de inhoud */
+body.brand-head #backBtn, body.brand-head #closeBtn { display: none !important; }
+body.brand-head .topbar h1 {
+  visibility: visible; flex: 0 1 auto; margin-right: auto; padding-right: .3em; cursor: pointer;
+  font: 400 40px/1 var(--font-title); letter-spacing: .05em; text-transform: uppercase;
+  background: linear-gradient(100deg, var(--accent-dark) 0%, var(--accent) 32%, #f0624f 46%, var(--accent) 60%, var(--accent-dark) 100%);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.crumb-back { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 6px; margin: 0 0 10px; padding: 4px 0; background: none; border: 0; text-align: left; cursor: pointer;
+  font: 500 13px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--accent); }
+.crumb-back svg { width: 15px; height: 15px; align-self: center; fill: none; stroke: currentColor; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.crumb-back b { font-weight: 500; }
+.crumb-back span { color: var(--muted); }
+.photo-col .crumb-photo { margin: 16px 0 -4px; }
+.part-ingr .crumb-ingr { display: none; }
+.crumb-edit { margin: 14px 0 2px; }
+.crumb-top { margin: 2px 0 10px; }
+body.cook .crumb-back { display: none !important; }
+@media (min-width: 700px) { .crumb-back { font-size: 14px; } .crumb-st { display: none; } }
+@media (min-width: 900px) {
+  .photo-col .crumb-photo { display: none; }
+  .part-ingr .crumb-ingr { display: flex; margin: 0 0 18px; }
+}
+@media (min-width: 700px) { body.brand-head .topbar h1 { font-size: 80px; line-height: .95; background-size: 125% 100%; } }
+/* Bewaar-balk bij recepten van anderen boven de tabbladen (iPhone) */
+@media (max-width: 699px) {
+  body.has-tabbar .save-bar { bottom: calc(68px + var(--safe-bottom, 0px)); }
+  body.has-tabbar:has(.save-bar) main { padding-bottom: calc(170px + var(--safe-bottom, 0px)) !important; }
+}

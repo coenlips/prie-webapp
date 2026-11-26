@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.12.0 · 26 november 2026';
+const APP_VERSION = '1.13.0 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -464,17 +464,17 @@ function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', 
 
 /* ---------- Tabbladen: onderin op de iPhone, in de menubalk op iPad en laptop ---------- */
 const WIDE_MQ = matchMedia('(min-width: 700px)');
-const TAB_PAGES = { '': 'recepten', menus: 'menus', boodschappen: 'boodschappen', kookboeken: 'ricette' };
 function updateTabs(page, sub) {
-  // ook in iemands Ricette (maar niet in een recept daaruit)
-  const cur = page === 'kookboek' && !sub ? 'ricette' : TAB_PAGES[page || ''];
-  // ook bij de instellingen (zonder tabblad aan)
-  const extra = page === 'settings' || page === 'gebruikers';
+  // Welk tabblad aan staat; een recept uit een menu hoort bij Menu's
+  const cur = ({ '': 'recepten', r: state.fromMenu ? 'menus' : 'recepten', edit: 'recepten', new: 'recepten', ontvangen: 'recepten',
+    menus: 'menus', menu: 'menus', boodschappen: 'boodschappen', kookboeken: 'ricette', kookboek: 'ricette' })[page || ''];
   document.body.dataset.route = page || 'home';
-  // iPad en laptop: overal de menubalk met het logo, behalve in de kookstand
+  // Altijd Ricetta in de kopbalk en de tabbladen, behalve in de kookstand en bij een geopende deellink.
+  // Op de iPhone geen tabbladen bij bewerken (daar wil je rust en de Bewaar-knop).
   const wide = WIDE_MQ.matches;
-  const show = (!!cur || extra || (wide && page !== 'deel')) && !accountGate() && !state.cookMode;
-  const brand = wide && show;
+  const brand = !state.cookMode && page !== 'deel' && !accountGate();
+  const editing = page === 'edit' || page === 'new' || (page === 'menu' && sub === 'bewerk');
+  const show = brand && (wide || !editing);
   document.body.classList.toggle('brand-head', brand);
   if (brand) { $('#title').textContent = 'Ricetta'; $('#title').classList.remove('title-hidden'); }
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
@@ -484,8 +484,23 @@ function updateTabs(page, sub) {
   for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
   document.body.classList.toggle('has-tabbar', show);
   // de plusknop alleen bij je recepten
-  if (show && cur !== 'recepten') { $('#addBtn').hidden = true; document.body.classList.add('no-fab-btn'); } else document.body.classList.remove('no-fab-btn');
+  if (show && (page || '') !== '') { $('#addBtn').hidden = true; document.body.classList.add('no-fab-btn'); } else document.body.classList.remove('no-fab-btn');
   if (show) Shopping.updateBadge();
+}
+
+$('#title').addEventListener('click', () => { if (document.body.classList.contains('brand-head')) location.hash = '#/'; });
+
+// Terugregel (kruimelpad) boven de inhoud: zegt waar je heen gaat; doet hetzelfde als de oude terugknop
+function crumbHtml(label, extra = '', cls = '') {
+  return `<button type="button" class="crumb-back ${cls}" data-back>${'<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>'}<b>${esc(label)}</b>${extra ? `<span>· ${esc(extra)}</span>` : ''}</button>`;
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-back]')) $('#backBtn').click(); });
+// Waar 'terug' bij een recept heen gaat
+function recipeCrumb() {
+  const prev = state.backStack?.length && state.recipes.find(x => x.id === state.backStack[state.backStack.length - 1]);
+  if (prev) return [prev.title, ''];
+  if (state.fromMenu) return [state.fromMenuTitle || 'Menu', state.fromMenuCourse ? `gang ${state.fromMenuCourse}` : ''];
+  return ['Recepten', ''];
 }
 
 $('#closeBtn').addEventListener('click', () => {
@@ -1175,6 +1190,7 @@ async function renderDetail(id, opts = {}) {
 
   const base = Math.max(1, +r.servings || 1);
   let servings = base;
+  const crumb = (location.hash || '').startsWith('#/deel/') ? null : opts.crumb || (foreign ? ['Recepten', ''] : recipeCrumb());
   const done = new Set();
   let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
 
@@ -1203,6 +1219,7 @@ async function renderDetail(id, opts = {}) {
       ${opts.from ? `<div class="from-strip"><div class="acc-avatar" aria-hidden="true">${esc(opts.from.charAt(0).toUpperCase())}</div><span><b>Van ${esc(opts.from)}</b>${opts.message ? ` · <q>${esc(opts.message)}</q>` : ''}</span></div>` : ''}
       <div class="photo-col${r.photo ? '' : ' no-photo'}">
         ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
+        ${crumb ? crumbHtml(crumb[0], crumb[1], 'crumb-photo') : ''}
         <div class="photo-cap">
         <h2 class="detail-title">${esc(r.title)}</h2>
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
@@ -1219,6 +1236,7 @@ async function renderDetail(id, opts = {}) {
       <section class="detail">
 
         <div class="part-ingr">
+        ${crumb ? crumbHtml(crumb[0], crumb[1], 'crumb-ingr') : ''}
         <div class="section-head">
           <h3>Ingrediënten</h3>
           <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op de boodschappenlijst zetten" title="Op de boodschappenlijst">${ICONS.basket}</button>
@@ -1555,6 +1573,7 @@ async function renderEdit(id) {
           <div class="ed-photo-img" id="photoPreview"></div>
           <span class="ph-btns"><span class="ph-btn" id="photoChange">${ICONS.camera}<span>Wijzig</span></span><button type="button" class="ph-btn" id="removePhoto" aria-label="Foto verwijderen" title="Foto verwijderen">${ICONS.trash}</button></span>
         </label>
+        ${crumbHtml(id ? r.title || 'Recept' : 'Recepten', 'zonder bewaren', 'crumb-edit')}
         <div class="ed-title">
           <input name="title" required value="${esc(r.title)}" placeholder="Naam van het recept" aria-label="Naam">
           <input name="description" class="desc" value="${esc(r.description)}" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving">
@@ -2036,7 +2055,7 @@ function renderSettings(k = '', sub = '') {
         <div id="stNav">${stNav(active)}</div>
         <p class="st-ver">Ricetta ${esc(APP_VERSION.split(' ')[0])}</p>
       </aside>
-      <div class="st-main">${wide && k !== 'nieuw' && !sub ? stNewsHtml() : ''}${active ? stPage(active, sub) : ''}</div>
+      <div class="st-main">${k && !sub ? crumbHtml('Instellingen', '', 'crumb-st') : ''}${wide && k !== 'nieuw' && !sub ? stNewsHtml() : ''}${active ? stPage(active, sub) : ''}</div>
     </section>`;
 
   if ($('#syncCard')) Sync.bindCard($('#syncCard'));
@@ -2443,6 +2462,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.13.0', date: '26 november 2026', sections: [{ items: [
+    'Ricetta staat nu altijd bovenin, ook op de iPhone. Terug gaat via de rode regel bij het recept, die zegt waar je heen gaat (bijvoorbeeld ‹ Recepten of ‹ Kerstdiner). Tik op het logo om naar je recepten te gaan.',
+    'De tabbladen staan nu ook bij een recept. Open je een recept vanuit een menu, dan staat het tabblad Menu’s aan.',
+  ] }] },
   { v: '1.12.0', date: '26 november 2026', sections: [{ items: [
     'iPad en laptop: de menubalk met Ricetta staat nu overal, ook bij een recept. In de kookstand juist helemaal geen menu: alleen de porties, de koksmuts en een kruisje om te stoppen.',
   ] }] },
@@ -3363,7 +3386,7 @@ async function renderBookRecipe(ownerId, recipeId) {
   if (isStale(seq)) return;
   const already = state.recipes.find(x => x.fromUser === owner.name && x.title === r.title);
   return renderDetail(null, {
-    recipe: { ...r, id: `kookboek-${ownerId}-${recipeId}` }, from: owner.name,
+    recipe: { ...r, id: `kookboek-${ownerId}-${recipeId}` }, from: owner.name, crumb: [`Le Ricette di ${owner.name}`, ''],
     saveLabel: already ? 'Nog een keer bewaren' : 'Bewaar in mijn recepten',
     onSave: async () => {
       const copy = await saveCopy(r, owner.name);

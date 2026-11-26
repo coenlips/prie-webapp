@@ -91,6 +91,7 @@ const Menus = (() => {
     const courses = coursesOfMenu(m).filter(c => dishes.some(d => d.course === c));
     const timeOf = r => formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
     view.innerHTML = `<section class="mx-wide">
+      ${crumbHtml("Menu's", '', 'crumb-top')}
       <div class="mk-wrap"><div class="mk mk-${kind}">${DECOR[kind] ? DECOR[kind]('l') + DECOR[kind]('r') : ''}
         <div class="mk-kicker">Menu</div>
         <h1>${esc(m.title || 'Menu')}</h1>
@@ -107,7 +108,9 @@ const Menus = (() => {
         <a class="btn ghost" href="#/menu/${encodeURIComponent(m.id)}/bewerk">${ICONS.edit} Menu aanpassen</a>
       </div>
     </section>`;
-    view.querySelectorAll('.mk-dish').forEach(el => el.addEventListener('click', () => { state.fromMenu = m.id; }));
+    view.querySelectorAll('.mk-dish').forEach(el => el.addEventListener('click', () => {
+      state.fromMenu = m.id; state.fromMenuTitle = m.title || 'Menu'; state.fromMenuCourse = el.closest('.mk-course')?.querySelector('h4')?.textContent || '';
+    }));
     $('#mkShop').onclick = () => openShop(m, dishes);
     $('#mkPdf').onclick = () => openPdf(m, dishes, courses);
   }
@@ -202,6 +205,7 @@ const Menus = (() => {
       const courses = coursesOfMenu(m), dishes = dishesOf(m);
       const extra = courseList().filter(c => !courses.includes(c));
       view.innerHTML = `<section class="ms">
+        ${crumbHtml(m.title || 'Menu', '', 'crumb-top')}
         <div class="ms-top">
           <input id="msTitle" value="${esc(m.title || '')}" placeholder="Naam van het menu" aria-label="Naam van het menu">
           <div class="chips ms-kinds">${Object.entries(KINDS).map(([k, d]) => `<button type="button" class="chip${m.kind === k ? ' on' : ''}" data-kind="${k}">${d.emoji ? d.emoji + ' ' : ''}${d.label}</button>`).join('')}</div>
