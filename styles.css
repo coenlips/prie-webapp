@@ -1978,3 +1978,7 @@ body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 
 /* Dubbele lijn boven de tabbladen net zo dik als onder de kopbalk (4px double) */
 .tabbar::before { top: -4px; height: 0; border: 0; border-top: 4px double var(--teal); background: none; }
 .tabbar a.on::after { top: -10px; height: 4px; }
+/* Tussen de twee lijnen boven de tabbladen geen doorschijnende recepten */
+.tabbar::before { background: var(--bg); }
+/* Foto's in het overzicht iets groter (eindigen duidelijk voorbij het rode streepje van het tabblad) */
+.card .thumb { width: 104px; height: 104px; }
