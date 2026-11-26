@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.10 · 26 november 2026';
+const APP_VERSION = '1.15.11 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1243,6 +1243,7 @@ async function renderDetail(id, opts = {}) {
   // Kruimelpad met rechts hartje, koksmuts en potlood (twee keer: onder de foto en boven de ingrediënten; CSS kiest)
   const crumbRow = cls => `<div class="crumb-row ${cls}">${crumb ? crumbHtml(crumb[0], crumb[1]) : '<span></span>'}<span class="crumb-acts">
     ${foreign ? '' : `<button class="icon-btn fav-btn${r.favorite ? ' active' : ''}" data-fav aria-label="Favoriet" title="Favoriet">${ICONS.heart}</button>`}
+    ${foreign ? '' : `<button class="icon-btn" data-share aria-label="Delen" title="Delen">${ICONS.share}</button>`}
     ${foreign ? '' : `<button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken" title="Bewerken">${ICONS.edit}</button>`}</span></div>`;
   const done = new Set();
   let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
@@ -1423,6 +1424,7 @@ async function renderDetail(id, opts = {}) {
       toast(r.favorite ? 'Toegevoegd aan favorieten' : 'Verwijderd uit favorieten');
     });
     if ($('#shareBtn')) $('#shareBtn').onclick = () => openShareSheet(r, servings, factor);
+    view.querySelectorAll('[data-share]').forEach(b => b.onclick = () => openShareSheet(r, servings, factor));
     if ($('#saveCopy')) $('#saveCopy').onclick = async e => { e.currentTarget.disabled = true; try { await opts.onSave(); } catch (err) { toast(err.message); e.currentTarget.disabled = false; } };
     if ($('#discardCopy')) $('#discardCopy').onclick = () => opts.onDiscard();
     $('#copyBtn').onclick = () => openShopSheet(r, ingr, done, factor);
