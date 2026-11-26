@@ -1987,3 +1987,6 @@ body:not(.cook) .steps li { cursor: default; }
 /* Menu's: 'Nieuw menu' als rode knop achteraan */
 .mx-new .chip.mx-new-btn { background: var(--accent); border-color: var(--accent); color: #fff; }
 .mx-new .chip.mx-new-btn svg { color: #fff; stroke: #fff; }
+/* Overzicht: minder ruimte boven het eerste recept (filters dicht) */
+body[data-page=list] .list-head.closed { margin-bottom: 0; }
+.cards > li:first-child > .card { padding-top: 6px; }
