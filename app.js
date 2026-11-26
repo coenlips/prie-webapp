@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.2 · 26 november 2026';
+const APP_VERSION = '1.15.3 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1623,7 +1623,6 @@ async function renderEdit(id) {
           <div class="ed-photo-img" id="photoPreview"></div>
           <span class="ph-btns"><span class="ph-btn" id="photoChange">${ICONS.camera}<span>Wijzig</span></span><button type="button" class="ph-btn" id="removePhoto" aria-label="Foto verwijderen" title="Foto verwijderen">${ICONS.trash}</button></span>
         </label>
-        ${crumbHtml(id ? r.title || 'Recept' : 'Recepten', 'zonder bewaren', 'crumb-edit')}
         <div class="ed-title">
           <input name="title" required value="${esc(r.title)}" placeholder="Naam van het recept" aria-label="Naam">
           <input name="description" class="desc" value="${esc(r.description)}" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving">
