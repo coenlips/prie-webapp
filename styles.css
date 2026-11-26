@@ -1965,3 +1965,4 @@ body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 
 @media (min-width: 900px) { body.cook .ingredients li:not(.sub) { font-size: calc(19px * var(--cook-fs, 1)); } }
 @media (max-width: 359px) { .cook-fs button { width: 28px; } }
 .cook-fs button span { min-width: 0 !important; display: inline; }
+.cook-fs button { color: var(--text); }

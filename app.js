@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.14.0 · 26 november 2026';
+const APP_VERSION = '1.14.1 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1341,7 +1341,7 @@ async function renderDetail(id, opts = {}) {
     if (!cs) {
       cs = document.createElement('div');
       cs.className = 'stepper cook-stepper'; cs.id = 'cookServings'; cs.setAttribute('aria-label', 'Aantal porties');
-      ($('#cookTimer') || $('#cookOff')).before(cs);
+      ($('#cookFs') || $('#cookTimer') || $('#cookOff')).before(cs);   // porties, dan tekstgrootte
     }
     cs.innerHTML = `<button aria-label="Minder porties">−</button><span>${ICONS.people} ${servings}</span><button aria-label="Meer porties">+</button>`;
     const [csMin, csPlus] = cs.querySelectorAll('button');
