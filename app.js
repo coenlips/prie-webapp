@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.13.3 · 26 november 2026';
+const APP_VERSION = '1.13.4 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2051,7 +2051,9 @@ function renderSettings(k = '', sub = '') {
   const active = k || (wide ? 'account' : '');
   const g = groups.find(x => x.k === active);
   setHeader({ title: 'Ricetta', docTitle: g ? `${g.t} · Instellingen` : k === 'nieuw' ? 'Wat is er nieuw' : 'Instellingen', back: true, timer: false,
-    actions: `<button class="icon-btn settings-btn on" data-go="#/settings" aria-label="Instellingen" aria-current="page">${ICONS.gear}</button>` });
+    actions: `<button class="icon-btn settings-btn on" id="settingsClose" aria-label="Instellingen sluiten" title="Terug naar waar je was" aria-current="page">${ICONS.gear}</button>` });
+  // Tandwiel nog een keer: terug naar het scherm waar je vandaan kwam
+  $('#settingsClose').onclick = () => { location.hash = state.settingsFrom || '#/'; };
   view.innerHTML = `
     <section class="st-wrap ${k ? 'st-in' : 'st-root'}">
       <aside class="st-side">
@@ -3510,6 +3512,10 @@ const isStale = seq => seq !== routeSeq;
 async function route() {
   routeSeq++;
   const hash = location.hash || '#/';
+  // Onthoud vanaf welk scherm je de instellingen opende (voor het tandwiel in de instellingen)
+  { const prev = state.curHash, inSt = h => /^#\/(settings|gebruikers)(\/|$)/.test(h || '');
+    if (inSt(hash) && prev && !inSt(prev)) state.settingsFrom = prev;
+    state.curHash = hash; }
   const [, page, id, sub] = hash.split('/');
   window.scrollTo(0, 0);
 
