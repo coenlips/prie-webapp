@@ -237,7 +237,7 @@ const Menus = (() => {
     const pick = course => {
       const s = openAccSheet(`
         <div class="sheet-head"><h3>${esc(course)}</h3><button class="text-btn" data-close>Klaar</button></div>
-        <div class="search-clear-wrap"><input type="search" id="mpSearch" placeholder="Zoek een recept" autocomplete="off"><button type="button" class="search-clear" id="mpClear" aria-label="Zoekveld leegmaken" hidden>×</button></div>
+        <div class="search mp-search">${ICONS.search}<input type="search" id="mpSearch" placeholder="Zoek een recept" autocomplete="off"><button type="button" class="search-clear" id="mpClear" aria-label="Zoekveld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>
         <ul class="pick mp-pick" id="mpList"></ul>`, `Recept kiezen: ${course}`);
       s.el.querySelector('.sheet').classList.add('tall');   // vaste hoogte: blijft boven het toetsenbord, ook met weinig resultaten
       const drawPick = () => {
