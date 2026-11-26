@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.16.1 · 26 november 2026';
+const APP_VERSION = '1.16.2 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1129,7 +1129,9 @@ document.addEventListener('visibilitychange', () => {
 
 function setCookMode(on) {
   state.cookMode = on;
-  if (on) { state.cookTab = 'ingr'; for (const k in cookScroll) delete cookScroll[k]; }
+  // Zelfde recept nog open: verder op de kant (ingrediënten/bereiding) waar je was; ander recept: opnieuw beginnen
+  if (on && state.cookTabFor !== location.hash) { state.cookTab = 'ingr'; for (const k in cookScroll) delete cookScroll[k]; }
+  if (on) state.cookTabFor = location.hash;
   document.body.classList.toggle('cook', on);
   { const [, pg, , sb] = (location.hash || '#/').split('/'); updateTabs(pg, sb); if (!on && document.body.classList.contains('brand-head')) { $('#title').textContent = 'Ricetta'; } }
   $('#cookTabs').hidden = !on;
@@ -3577,6 +3579,7 @@ async function route() {
 
   if (page !== 'r' && state.cookMode) setCookMode(false);
   if (page !== 'r') state.backStack = [];
+  if (hash !== state.cookTabFor) state.cookTabFor = null;   // recept verlaten: kookstand begint weer bij de ingrediënten
   document.getElementById('cookServings')?.remove();   // hoort bij het vorige recept
   document.body.dataset.page = ({ menus: 'menus', menu: 'menus', r: 'detail', edit: 'edit', new: 'edit', settings: 'settings', gebruikers: 'settings', boodschappen: 'shop',
     ontvangen: 'detail', kookboeken: 'settings', kookboek: 'book' })[page] || 'list';
