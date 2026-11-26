@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.10.1 · 25 november 2026';
+const APP_VERSION = '1.11.0 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -500,8 +500,10 @@ $('#backBtn').addEventListener('click', () => {
   if (page === 'kookboek' && parts[3]) { location.hash = `#/kookboek/${parts[2]}`; return; }
   if (page === 'kookboek') { location.hash = '#/kookboeken'; return; }
   if (page === 'kookboeken' || page === 'ontvangen') { location.hash = '#/'; return; }
-  if (page === 'gebruikers') location.hash = '#/settings';
-  else if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
+  if (page === 'gebruikers') { location.hash = '#/settings/beheer'; return; }
+  if (page === 'settings' && parts[3]) { location.hash = `#/settings/${parts[2]}`; return; }
+  if (page === 'settings' && parts[2] && !matchMedia('(min-width: 700px)').matches) { location.hash = '#/settings'; return; }
+  if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
 });
 $('#addBtn').addEventListener('click', () => Importer.openSheet());
@@ -1774,23 +1776,6 @@ async function renderEdit(id) {
 
 /* ---------- Instellingen / back-up ---------- */
 
-// Inklapbare blokken in de instellingen; onthoudt welke open staan (alleen op dit toestel)
-const FOLD_KEY = 'recepten-settings-open';
-const openFolds = () => { try { return JSON.parse(localStorage.getItem(FOLD_KEY)) || []; } catch { return []; } };
-function fold(id, title, body, { badge = '', open = false, icon = '' } = {}) {
-  const isOpen = open || openFolds().includes(id);
-  return `
-    <details class="card-box fold" data-fold="${id}" ${isOpen ? 'open' : ''}>
-      <summary>
-        ${icon ? `<span class="fold-icon">${icon}</span>` : ''}
-        <h3>${title}</h3>
-        <span class="fold-badge" id="badge-${id}">${badge}</span>
-        <span class="fold-chevron">${ICONS.chevron}</span>
-      </summary>
-      <div class="fold-body">${body}</div>
-    </details>`;
-}
-
 // Beheerder: openstaande meldingen (fouten en ideeën)
 function feedbackBadge() {
   const s = Sync.status(), n = (s.user?.admin && s.me?.feedback) || 0;
@@ -1875,131 +1860,196 @@ function syncBadge() {
   return `<span class="badge-good">✓ ${esc(s.user?.name || 'aan')}</span>`;
 }
 
-function renderSettings() {
-  setHeader({ title: 'Ricetta', docTitle: 'Instellingen', back: true, timer: false, actions: `<button class="icon-btn settings-btn on" data-go="#/settings" aria-label="Instellingen" aria-current="page">${ICONS.gear}</button>` });
-  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone;
-  const sync = Sync.status();
+// Instellingen: groepen met elk een eigen adres (#/settings/<groep>/<onderdeel>).
+// iPhone: lagen (overzicht → groep → onderdeel). Laptop: zijbalk met groepen, inhoud ernaast.
+const ST_ICONS = {
+  import: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7.5 10.5 12 15l4.5-4.5"/><path d="M4 15v4a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-4"/></svg>',
+  device: '<svg viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M11 18.5h2"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 3 4.5 6v5.5c0 4.6 3.2 8 7.5 9.5 4.3-1.5 7.5-4.9 7.5-9.5V6z"/><path d="M9 12l2 2 4-4"/></svg>',
+  next: '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>',
+  inbox: '<svg viewBox="0 0 24 24"><path d="M3 13l2.5-8h13L21 13v6H3z"/><path d="M3 13h5l1.5 2.5h5L16 13h5"/></svg>',
+  key: '<svg viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3M14 9l2 2"/></svg>',
+  mail: '<svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></svg>',
+  logout: '<svg viewBox="0 0 24 24"><path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4"/><path d="M10 8l-4 4 4 4M6 12h10"/></svg>',
+  refresh: '<svg viewBox="0 0 24 24"><path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4"/><path d="M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4"/></svg>',
+  people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
+  servings: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16"/></svg>',
+  scale: '<svg viewBox="0 0 24 24"><path d="M5 20h14M12 4v16M5 8h14M5 8l-2.5 6a3 3 0 0 0 5 0zM19 8l-2.5 6a3 3 0 0 0 5 0z"/></svg>',
+};
+function stGroups() {
+  const s = Sync.status(), me = s.me || {};
+  const adminN = (me.requests || 0) + (me.feedback || 0);
+  const vis = ({ none: 'privé', some: 'gedeeld', all: 'iedereen' })[shareCache().visibility || 'none'];
+  return [
+    { k: 'account', icon: ICONS.user, t: 'Account', sub: s.state === 'on' ? 'Naam, e-mail, wachtwoord' : s.state === 'off' ? 'Nog niet ingesteld' : 'Inloggen of account aanvragen' },
+    { k: 'delen', icon: ICONS.book, t: 'Delen', sub: s.state === 'on' ? `Wie je Ricette ziet · ${vis}` : 'Log eerst in' },
+    { k: 'koken', icon: ICONS.pot, t: 'Recepten & koken', sub: 'Gangen, kookwekker' },
+    { k: 'import', icon: ST_ICONS.import, t: 'Toevoegen & importeren', sub: 'iPhone-opdracht, back-up' },
+    { k: 'app', icon: ST_ICONS.device, t: 'App', sub: 'Beginscherm, fout melden' },
+    ...(s.user?.admin ? [{ k: 'beheer', icon: ST_ICONS.shield, t: 'Beheer', n: adminN,
+      sub: [me.requests ? `${me.requests} ${me.requests === 1 ? 'aanvraag' : 'aanvragen'}` : '', me.feedback ? `${me.feedback} ${me.feedback === 1 ? 'melding' : 'meldingen'}` : ''].filter(Boolean).join(' · ') || 'Gebruikers, meldingen' }] : []),
+  ];
+}
+// Eén regel: icoon, naam, uitleg en rechts een pijltje, schakelaar of keuze
+function stRow({ icon = '', t, sub = '', href = '', id = '', right, cls = '', tag = 'a', attrs = '' }) {
+  const r = right === undefined ? `<span class="st-chev">${ST_ICONS.next}</span>` : right;
+  const el = href ? 'a' : tag;
+  return `<li><${el} class="st-row ${cls}"${href ? ` href="${href}"` : ''}${id ? ` id="${id}"` : ''}${el === 'button' ? ' type="button"' : ''} ${attrs}>
+    ${icon ? `<span class="st-ic">${icon}</span>` : ''}<span class="st-tx"><b>${t}</b>${sub ? `<small>${sub}</small>` : ''}</span>${r ? `<span class="st-right">${r}</span>` : ''}</${el}></li>`;
+}
+const stList = (rows, head = '') => `${head ? `<h3 class="st-sec">${head}</h3>` : ''}<ul class="st-list">${rows.join('')}</ul>`;
+const stSoon = (icon, t, sub) => stRow({ icon, t: `${t}<span class="soon-tag">later</span>`, sub, tag: 'div', right: '', cls: 'soon' });
+function stMeHtml() {
+  const s = Sync.status(), u = s.user;
+  if (s.state !== 'on') return `<a class="st-me" href="#/settings/account"><span class="st-av">${ICONS.user}</span><span class="st-tx"><b>${s.state === 'off' ? 'Ricetta' : 'Inloggen'}</b><small>${s.state === 'off' ? 'Online bewaren is nog niet ingesteld' : 'Bewaar je recepten online en deel ze'}</small></span><span class="st-chev">${ST_ICONS.next}</span></a>`;
+  const mail = s.me?.email;
+  return `<a class="st-me" href="#/settings/account"><span class="st-av">${esc((u.name || '?').charAt(0).toUpperCase())}</span><span class="st-tx"><b>${esc(u.name)}</b><small>${[mail ? esc(mail) : '', u.admin ? 'beheerder' : ''].filter(Boolean).join(' · ') || 'Je account'}</small></span>${s.error ? '<span class="st-warn">⚠️</span>' : ''}<span class="st-chev">${ST_ICONS.next}</span></a>`;
+}
+function stNewsHtml() {
+  const c = CHANGELOG[0], first = (c.sections[0]?.items[0] || '').replace(/<[^>]+>/g, '').replace(/\s*\([^)]*\)/g, '');
+  const short = first.length > 90 ? first.slice(0, 88).replace(/\s+\S*$/, '') + '…' : first;
+  return `<a class="st-new" href="#/settings/nieuw"><span class="st-new-ic">${ICONS.news}</span><span class="st-tx"><b>Nieuw in versie ${c.v.split('.').slice(0, 2).join('.')}</b><small>${esc(short)}</small></span><span class="st-chev">${ST_ICONS.next}</span></a>`;
+}
+function stNav(active) {
+  return `<ul class="st-list st-groups">${stGroups().map(g => stRow({ icon: g.icon, t: g.t, sub: g.sub, href: `#/settings/${g.k}`, cls: g.k === active ? 'on' : '', attrs: `data-g="${g.k}"${g.k === active ? ' aria-current="page"' : ''}`,
+    right: g.n ? `<span class="st-dot">${g.n}</span>` : undefined })).join('')}</ul>`;
+}
+const stHead = (icon, t, intro = '') => `<div class="st-h">${icon ? `<span class="st-h-ic">${icon}</span>` : ''}<h2>${t}</h2></div>${intro ? `<p class="st-intro">${intro}</p>` : ''}`;
+const stCrumb = (g, t) => `<p class="st-crumb"><a href="#/settings/${g.k}">${g.t}</a> › ${t}</p>`;
 
-  view.innerHTML = `
-    <section class="settings">
-      <h2 class="page-title">Instellingen</h2>
-      ${standalone ? '' : fold('install', 'Op je beginscherm zetten', `
+// Inhoud per groep (en onderdeel). Geeft html terug; bind() hangt de knoppen eraan.
+function stPage(k, sub) {
+  const sync = Sync.status(), g = stGroups().find(x => x.k === k) || { k, t: '' };
+  const standalone = isStandalone();
+  if (k === 'nieuw') return `${stHead(ICONS.news, 'Wat is er nieuw')}
+    ${loggedIn() ? stList([stRow({ icon: ICONS.bug, t: 'Fout melden of idee insturen', sub: 'Wij lezen alles', tag: 'button', id: 'fbOpen' })]) : ''}
+    <div class="changelog st-changelog">${changelogHtml()}</div>`;
+  if (k === 'account') return `${stHead(ICONS.user, 'Account')}<div class="card-box st-card" id="syncCard">${Sync.cardHtml()}</div>`;
+  if (k === 'delen') return `${stHead(ICONS.book, 'Delen', 'Bepaal wie jouw Ricette mag zien en wat je van anderen ontvangt.')}
+    ${sync.state === 'on' ? `<div class="card-box st-card">${shareSettingsHtml()}</div>` : `<div class="card-box st-card"><p>Log eerst in om recepten met anderen te delen.</p><a class="btn" href="#/settings/account">Naar Account</a></div>`}
+    ${stList([stSoon(Menus.MENU_ICON, 'Menu’s delen', 'Een menu met je gasten delen'), stSoon(ICONS.basket, 'Gedeelde boodschappenlijst', 'Samen boodschappen doen')], 'Binnenkort')}`;
+  if (k === 'koken' && sub === 'gangen') return `${stCrumb(g, 'Gangen')}${stHead('', 'Gangen')}<div class="card-box st-card"><div id="courseSettings"></div></div>`;
+  if (k === 'koken' && sub === 'klok') return `${stCrumb(g, 'Klok-app')}${stHead('', 'Wekker in de Klok-app')}
+    <div class="card-box st-card"><p>Eenmalig instellen, daarna zet Ricetta je wekkers in de Klok-app. Die gaan ook af met je scherm op slot.</p>
+      <ol class="howto">
+        <li>Open de app <strong>Opdrachten</strong> en tik rechtsboven op <strong>+</strong>.</li>
+        <li>Tik bovenaan op de naam en noem de opdracht precies <strong>${Timers.SHORTCUT}</strong>.</li>
+        <li>Tik op <strong>Zoek naar taken</strong>, typ <strong>timer</strong> en kies <strong>Start timer</strong>.</li>
+        <li>Tik in die taak op het getal (<em>30</em>) en kies in de balk boven het toetsenbord <strong>Invoer opdracht</strong>. Laat de eenheid op <strong>minuten</strong> staan.</li>
+        <li>Staat er bovenaan iets als <em>Ontvang … invoer van Nergens</em>? Tik dan op <em>Nergens</em> en zet <strong>Opdrachtenbalk</strong> of <strong>Deelpaneel</strong> aan.</li>
+        <li>Tik op <strong>Gereed</strong>. Kom terug hier en tik op <strong>Test</strong>.</li>
+      </ol>
+      <button class="btn ghost" id="testClock">Test: wekker van 1 minuut in de Klok-app</button>
+      <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p></div>`;
+  if (k === 'koken') {
+    const n = courseList().length, cl = courseList();
+    return `${stHead(ICONS.pot, 'Recepten & koken')}
+      ${stList([stRow({ icon: ICONS.plate, t: 'Gangen', sub: `${cl.slice(0, 3).join(', ')}${n > 3 ? ` en ${n - 3} meer` : ''}`, href: '#/settings/koken/gangen' })], 'Ordenen')}
+      ${stList([
+        stRow({ icon: ICONS.timer, t: 'Kookwekker', sub: 'Waar gaat de wekker af?', tag: 'div', cls: 'stack',
+          right: `<span class="seg3" role="radiogroup" aria-label="Kookwekker">${[['app', 'In de app'], ['klok', 'Klok-app']].map(([v, l]) => `<button type="button" role="radio" data-tmode="${v}" class="${Timers.getMode() === v ? 'on' : ''}" aria-checked="${Timers.getMode() === v}">${l}</button>`).join('')}</span>` }),
+        stRow({ icon: ICONS.clock, t: 'Klok-app instellen', sub: 'Eenmalig, via de app Opdrachten', href: '#/settings/koken/klok' }),
+      ], 'Koken')}
+      ${stList([stSoon(ST_ICONS.servings, 'Standaard aantal porties', 'Recepten meteen omrekenen'), stSoon(ST_ICONS.scale, 'Eenheden', 'Cups en ounces omrekenen naar gram')], 'Binnenkort')}`;
+  }
+  if (k === 'import' && sub === 'opdracht') return `${stCrumb(g, 'iPhone-opdracht')}${stHead('', 'Importeren vanuit Safari en Chrome')}
+    <div class="card-box st-card">
+      <p>Met een opdracht zet je een recept met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet hiervoor ingelogd zijn.</p>
+      <ol class="howto">
+        <li>Open de app <strong>Opdrachten</strong>, tik op <strong>+</strong> en noem de opdracht <strong>Ricetta importeren</strong>.</li>
+        <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten <strong>URL's</strong> en <strong>Safari-webpagina's</strong>.</li>
+        <li>Voeg de taak <strong>Haal inhoud op van URL</strong> toe, met als URL de <em>Opdrachtinvoer</em>. Zo haalt je iPhone de receptpagina op.</li>
+        <li>Voeg nog een keer <strong>Haal inhoud op van URL</strong> toe. Plak als URL het adres van de knop hieronder. Tik op het pijltje: <strong>Methode POST</strong>, <strong>Verzoekhoofdtekst Formulier</strong>. Voeg drie velden toe:
+          <code>key</code> (tekst) = je <strong>persoonlijke deelsleutel</strong> (knop hieronder), <code>url</code> (tekst) = <em>Opdrachtinvoer</em>, en <code>html</code> (<strong>bestand</strong>) = de <em>Inhoud van URL</em> van stap 3.</li>
+        <li>Voeg de taak <strong>Toon melding</strong> toe, met de variabele <em>Inhoud van URL</em> van stap 4.</li>
+      </ol>
+      <button class="btn ghost" id="copyShareUrl">Kopieer het adres</button>
+      <button class="btn ghost" id="copyShareKey">Kopieer je deelsleutel</button>
+      <p class="small-note">Je deelsleutel hoort bij jouw account, zodat gedeelde recepten in jouw verzameling komen. Deel hem niet met anderen.</p>
+      <p class="small-note">In Chrome vind je <strong>Deel</strong> via het deelicoon of het menu <strong>⋯</strong>. De eerste keer vraagt je iPhone of de opdracht de website en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>
+      <details class="howto-box">
+        <summary>Alleen Safari: werkt ook bij delicious.</summary>
+        <p class="small-note">Sommige sites (zoals delicious.) laten ook je iPhone de pagina niet los ophalen. In Safari kan een opdracht het recept uit de al geladen pagina lezen. Maak dan een tweede opdracht:</p>
         <ol class="howto">
-          <li>Open deze pagina in <strong>Safari</strong>.</li>
-          <li>Tik op de deelknop ${ICONS.share}.</li>
-          <li>Kies <strong>Zet op beginscherm</strong>.</li>
-        </ol>`, { open: true, icon: ICONS.phone })}
-
-      ${fold('account', 'Account', `<div id="syncCard">${Sync.cardHtml()}</div>`, { badge: syncBadge(), open: sync.state === 'loggedout' || !!sync.error, icon: ICONS.user })}
-
-      ${sync.state === 'on' ? fold('sharing', 'Delen met anderen', shareSettingsHtml(), { icon: ICONS.book,
-        badge: `<span class="badge-muted">${({ none: 'privé', some: 'gedeeld', all: 'iedereen' })[shareCache().visibility || 'none']}</span>` }) : ''}
-
-      ${sync.user?.admin ? fold('users', 'Gebruikers', `
-        <p>Accounts aanmaken, aanvragen goedkeuren, wachtwoorden opnieuw instellen en de mail testen.</p>
-        <button class="btn ghost" id="openUsers">Gebruikers beheren</button>`, { badge: usersBadge(), icon: ICONS.people }) : ''}
-
-      ${fold('courses', 'Gangen', `<div id="courseSettings"></div>`, { badge: `<span class="badge-muted">${courseList().length}</span>`, icon: ICONS.plate })}
-
-      ${fold('timer', 'Kookwekker', `
-        <p>Waar moet een wekker afgaan als je op een tijd of een snelkeuze tikt?</p>
-        <div class="choice">
-          <label><input type="radio" name="tmode" value="app" ${Timers.getMode() === 'app' ? 'checked' : ''}>
-            <span><strong>In deze app</strong><small>Meerdere wekkers tegelijk. Alleen geluid als de app open is.</small></span></label>
-          <label><input type="radio" name="tmode" value="klok" ${Timers.getMode() === 'klok' ? 'checked' : ''}>
-            <span><strong>In de Klok-app</strong><small>Gaat ook af met scherm op slot. Eén wekker tegelijk. Werkt via de app Opdrachten.</small></span></label>
-        </div>
-        <details class="howto-box">
-          <summary>Eenmalig instellen voor de Klok-app</summary>
-          <ol class="howto">
-            <li>Open de app <strong>Opdrachten</strong> en tik rechtsboven op <strong>+</strong>.</li>
-            <li>Tik bovenaan op de naam en noem de opdracht precies <strong>${Timers.SHORTCUT}</strong>.</li>
-            <li>Tik op <strong>Zoek naar taken</strong>, typ <strong>timer</strong> en kies <strong>Start timer</strong>.</li>
-            <li>Tik in die taak op het getal (<em>30</em>) en kies in de balk boven het toetsenbord <strong>Invoer opdracht</strong>. Laat de eenheid op <strong>minuten</strong> staan.</li>
-            <li>Staat er bovenaan iets als <em>Ontvang … invoer van Nergens</em>? Tik dan op <em>Nergens</em> en zet <strong>Opdrachtenbalk</strong> of <strong>Deelpaneel</strong> aan.</li>
-            <li>Tik op <strong>Gereed</strong>. Kom terug hier en tik op <strong>Test</strong>.</li>
-          </ol>
-          <button class="btn ghost" id="testClock">Test: wekker van 1 minuut in de Klok-app</button>
-          <p class="small-note">De eerste keer vraagt je iPhone mogelijk of de opdracht de Klok-app mag gebruiken. Kies <strong>Sta toe</strong>.</p>
-        </details>`, { badge: `<span class="badge-muted">${Timers.getMode() === 'klok' ? 'Klok-app' : 'in de app'}</span>`, icon: ICONS.timer })}
-
-      ${fold('share', 'Delen', `
-        <p>Recepten vanuit Chrome of Safari importeren. Met een opdracht zet je een recept met <strong>Deel → Ricetta importeren</strong> klaar in de app. Je iPhone haalt de pagina zelf op, dus dat werkt vaak ook bij sites die automatisch ophalen blokkeren. Je moet hiervoor ingelogd zijn.</p>
-        <ol class="howto">
-          <li>Open de app <strong>Opdrachten</strong>, tik op <strong>+</strong> en noem de opdracht <strong>Ricetta importeren</strong>.</li>
-          <li>Tik onderaan op <strong>ⓘ</strong> (Details) en zet <strong>Toon in deelpaneel</strong> aan. Kies bij de soorten <strong>URL's</strong> en <strong>Safari-webpagina's</strong>.</li>
-          <li>Voeg de taak <strong>Haal inhoud op van URL</strong> toe, met als URL de <em>Opdrachtinvoer</em>. Zo haalt je iPhone de receptpagina op.</li>
-          <li>Voeg nog een keer <strong>Haal inhoud op van URL</strong> toe. Plak als URL het adres van de knop hieronder. Tik op het pijltje: <strong>Methode POST</strong>, <strong>Verzoekhoofdtekst Formulier</strong>. Voeg drie velden toe:
-            <code>key</code> (tekst) = je <strong>persoonlijke deelsleutel</strong> (knop hieronder), <code>url</code> (tekst) = <em>Opdrachtinvoer</em>, en <code>html</code> (<strong>bestand</strong>) = de <em>Inhoud van URL</em> van stap 3.</li>
-          <li>Voeg de taak <strong>Toon melding</strong> toe, met de variabele <em>Inhoud van URL</em> van stap 4.</li>
+          <li>Nieuwe opdracht <strong>Ricetta (Safari)</strong>, <strong>Toon in deelpaneel</strong> aan, soort alleen <strong>Safari-webpagina's</strong>.</li>
+          <li>Taak <strong>Voer JavaScript uit op webpagina</strong> met de code van de knop hieronder.</li>
+          <li>Taak <strong>Haal inhoud op van URL</strong> met het adres hierboven: <strong>POST</strong>, <strong>JSON</strong>, velden <code>key</code> = je deelsleutel en <code>data</code> = <em>Resultaat JavaScript</em>.</li>
+          <li>Taak <strong>Toon melding</strong> met <em>Inhoud van URL</em>.</li>
+          <li>iPhone-instellingen → <strong>Apps → Opdrachten → Geavanceerd</strong> → <strong>Sta uitvoeren scripts toe</strong> aan.</li>
         </ol>
-        <button class="btn ghost" id="copyShareUrl">Kopieer het adres</button>
-        <button class="btn ghost" id="copyShareKey">Kopieer je deelsleutel</button>
-        <p class="small-note">Je deelsleutel hoort bij jouw account, zodat gedeelde recepten in jouw verzameling komen. Deel hem niet met anderen.</p>
-        <p class="small-note">In Chrome vind je <strong>Deel</strong> via het deelicoon of het menu <strong>⋯</strong>. De eerste keer vraagt je iPhone of de opdracht de website en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>
-        <details class="howto-box">
-          <summary>Alleen Safari: werkt ook bij delicious.</summary>
-          <p class="small-note">Sommige sites (zoals delicious.) laten ook je iPhone de pagina niet los ophalen. In Safari kan een opdracht het recept uit de al geladen pagina lezen. Maak dan een tweede opdracht:</p>
-          <ol class="howto">
-            <li>Nieuwe opdracht <strong>Ricetta (Safari)</strong>, <strong>Toon in deelpaneel</strong> aan, soort alleen <strong>Safari-webpagina's</strong>.</li>
-            <li>Taak <strong>Voer JavaScript uit op webpagina</strong> met de code van de knop hieronder.</li>
-            <li>Taak <strong>Haal inhoud op van URL</strong> met het adres hierboven: <strong>POST</strong>, <strong>JSON</strong>, velden <code>key</code> = je deelsleutel en <code>data</code> = <em>Resultaat JavaScript</em>.</li>
-            <li>Taak <strong>Toon melding</strong> met <em>Inhoud van URL</em>.</li>
-            <li>iPhone-instellingen → <strong>Apps → Opdrachten → Geavanceerd</strong> → <strong>Sta uitvoeren scripts toe</strong> aan.</li>
-          </ol>
-          <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
-        </details>`, { icon: ICONS.share })}
+        <button class="btn ghost" id="copyShareJs">Kopieer de code</button>
+      </details></div>`;
+  if (k === 'import') return `${stHead(ST_ICONS.import, 'Toevoegen & importeren')}
+    ${stList([stRow({ icon: ICONS.share, t: 'iPhone-opdracht', sub: 'Recepten delen vanuit Safari en Chrome', href: '#/settings/import/opdracht' })], 'Importeren')}
+    ${stList([
+      stRow({ icon: ICONS.cloud, t: 'Back-up exporteren', sub: `Je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijv. voor iCloud Drive`, tag: 'button', id: 'exportBtn' }),
+      `<li><label class="st-row"><span class="st-ic">${ST_ICONS.import}</span><span class="st-tx"><b>Back-up importeren</b><small>Recepten uit een back-upbestand terugzetten</small></span><span class="st-right"><span class="st-chev">${ST_ICONS.next}</span></span><input type="file" accept="application/json,.json" id="importInput" hidden></label></li>`,
+    ], 'Back-up als bestand')}
+    <p class="small-note st-note">Ben je ingelogd, dan worden je recepten ook al automatisch online bewaard.</p>`;
+  if (k === 'app' && sub === 'beginscherm') return `${stCrumb(g, 'Op je beginscherm')}${stHead('', 'Op je beginscherm zetten')}
+    <div class="card-box st-card"><ol class="howto">
+      <li>Open deze pagina in <strong>Safari</strong>.</li>
+      <li>Tik op de deelknop ${ICONS.share}.</li>
+      <li>Kies <strong>Zet op beginscherm</strong>.</li>
+    </ol></div>`;
+  if (k === 'app') return `${stHead(ST_ICONS.device, 'App')}
+    ${stList([
+      ...(standalone ? [stRow({ icon: ICONS.check, t: 'Op je beginscherm', sub: 'Ricetta is als app geïnstalleerd', tag: 'div', right: '' })]
+        : [stRow({ icon: ICONS.phone, t: 'Op je beginscherm zetten', sub: 'Ricetta openen als een gewone app', href: '#/settings/app/beginscherm' })]),
+      stRow({ icon: ICONS.news, t: 'Wat is er nieuw', sub: `Versie ${CHANGELOG[0].v.split('.').slice(0, 2).join('.')}`, href: '#/settings/nieuw' }),
+      ...(loggedIn() ? [stRow({ icon: ICONS.bug, t: 'Fout melden of idee insturen', sub: 'Wij lezen alles', tag: 'button', id: 'fbOpen' })] : []),
+    ])}
+    <p class="version">Versie ${APP_VERSION}</p>`;
+  if (k === 'beheer' && sub === 'meldingen') return `${stCrumb(g, 'Meldingen')}${stHead('', 'Meldingen')}<div class="card-box st-card"><div id="fbAdmin">${loaderHtml()}</div></div>`;
+  if (k === 'beheer') {
+    const me = sync.me || {};
+    return `${stHead(ST_ICONS.shield, 'Beheer')}
+      ${stList([
+        stRow({ icon: ICONS.people, t: 'Gebruikers', sub: 'Accounts, aanvragen, wachtwoorden, mislukte imports', href: '#/gebruikers', right: me.requests ? `<span class="st-dot">${me.requests}</span>` : undefined }),
+        stRow({ icon: ICONS.bug, t: 'Meldingen', sub: 'Fouten en ideeën van gebruikers', href: '#/settings/beheer/meldingen', right: me.feedback ? `<span class="st-dot">${me.feedback}</span>` : undefined }),
+      ])}`;
+  }
+  return '';
+}
 
-      ${fold('news', 'Wat is er nieuw', `
-        <div class="fb-box">
-          ${loggedIn() ? `<button type="button" class="btn ghost fb-open" id="fbOpen">${ICONS.bug} Fout melden of idee insturen</button>`
-            : '<p class="small-note">Log in om een fout te melden of een idee in te sturen.</p>'}
-          <div id="fbAdmin"></div>
-        </div>
-        <div class="changelog">${changelogHtml()}</div>`, { icon: ICONS.news, badge: feedbackBadge() })}
-
-      ${fold('backup', 'Back-up als bestand', `
-        <p>Een extra kopie van je ${state.recipes.length} ${state.recipes.length === 1 ? 'recept' : 'recepten'} als bestand, bijvoorbeeld voor iCloud Drive. Ben je ingelogd, dan worden je recepten ook al automatisch online bewaard.</p>
-        <button class="btn" id="exportBtn">Back-up exporteren</button>
-        <label class="btn ghost file-btn">Back-up importeren
-          <input type="file" accept="application/json,.json" id="importInput" hidden>
-        </label>`, { icon: ICONS.cloud })}
-
-      <p class="version">Versie ${APP_VERSION}</p>
+function renderSettings(k = '', sub = '') {
+  const groups = stGroups();
+  if (k && k !== 'nieuw' && !groups.some(g => g.k === k)) { location.replace('#/settings'); return; }
+  const wide = matchMedia('(min-width: 700px)').matches;
+  // Laptop zonder gekozen groep: toon Account (de zijbalk staat er al naast)
+  const active = k || (wide ? 'account' : '');
+  const g = groups.find(x => x.k === active);
+  setHeader({ title: 'Ricetta', docTitle: g ? `${g.t} · Instellingen` : k === 'nieuw' ? 'Wat is er nieuw' : 'Instellingen', back: true, timer: false,
+    actions: `<button class="icon-btn settings-btn on" data-go="#/settings" aria-label="Instellingen" aria-current="page">${ICONS.gear}</button>` });
+  view.innerHTML = `
+    <section class="st-wrap ${k ? 'st-in' : 'st-root'}">
+      <aside class="st-side">
+        ${wide ? '' : stNewsHtml()}
+        <div id="stMe">${stMeHtml()}</div>
+        <div id="stNav">${stNav(active)}</div>
+        <p class="st-ver">Ricetta ${esc(APP_VERSION.split(' ')[0])}</p>
+      </aside>
+      <div class="st-main">${wide && k !== 'nieuw' && !sub ? stNewsHtml() : ''}${active ? stPage(active, sub) : ''}</div>
     </section>`;
 
-  // Open/dicht onthouden
-  view.querySelectorAll('details.fold').forEach(d => d.addEventListener('toggle', () => {
-    const set = new Set(openFolds());
-    d.open ? set.add(d.dataset.fold) : set.delete(d.dataset.fold);
-    try { localStorage.setItem(FOLD_KEY, JSON.stringify([...set])); } catch { /* geen opslag */ }
-  }));
-
-  Sync.bindCard($('#syncCard'));
-  const badge = $('#badge-account');
-  Sync.refreshMe().catch(() => {});   // actueel aantal recepten en deelsleutel
+  if ($('#syncCard')) Sync.bindCard($('#syncCard'));
+  Sync.refreshMe().catch(() => {});   // actueel aantal recepten, meldingen en deelsleutel
+  const me = $('#stMe');
   Sync.onChange(function update() {
-    if (!badge.isConnected) return false; // kaart weg: ontvanger opruimen
-    badge.innerHTML = syncBadge();
-    const ub = $('#badge-users');
-    if (ub) ub.innerHTML = usersBadge();
-    const nb = $('#badge-news');
-    if (nb) nb.innerHTML = feedbackBadge();
+    if (!me.isConnected) return false;
+    me.innerHTML = stMeHtml();
+    $('#stNav').innerHTML = stNav(active);
   });
   if ($('#fbOpen')) $('#fbOpen').onclick = openFeedbackSheet;
-  drawFeedbackAdmin();
-  bindShareSettings();
-  const openUsers = $('#openUsers');
-  if (openUsers) openUsers.onclick = () => { location.hash = '#/gebruikers'; };
-
-  $('#exportBtn').addEventListener('click', exportBackup);
-  $('#importInput').addEventListener('change', e => importBackup(e.target.files[0]));
-  view.querySelectorAll('[name=tmode]').forEach(r => r.addEventListener('change', () => {
-    Timers.setMode(r.value);
-    $('#badge-timer').innerHTML = `<span class="badge-muted">${r.value === 'klok' ? 'Klok-app' : 'in de app'}</span>`;
-    if (r.value === 'klok') view.querySelector('.howto-box').open = true;
-  }));
-  $('#testClock').addEventListener('click', () => Timers.startClock(1));
+  if ($('#fbAdmin')) drawFeedbackAdmin();
+  if ($('#shareSettings')) bindShareSettings();
+  if ($('#exportBtn')) $('#exportBtn').onclick = exportBackup;
+  if ($('#importInput')) $('#importInput').onchange = e => importBackup(e.target.files[0]);
+  view.querySelectorAll('[data-tmode]').forEach(b => b.onclick = () => {
+    Timers.setMode(b.dataset.tmode);
+    view.querySelectorAll('[data-tmode]').forEach(x => { x.classList.toggle('on', x === b); x.setAttribute('aria-checked', x === b); });
+  });
+  if ($('#testClock')) $('#testClock').onclick = () => Timers.startClock(1);
   renderCourseSettings();
   const copyBtn = (sel, text, label) => { const b = $(sel); if (b) b.onclick = async () => {
     try { await navigator.clipboard.writeText(text); b.textContent = '✓ Gekopieerd'; setTimeout(() => { b.textContent = label; }, 1500); } catch { toast('Kopiëren lukte niet'); }
@@ -2130,7 +2180,7 @@ async function importBackup(file) {
     await DB.putMany(valid);
     await loadRecipes();
     toast(`${valid.length} recepten geïmporteerd`);
-    renderSettings();
+    route();
   } catch {
     toast('Dit is geen geldig back-upbestand');
   }
@@ -2385,6 +2435,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.11.0', date: '26 november 2026', sections: [{ items: [
+    'Nieuwe instellingen: alles staat overzichtelijk in groepen (Account, Delen, Recepten & koken, Toevoegen & importeren en App). Op de iPhone tik je laag voor laag verder, op de laptop staan de groepen in een zijbalk.',
+  ] }] },
   { v: '1.10.0', date: '25 november 2026', sections: [{ items: [
     'Je kunt nu je e-mailadres opgeven (Instellingen → Account). Dan kan de beheerder je bereiken als er iets misgaat. Alleen de beheerder ziet het.',
   ] }] },
@@ -2474,7 +2527,7 @@ function maybeShowNews() {
       <div class="sheet-head"><h3>${c.title}</h3><button class="text-btn" data-close>Sluit</button></div>
       <div class="news">${changeHtml(c)}</div>
       <button class="btn" data-close>Aan de slag</button>
-      <p class="small-note news-later">Dit overzicht vind je later terug bij <span class="nowrap">Instellingen → Wat is er nieuw.</span></p>`, c.title);
+      <p class="small-note news-later">Dit overzicht vind je later terug bij <span class="nowrap">Instellingen → App → Wat is er nieuw.</span></p>`, c.title);
     s.el.classList.add('news-sheet');
   }, 600);
 }
@@ -3123,7 +3176,7 @@ function showBooks(books) {
     ${books.length ? `<ul class="books">${books.map(b => `
       <li><a class="book" href="#/kookboek/${b.id}"><div class="covers">${covers(b)}</div>
         <div><b>Le Ricette di ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
-      : `<div class="card-box"><p>Er deelt nog niemand Ricette met je.</p><p>Deel je eigen Ricette bij <a href="#/settings" class="link">Instellingen → Delen met anderen</a>.</p></div>`}
+      : `<div class="card-box"><p>Er deelt nog niemand Ricette met je.</p><p>Deel je eigen Ricette bij <a href="#/settings/delen" class="link">Instellingen → Delen</a>.</p></div>`}
   </section>`;
 }
 
@@ -3423,7 +3476,7 @@ async function route() {
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);
-  if (page === 'settings') return renderSettings();
+  if (page === 'settings') return renderSettings(id || '', sub || '');
   if (page === 'gebruikers') return renderUsers();
   if (page === 'ontvangen' && id) return renderReceived(+id);
   if (page === 'kookboeken') return renderBooks();
