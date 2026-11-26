@@ -1990,3 +1990,13 @@ body:not(.cook) .steps li { cursor: default; }
 /* Overzicht: minder ruimte boven het eerste recept (filters dicht) */
 body[data-page=list] .list-head.closed { margin-bottom: 0; }
 .cards > li:first-child > .card { padding-top: 6px; }
+/* Zoekveld met kruisje om leeg te maken (recept kiezen voor een menu) */
+.search-clear-wrap { position: relative; }
+.search-clear-wrap input { width: 100%; padding-right: 44px; }
+.search-clear-wrap input::-webkit-search-cancel-button { display: none; }
+.search-clear { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border-radius: 50%; background: var(--line); color: var(--text); font-size: 20px; line-height: 1; display: grid; place-items: center; }
+.search-clear[hidden] { display: none; }
+.search-clear-wrap { margin: 0 0 10px; }
+.search-clear-wrap input { margin: 0 !important; box-sizing: border-box; }
+.search-clear { right: 9px; width: 28px; height: 28px; font-size: 18px; }
+.search-clear-wrap .search-clear { position: absolute; right: 9px; margin: 0; padding: 0; }
