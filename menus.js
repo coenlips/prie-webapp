@@ -87,14 +87,14 @@ const Menus = (() => {
     if (isStale(seq)) return;
     if (!m) { location.hash = '#/menus'; return; }
     const dishes = dishesOf(m), kind = m.kind || 'anders';
-    setHeader({ title: m.title, back: true, timer: false, actions: `
-      <button class="icon-btn" id="mkPdf" aria-label="Menukaart als pdf" title="Menukaart als pdf"${dishes.length ? '' : ' disabled'}>${ICONS.pdf}</button>
-      <button class="icon-btn" data-go="#/menu/${encodeURIComponent(m.id)}/bewerk" aria-label="Menu aanpassen" title="Menu aanpassen">${ICONS.edit}</button>` });
+    setHeader({ title: m.title, back: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
     Shopping.updateBadge();
     const courses = coursesOfMenu(m).filter(c => dishes.some(d => d.course === c));
     const timeOf = r => formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
     view.innerHTML = `<section class="mx-wide">
-      ${crumbHtml("Menu's", '', 'crumb-top')}
+      <div class="crumb-row crumb-top">${crumbHtml("Menu's")}<span class="crumb-acts">
+        <button class="icon-btn" id="mkPdf" aria-label="Menukaart als pdf" title="Menukaart als pdf"${dishes.length ? '' : ' disabled'}>${ICONS.pdf}</button>
+        <button class="icon-btn" data-go="#/menu/${encodeURIComponent(m.id)}/bewerk" aria-label="Menu aanpassen" title="Menu aanpassen">${ICONS.edit}</button></span></div>
       <div class="mk-wrap"><div class="mk mk-${kind}">${DECOR[kind] ? DECOR[kind]('l') + DECOR[kind]('r') : ''}
         <div class="mk-kicker">Menu</div>
         <h1>${esc(m.title || 'Menu')}</h1>

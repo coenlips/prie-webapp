@@ -1994,3 +1994,4 @@ body[data-page=list] .list-head.closed { margin-bottom: 0; }
 .mp-search { margin: 0 0 10px; }
 .mp-search input { margin: 0 !important; border: 0 !important; background: none !important; box-shadow: none !important; padding: 11px 0 !important; }
 .topbar-actions .icon-btn:disabled { opacity: .35; }
+.crumb-acts .icon-btn:disabled { opacity: .35; }
