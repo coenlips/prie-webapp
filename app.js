@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.16.2 · 26 november 2026';
+const APP_VERSION = '1.16.3 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -481,7 +481,7 @@ function updateTabs(page, sub) {
   if (brand) { $('#title').textContent = 'Ricetta'; $('#title').classList.remove('title-hidden'); }
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
   const tabs = [['recepten', '#/', ICONS.pot, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
-    ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Ricette']] : [])];
+    ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Gedeeld']] : [])];
   const html = tabs.map(([k, href, icon, label]) => `<a href="${href}" class="${k === cur ? 'on' : ''}"${k === cur ? ' aria-current="page"' : ''}>${icon}<span>${label}</span>${k === 'boodschappen' ? '<span class="cart-badge tb-badge" hidden></span>' : ''}</a>`).join('');
   for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
   document.body.classList.toggle('has-tabbar', show);
@@ -688,7 +688,7 @@ function renderCards() {
         <h2>Nog geen recepten</h2>
         <p>Tik op <strong>+</strong> om je eerste recept toe te voegen.</p>
         <button class="btn ghost" id="sample">Voorbeeldrecept toevoegen</button>
-        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.book} Ricette van anderen bekijken</a>` : ''}
+        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.book} Gedeelde recepten van anderen bekijken</a>` : ''}
       </div>`;
     $('#sample').addEventListener('click', addSample);
     return;
@@ -1659,7 +1659,7 @@ async function renderEdit(id) {
         </section>
 
         ${loggedIn() ? `<section class="ed-sec"><h3>Delen</h3>
-          <label class="switch-row share-check"><span><b>Zichtbaar in mijn Ricette</b><small>${(shareCache().visibility || 'none') === 'none' ? 'Je Ricette zijn nu privé; dit telt zodra je ze deelt (Instellingen).' : 'Mensen met wie je je Ricette deelt, zien dit recept.'}</small></span>
+          <label class="switch-row share-check"><span><b>Zichtbaar voor anderen</b><small>${(shareCache().visibility || 'none') === 'none' ? 'Je recepten zijn nu privé; dit telt zodra je ze deelt (Instellingen).' : 'Mensen met wie je je Ricette deelt, zien dit recept.'}</small></span>
             <span class="switch"><input type="checkbox" name="shared" role="switch"${(id ? r.shared : (shareCache().visibility || 'none') !== 'none') ? ' checked' : ''}></span></label>
         </section>` : ''}
       </div>
@@ -1966,7 +1966,7 @@ function stGroups() {
   const vis = ({ none: 'privé', some: 'gedeeld', all: 'iedereen' })[shareCache().visibility || 'none'];
   return [
     { k: 'account', icon: ICONS.user, t: 'Account', sub: s.state === 'on' ? 'Naam, e-mail, wachtwoord' : s.state === 'off' ? 'Nog niet ingesteld' : 'Inloggen of account aanvragen' },
-    { k: 'delen', icon: ICONS.book, t: 'Delen', sub: s.state === 'on' ? `Wie je Ricette ziet · ${vis}` : 'Log eerst in' },
+    { k: 'delen', icon: ICONS.book, t: 'Delen', sub: s.state === 'on' ? `Wie je recepten ziet · ${vis}` : 'Log eerst in' },
     { k: 'koken', icon: ICONS.pot, t: 'Recepten & koken', sub: 'Gangen, kookwekker' },
     { k: 'import', icon: ST_ICONS.import, t: 'Toevoegen & importeren', sub: 'iPhone-opdracht, back-up' },
     { k: 'app', icon: ST_ICONS.device, t: 'App', sub: 'Beginscherm, fout melden' },
@@ -2009,7 +2009,7 @@ function stPage(k, sub) {
     ${loggedIn() ? stList([stRow({ icon: ICONS.bug, t: 'Fout melden of idee insturen', sub: 'Wij lezen alles', tag: 'button', id: 'fbOpen' })]) : ''}
     <div class="changelog st-changelog">${changelogHtml()}</div>`;
   if (k === 'account') return `${stHead(ICONS.user, 'Account')}<div class="card-box st-card" id="syncCard">${Sync.cardHtml()}</div>`;
-  if (k === 'delen') return `${stHead(ICONS.book, 'Delen', 'Bepaal wie jouw Ricette mag zien en wat je van anderen ontvangt.')}
+  if (k === 'delen') return `${stHead(ICONS.book, 'Delen', 'Bepaal wie jouw recepten mag zien en wat je van anderen ontvangt.')}
     ${sync.state === 'on' ? `<div class="card-box st-card">${shareSettingsHtml()}</div>` : `<div class="card-box st-card"><p>Log eerst in om recepten met anderen te delen.</p><a class="btn" href="#/settings/account">Naar Account</a></div>`}
     ${stList([stSoon(Menus.MENU_ICON, 'Menu’s delen', 'Een menu met je gasten delen'), stSoon(ICONS.basket, 'Gedeelde boodschappenlijst', 'Samen boodschappen doen')], 'Binnenkort')}`;
   if (k === 'koken' && sub === 'gangen') return `${stCrumb(g, 'Gangen')}${stHead('', 'Gangen')}<div class="card-box st-card"><div id="courseSettings"></div></div>`;
@@ -2541,7 +2541,7 @@ const CHANGELOG = [
     'Je kunt nu je e-mailadres opgeven (Instellingen → Account). Dan kan de beheerder je bereiken als er iets misgaat. Alleen de beheerder ziet het.',
   ] }] },
   { v: '1.9.0', date: '25 november 2026', sections: [{ items: [
-    'Rustiger menubalk: Recepten, Menu’s, Boodschappen en Ricette staan nu als tabbladen onderin (iPhone) of in de menubalk (iPad en laptop).',
+    'Rustiger menubalk: Recepten, Menu’s, Boodschappen en Gedeeld staan nu als tabbladen onderin (iPhone) of in de menubalk (iPad en laptop).',
   ] }] },
   { v: '1.8.0', date: '25 november 2026', sections: [{ items: [
     'Menu’s: stel via het menukaart-icoon bovenaan een menu samen voor Kerst, Pasen of een etentje, met recepten per gang.',
@@ -2555,7 +2555,7 @@ const CHANGELOG = [
     'Feestelijk koken: heb je alle stappen van een recept met de categorie Kerst of Sinterklaas afgestreept, dan krijg je een feestbanner.',
   ] }] },
   { v: '1.4.0', date: '25 november 2026', sections: [{ items: [
-    'De Ricette van anderen laden veel sneller; de fotootjes verschijnen rustig.',
+    'De gedeelde recepten van anderen laden veel sneller; de fotootjes verschijnen rustig.',
     'Recepten zonder foto krijgen een getekend bord, zodat het overzicht er mooi vol uitziet.',
   ] }] },
   { v: '1.3.0', date: '24 november 2026', sections: [{ items: [
@@ -2575,8 +2575,8 @@ const CHANGELOG = [
     intro: '<span class="nowrap">Er is flink wat veranderd in Ricetta.</span><br>Dit is er nieuw:',
     sections: [
       { h: 'Recepten delen met elkaar', items: [
-        '<b>Kijk in elkaars Ricette.</b> Bij Instellingen → Delen met anderen kies je wie jouw Ricette mag bekijken en welke recepten erbij horen. Per recept kun je dat later nog aan- of uitzetten.',
-        '<b>Bekijk de Ricette van anderen</b> via het boek-icoon linksboven. Je kunt erin zoeken en filteren, en met + Bewaar neem je een recept over in je eigen verzameling.',
+        '<b>Kijk in elkaars recepten.</b> Bij Instellingen → Delen kies je wie jouw recepten mag bekijken en welke recepten erbij horen. Per recept kun je dat later nog aan- of uitzetten.',
+        '<b>Bekijk de recepten van anderen</b> via het tabblad Gedeeld. Je kunt erin zoeken en filteren, en met + Bewaar neem je een recept over in je eigen verzameling.',
         '<b>Stuur een recept naar iemand.</b> Het komt bij de ander binnen als bericht.',
       ] },
       { h: 'Vegetarisch en vegan', items: [
@@ -2599,7 +2599,7 @@ const CHANGELOG = [
       ] },
       { h: 'Nieuw uiterlijk', items: [
         'Een nieuw app-icoon. Zie je nog het oude? Verwijder Ricetta van je beginscherm en zet hem er opnieuw op.',
-        'Verder veel verfijnd: een rustigere menubalk, een nieuwe laadanimatie, een vaste schakelknop in de kookstand, een nieuwe weergave van het uitgelichte recept en de Ricette van anderen als tijdschrift op iPad en laptop.',
+        'Verder veel verfijnd: een rustigere menubalk, een nieuwe laadanimatie, een vaste schakelknop in de kookstand, een nieuwe weergave van het uitgelichte recept en de gedeelde recepten van anderen als tijdschrift op iPad en laptop.',
       ] },
     ],
     outro: 'Veel kookplezier!' },
@@ -2863,7 +2863,7 @@ async function drawUserList(box) {
         </ul>
         <button class="btn" id="newUser">+ Nieuwe gebruiker</button>
     <h4 class="st-subhead">Testaccounts</h4>
-    <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun Ricette alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
+    <p>Vier testaccounts met Italiaanse namen (Giulia, Marco, Francesca en Lorenzo) met 20, 30, 40 en 50 verzonnen recepten. Alleen jij ziet ze: ze delen hun recepten alleen met jou en staan voor anderen niet in de lijst met mensen.</p>
         ${users.some(u => u.test)
           ? `<button class="btn ghost" id="testMake">Opnieuw aanmaken</button><button class="btn ghost danger" id="testRemove">Testaccounts verwijderen</button>`
           : '<button class="btn ghost" id="testMake">Testaccounts aanmaken</button>'}
@@ -3014,7 +3014,7 @@ function loaderHtml(text = 'Laden…') {
 }
 
 // Oudere server zonder deze functies: begrijpelijke melding
-const shareErr = err => /Onbekende actie/.test(err.message) ? 'Delen werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message.replace(/Dit (kookboek|receptenboek|Ricettario) wordt/, 'Deze Ricette worden');
+const shareErr = err => /Onbekende actie/.test(err.message) ? 'Delen werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message.replace(/Dit (kookboek|receptenboek|Ricettario) wordt|Deze Ricette worden/, 'Deze recepten worden');
 const avatarHtml = name => `<div class="acc-avatar" aria-hidden="true">${esc(String(name || '?').charAt(0).toUpperCase())}</div>`;
 
 // Kleine foto voor in andermans overzicht (de grote foto wordt pas bij openen opgehaald)
@@ -3270,9 +3270,9 @@ async function cachedLoad(seq, key, fetcher, show, fail) {
 async function renderBooks() {
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
-  setHeader({ docTitle: 'Ricette', timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
-  if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de Ricette van anderen te bekijken.</p></div></section>`; return; }
-  view.innerHTML = `<section class="settings">${loaderHtml('Ricette ophalen…')}</section>`;
+  setHeader({ docTitle: 'Gedeeld', timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de gedeelde recepten van anderen te bekijken.</p></div></section>`; return; }
+  view.innerHTML = `<section class="settings">${loaderHtml('Gedeelde recepten ophalen…')}</section>`;
   await cachedLoad(seq, 'books', () => Sync.call('books'), books => showBooks(books),
     err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
 }
@@ -3287,12 +3287,12 @@ function showBooks(books) {
       : `<span class="cover"><img src="${s}" alt="" loading="lazy" onload="this.classList.add('in')" onerror="this.src='${free[0]}'"></span>`).join('');
   };
   view.innerHTML = `<section class="settings">
-    <div class="page-flag">${flagHtml('Ricette')}</div>
-    <p class="books-intro">Recepten van mensen die hun Ricette met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
+    <div class="page-flag">${flagHtml('Gedeeld')}</div>
+    <p class="books-intro">Recepten die anderen met jou delen. Kijk rond en bewaar wat je lekker lijkt.</p>
     ${books.length ? `<ul class="books">${books.map(b => `
       <li><a class="book" href="#/kookboek/${b.id}"><div class="covers">${covers(b)}</div>
         <div><b>Le Ricette di ${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · ${b.new} nieuw deze week` : ''}</small></div></a></li>`).join('')}</ul>`
-      : `<div class="card-box"><p>Er deelt nog niemand Ricette met je.</p><p>Deel je eigen Ricette bij <a href="#/settings/delen" class="link">Instellingen → Delen</a>.</p></div>`}
+      : `<div class="card-box"><p>Er deelt nog niemand recepten met je.</p><p>Deel je eigen recepten bij <a href="#/settings/delen" class="link">Instellingen → Delen</a>.</p></div>`}
   </section>`;
 }
 
@@ -3312,8 +3312,8 @@ async function renderBook(ownerId) {
   const head = title => setHeader({ title: 'Ricetta', docTitle: title, back: true, timer: false, actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
     <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
-  head('Ricette');
-  view.innerHTML = `<section class="book-page">${loaderHtml('Ricette openen…')}</section>`;
+  head('Gedeeld');
+  view.innerHTML = `<section class="book-page">${loaderHtml('Recepten openen…')}</section>`;
   await cachedLoad(seq, `book-${ownerId}`, () => Sync.call('book', { owner: ownerId }), d => { bookCache.set(ownerId, d); showBook(ownerId, d, head, filtersOpen); },
     err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
 }
@@ -3341,7 +3341,7 @@ function showBook(ownerId, d, head, filtersOpen) {
 
   view.innerHTML = `<section class="book-page">
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
-      <div class="list-tools"><div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze Ricette" value="${esc(f.q)}" autocomplete="off"></div>${shuffleBtnHtml('bookShuffle')}</div>
+      <div class="list-tools"><div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze recepten" value="${esc(f.q)}" autocomplete="off"></div>${shuffleBtnHtml('bookShuffle')}</div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
       ${chips.length > 1 ? `<div class="chips">${chips.map(([k, l]) => k.startsWith('diet:')
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
@@ -3377,8 +3377,8 @@ function showBook(ownerId, d, head, filtersOpen) {
           : (mine(r) ? `<span class="keep-done mag-keep card">✓ Bewaard</span>` : `<button class="keep-btn mag-keep card" data-keep="${esc(r.id)}">+ Bewaar</button>`),
         courses: rCourses, cats: rCats,
         fillers: [
-          { id: 'bkBooks', icon: 'book', title: 'Ricette', sub: 'Ricette van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
-          { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen Ricette', on: () => { location.hash = '#/'; } },
+          { id: 'bkBooks', icon: 'book', title: 'Gedeeld', sub: 'Recepten van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
+          { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen recepten', on: () => { location.hash = '#/'; } },
         ],
         // Uitgelicht recept: de volle foto ophalen (de kleine is te klein voor zo'n grote plaat)
         onHero: async (hero, img) => {
@@ -3476,14 +3476,14 @@ async function bindShareSettings() {
   const sharedCount = () => state.recipes.filter(r => r.shared).length;
   const draw = () => {
     box.innerHTML = `
-      <p class="opt-head">Wie mag mijn Ricette bekijken?</p>
+      <p class="opt-head">Wie mag mijn recepten bekijken?</p>
       <div class="choice-list">
         <label><input type="radio" name="vis" value="none" ${st.visibility === 'none' ? 'checked' : ''}><span><strong>Niemand</strong><small>Je recepten zijn alleen van jou.</small></span></label>
         <label><input type="radio" name="vis" value="some" ${st.visibility === 'some' ? 'checked' : ''}><span><strong>Alleen deze mensen</strong></span></label>
         ${st.visibility === 'some' ? `<div class="mini-chips">${st.people.map(p => `<span class="chip on">${esc(p.name)}</span>`).join('')}<button class="chip link-add" id="pickViewers">${st.people.length ? 'Wijzig' : '+ Kies mensen'}</button></div>` : ''}
         <label><input type="radio" name="vis" value="all" ${st.visibility === 'all' ? 'checked' : ''}><span><strong>Iedereen in Ricetta</strong></span></label>
       </div>
-      ${st.visibility !== 'none' ? `<button class="btn ghost" id="pickRecipes">Recepten kiezen</button><p class="small-note share-count">${sharedCount()} van je ${state.recipes.length} recepten ${sharedCount() === 1 ? 'hoort' : 'horen'} bij je Ricette.</p>` : ''}
+      ${st.visibility !== 'none' ? `<button class="btn ghost" id="pickRecipes">Recepten kiezen</button><p class="small-note share-count">${sharedCount()} van je ${state.recipes.length} recepten ${sharedCount() === 1 ? 'wordt' : 'worden'} gedeeld.</p>` : ''}
       <p class="opt-head">Recepten ontvangen</p>
       <div class="choice-list"><label><input type="checkbox" id="acceptSend" ${st.accept ? 'checked' : ''}><span><strong>Anderen mogen mij recepten sturen</strong><small>Ze komen eerst in je postvak; jij kiest of je ze bewaart.</small></span></label></div>`;
     const badge = $('#badge-sharing');
@@ -3526,8 +3526,8 @@ async function bindShareSettings() {
   const openRecipePicker = first => {
     const chosen = new Set(state.recipes.filter(r => r.shared).map(r => r.id));
     const s = openAccSheet(`
-      <div class="sheet-head"><h3>${first ? 'Welke recepten wil je delen?' : 'Je Ricette'}</h3><button class="text-btn" data-close>Annuleer</button></div>
-      ${first ? '<p class="acc-sheet-text">Kies welke recepten anderen in je Ricette zien. Je kunt dit later per recept aanpassen.</p>' : ''}
+      <div class="sheet-head"><h3>${first ? 'Welke recepten wil je delen?' : 'Gedeelde recepten'}</h3><button class="text-btn" data-close>Annuleer</button></div>
+      ${first ? '<p class="acc-sheet-text">Kies welke recepten anderen mogen zien. Je kunt dit later per recept aanpassen.</p>' : ''}
       <div class="pick-tools"><input type="search" id="recQ" placeholder="Zoek een recept" autocomplete="off"><button class="chip" id="allBtn"></button></div>
       <ul class="pick rec-pick" id="recList"></ul>
       <button class="btn" id="recSave">Opslaan</button>`, 'Welke recepten');
@@ -3552,7 +3552,7 @@ async function bindShareSettings() {
       if (changed.length) await DB.putMany(changed);
       await loadRecipes();
       s.close();
-      toast(`${chosen.size} ${chosen.size === 1 ? 'recept hoort' : 'recepten horen'} bij je Ricette`);
+      toast(`${chosen.size} ${chosen.size === 1 ? 'recept wordt' : 'recepten worden'} gedeeld`);
       draw();
       ensureThumbs();
     };
