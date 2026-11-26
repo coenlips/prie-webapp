@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.3 · 26 november 2026';
+const APP_VERSION = '1.15.4 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1608,8 +1608,10 @@ async function renderEdit(id) {
 
   setHeader({
     title: id ? 'Bewerken' : 'Nieuw recept', back: true, timer: false,
-    actions: `<button class="text-btn" id="saveBtn">Bewaar</button>`,
+    actions: `<button class="text-btn cancel-btn" id="cancelBtn">Annuleer</button><button class="text-btn" id="saveBtn">Bewaar</button>`,
   });
+  // Annuleer: terug zonder bewaren (naar het recept, of bij een nieuw recept naar het overzicht)
+  $('#cancelBtn').onclick = () => { location.hash = id ? '#/r/' + encodeURIComponent(id) : '#/'; };
 
   // Je eigen categorieën; zolang je er nog geen hebt, een paar standaardsuggesties.
   const used = catsByUse();

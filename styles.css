@@ -1974,3 +1974,4 @@ body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 
 .swipe-in-r { animation: swipeInR .22s ease-out; }
 @media (prefers-reduced-motion: reduce) { .swipe-in-l, .swipe-in-r { animation: none; } }
 .topbar-actions .cook-btn { margin: 0; width: 40px; height: 40px; }
+.topbar-actions .cancel-btn { color: var(--muted); font-weight: 500; }
