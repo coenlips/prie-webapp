@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.11.3 · 26 november 2026';
+const APP_VERSION = '1.12.0 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -450,8 +450,9 @@ async function loadRecipes() {
 function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', actions = '', timer = true, timerLabel = '', docTitle = '' } = {}) {
   // In de menubalk alleen de naam Ricetta (op het overzicht); andere schermen geen titel, alleen de iconen.
   // De schermtitel blijft wel de titel van het tabblad en voor voorleessoftware.
-  $('#title').textContent = title;
-  $('#title').classList.toggle('title-hidden', title !== 'Ricetta' || back || close);
+  const brand = document.body.classList.contains('brand-head');   // iPad/laptop: altijd het logo
+  $('#title').textContent = brand ? 'Ricetta' : title;
+  $('#title').classList.toggle('title-hidden', !brand && (title !== 'Ricetta' || back || close));
   $('#backBtn').hidden = !back;
   $('#closeBtn').hidden = !close;
   $('#topActions').innerHTML = lead + (timer ? `<button class="icon-btn" id="timerBtn" aria-label="Kookwekker">${ICONS.timer}</button>` : '') + actions;
@@ -462,6 +463,7 @@ function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', 
 }
 
 /* ---------- Tabbladen: onderin op de iPhone, in de menubalk op iPad en laptop ---------- */
+const WIDE_MQ = matchMedia('(min-width: 700px)');
 const TAB_PAGES = { '': 'recepten', menus: 'menus', boodschappen: 'boodschappen', kookboeken: 'ricette' };
 function updateTabs(page, sub) {
   // ook in iemands Ricette (maar niet in een recept daaruit)
@@ -469,7 +471,12 @@ function updateTabs(page, sub) {
   // ook bij de instellingen (zonder tabblad aan)
   const extra = page === 'settings' || page === 'gebruikers';
   document.body.dataset.route = page || 'home';
-  const show = (!!cur || extra) && !accountGate();
+  // iPad en laptop: overal de menubalk met het logo, behalve in de kookstand
+  const wide = WIDE_MQ.matches;
+  const show = (!!cur || extra || (wide && page !== 'deel')) && !accountGate() && !state.cookMode;
+  const brand = wide && show;
+  document.body.classList.toggle('brand-head', brand);
+  if (brand) { $('#title').textContent = 'Ricetta'; $('#title').classList.remove('title-hidden'); }
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
   const tabs = [['recepten', '#/', ICONS.pot, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
     ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Ricette']] : [])];
@@ -1107,6 +1114,7 @@ function setCookMode(on) {
   state.cookMode = on;
   if (on) state.cookTab = 'ingr';
   document.body.classList.toggle('cook', on);
+  { const [, pg, , sb] = (location.hash || '#/').split('/'); updateTabs(pg, sb); if (!on && document.body.classList.contains('brand-head')) { $('#title').textContent = 'Ricetta'; } }
   $('#cookTabs').hidden = !on;
   $('#cookSwitch').hidden = !on;
   const btn = $('#cook');
@@ -1146,6 +1154,10 @@ function showCookTab(tab) {
 }
 
 $('#cookOff').innerHTML = ICONS.cook;
+// iPad/laptop: kruisje helemaal rechts om de kookstand te verlaten (in plaats van het pijltje links)
+{ const x = document.createElement('button'); x.className = 'icon-btn cook-close'; x.id = 'cookClose'; x.setAttribute('aria-label', 'Kookstand sluiten'); x.title = 'Kookstand sluiten';
+  x.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6.5 6.5l11 11M17.5 6.5l-11 11"/></svg>'; x.onclick = () => setCookMode(false); $('#cookOff').after(x); }
+WIDE_MQ.addEventListener('change', () => { const [, pg, , sb] = (location.hash || '#/').split('/'); updateTabs(pg, sb); });
 $('#cookOff').addEventListener('click', () => setCookMode(false));
 document.querySelectorAll('#cookSwitch [data-tab]').forEach(b => b.addEventListener('click', () => {
   if (state.cookTab !== b.dataset.tab) { showCookTab(b.dataset.tab); window.scrollTo(0, 0); }
@@ -2431,6 +2443,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.12.0', date: '26 november 2026', sections: [{ items: [
+    'iPad en laptop: de menubalk met Ricetta staat nu overal, ook bij een recept. In de kookstand juist helemaal geen menu: alleen de porties, de koksmuts en een kruisje om te stoppen.',
+  ] }] },
   { v: '1.11.0', date: '26 november 2026', sections: [{ items: [
     'Nieuwe instellingen: alles staat overzichtelijk in groepen (Account, Delen, Recepten & koken, Toevoegen & importeren en App). Op de iPhone tik je laag voor laag verder, op de laptop staan de groepen in een zijbalk.',
   ] }] },

@@ -1877,3 +1877,22 @@ div.st-row { cursor: default; }
 .st-users .fb-head { display: none; }
 @media (max-width: 699px) { .st-fold-body { padding-left: 16px; } }
 .st-subhead { margin: 26px 0 6px; padding-top: 18px; border-top: 1px dashed var(--line); font: 500 13px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); }
+
+/* iPad en laptop: overal de menubalk met het logo (behalve in de kookstand) */
+@media (min-width: 700px) {
+  body.brand-head .topbar h1 {
+    visibility: visible; flex: 0 1 auto; margin-right: 0; padding-right: .3em;
+    font: 400 80px/.95 var(--font-title); letter-spacing: .05em; text-transform: uppercase;
+    background: linear-gradient(100deg, var(--accent-dark) 0%, var(--accent) 32%, #f0624f 46%, var(--accent) 60%, var(--accent-dark) 100%);
+    background-size: 125% 100%; -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  body.brand-head #closeBtn { display: none; }
+  /* Kookstand: geen menu, geen terugpijl; rechts porties, koksmuts en een kruisje. Geen turquoise lijnen. */
+  body.cook #backBtn { display: none; }
+  body.cook .topbar { border-bottom: 0; }
+  body.cook #cookTabs { margin-left: auto; display: flex; align-items: center; gap: 8px; }
+  body.cook .cook-tabs .cook-stepper { display: flex; flex: none; margin: 0; height: 36px; }
+  .cook-close { display: none; }
+  body.cook .cook-close { display: grid; }
+}
+@media (max-width: 699px) { .cook-close { display: none; } }
