@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.1 · 26 november 2026';
+const APP_VERSION = '1.15.2 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1243,7 +1243,6 @@ async function renderDetail(id, opts = {}) {
   // Kruimelpad met rechts hartje, koksmuts en potlood (twee keer: onder de foto en boven de ingrediënten; CSS kiest)
   const crumbRow = cls => `<div class="crumb-row ${cls}">${crumb ? crumbHtml(crumb[0], crumb[1]) : '<span></span>'}<span class="crumb-acts">
     ${foreign ? '' : `<button class="icon-btn fav-btn${r.favorite ? ' active' : ''}" data-fav aria-label="Favoriet" title="Favoriet">${ICONS.heart}</button>`}
-    <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" data-cook aria-pressed="${!!state.cookMode}" aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
     ${foreign ? '' : `<button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken" title="Bewerken">${ICONS.edit}</button>`}</span></div>`;
   const done = new Set();
   let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
@@ -1252,6 +1251,7 @@ async function renderDetail(id, opts = {}) {
     title: r.title, back: !foreign || opts.back !== false, close: foreign && opts.back === false,   // kruisje alleen als er geen terugknop is (geopende deellink)
     timerLabel: r.title,
     actions: `
+      <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" data-cook aria-pressed="${!!state.cookMode}" aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
       ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : ''}`,
   });
   Shopping.updateBadge();
@@ -1413,7 +1413,7 @@ async function renderDetail(id, opts = {}) {
       }
     });
     view.querySelectorAll('[data-timer]').forEach(b => b.onclick = () => Timers.openSheet(r.title));
-    view.querySelectorAll('[data-cook]').forEach(b => b.onclick = async () => {
+    document.querySelectorAll('#topActions [data-cook]').forEach(b => b.onclick = async () => {
       setCookMode(!state.cookMode);
       const ok = await setWakeLock(state.cookMode);
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
