@@ -1982,3 +1982,5 @@ body.cook .ingredients li:not(.sub), body.cook .steps li:not(.sub) { font-size: 
 .tabbar::before { background: var(--bg); }
 /* Foto's in het overzicht iets groter (eindigen duidelijk voorbij het rode streepje van het tabblad) */
 .card .thumb { width: 104px; height: 104px; }
+/* Bereidingsstappen alleen in de kookstand aantikbaar */
+body:not(.cook) .steps li { cursor: default; }

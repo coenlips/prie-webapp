@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.7 · 26 november 2026';
+const APP_VERSION = '1.15.8 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1402,10 +1402,7 @@ async function renderDetail(id, opts = {}) {
           el.classList.toggle('current', s === curStep);
         });
         if (curStep) centerStep(view.querySelector(`[data-s="${curStep.slice(1)}"]`));
-      } else {
-        done.has(k) ? done.delete(k) : done.add(k); li.classList.toggle('done');
-        curStep = null; view.querySelectorAll('.steps .current').forEach(el => el.classList.remove('current'));
-      }
+      } else return;   // buiten de kookstand: stappen niet afvinken
       const ba = $('#bonApp'), show = allStepsDone();
       if (ba.hidden === show) {
         ba.hidden = !show;
