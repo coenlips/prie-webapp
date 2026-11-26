@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.16.3 · 26 november 2026';
+const APP_VERSION = '1.16.4 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -23,6 +23,7 @@ const ICONS = {
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>',
   edit: '<svg viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16v4zM13.5 6.5l4 4"/></svg>',
   gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>',
+  shared: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M2.8 20a6.2 6.2 0 0 1 12.4 0"/><path d="M15.5 4.9a3.2 3.2 0 0 1 0 6.2M17.2 14.2a6.2 6.2 0 0 1 4 5.8"/></svg>',
   timerPlus: '<svg viewBox="0 0 24 24"><circle cx="10" cy="14" r="7"/><path d="M10 10.5v3.5l2.2 1.6"/><path d="M8 3.5h4M10 3.5V7"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>',
   basketPlus: '<svg viewBox="0 0 24 24"><path d="M5.5 10V8.5a4.5 4.5 0 0 1 8.2-2.6"/><path d="M2 10h16l-1.5 9.2a1.5 1.5 0 0 1-1.5 1.3H5a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M7 13.5v3.5M10 13.5v3.5M13 13.5v3.5"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>',
   basket: '<svg viewBox="0 0 24 24"><path d="M7.5 10V8.5a4.5 4.5 0 0 1 9 0V10"/><path d="M3 10h18l-1.6 9.2a1.5 1.5 0 0 1-1.5 1.3H6.1a1.5 1.5 0 0 1-1.5-1.3z"/><path d="M9 13.5v3.5M12 13.5v3.5M15 13.5v3.5"/></svg>',
@@ -481,7 +482,7 @@ function updateTabs(page, sub) {
   if (brand) { $('#title').textContent = 'Ricetta'; $('#title').classList.remove('title-hidden'); }
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
   const tabs = [['recepten', '#/', ICONS.pot, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
-    ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.book, 'Gedeeld']] : [])];
+    ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.shared, 'Gedeeld']] : [])];
   const html = tabs.map(([k, href, icon, label]) => `<a href="${href}" class="${k === cur ? 'on' : ''}"${k === cur ? ' aria-current="page"' : ''}>${icon}<span>${label}</span>${k === 'boodschappen' ? '<span class="cart-badge tb-badge" hidden></span>' : ''}</a>`).join('');
   for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
   document.body.classList.toggle('has-tabbar', show);
@@ -688,7 +689,7 @@ function renderCards() {
         <h2>Nog geen recepten</h2>
         <p>Tik op <strong>+</strong> om je eerste recept toe te voegen.</p>
         <button class="btn ghost" id="sample">Voorbeeldrecept toevoegen</button>
-        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.book} Gedeelde recepten van anderen bekijken</a>` : ''}
+        ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.shared} Gedeelde recepten van anderen bekijken</a>` : ''}
       </div>`;
     $('#sample').addEventListener('click', addSample);
     return;
@@ -1966,7 +1967,7 @@ function stGroups() {
   const vis = ({ none: 'privé', some: 'gedeeld', all: 'iedereen' })[shareCache().visibility || 'none'];
   return [
     { k: 'account', icon: ICONS.user, t: 'Account', sub: s.state === 'on' ? 'Naam, e-mail, wachtwoord' : s.state === 'off' ? 'Nog niet ingesteld' : 'Inloggen of account aanvragen' },
-    { k: 'delen', icon: ICONS.book, t: 'Delen', sub: s.state === 'on' ? `Wie je recepten ziet · ${vis}` : 'Log eerst in' },
+    { k: 'delen', icon: ICONS.shared, t: 'Delen', sub: s.state === 'on' ? `Wie je recepten ziet · ${vis}` : 'Log eerst in' },
     { k: 'koken', icon: ICONS.pot, t: 'Recepten & koken', sub: 'Gangen, kookwekker' },
     { k: 'import', icon: ST_ICONS.import, t: 'Toevoegen & importeren', sub: 'iPhone-opdracht, back-up' },
     { k: 'app', icon: ST_ICONS.device, t: 'App', sub: 'Beginscherm, fout melden' },
@@ -2009,7 +2010,7 @@ function stPage(k, sub) {
     ${loggedIn() ? stList([stRow({ icon: ICONS.bug, t: 'Fout melden of idee insturen', sub: 'Wij lezen alles', tag: 'button', id: 'fbOpen' })]) : ''}
     <div class="changelog st-changelog">${changelogHtml()}</div>`;
   if (k === 'account') return `${stHead(ICONS.user, 'Account')}<div class="card-box st-card" id="syncCard">${Sync.cardHtml()}</div>`;
-  if (k === 'delen') return `${stHead(ICONS.book, 'Delen', 'Bepaal wie jouw recepten mag zien en wat je van anderen ontvangt.')}
+  if (k === 'delen') return `${stHead(ICONS.shared, 'Delen', 'Bepaal wie jouw recepten mag zien en wat je van anderen ontvangt.')}
     ${sync.state === 'on' ? `<div class="card-box st-card">${shareSettingsHtml()}</div>` : `<div class="card-box st-card"><p>Log eerst in om recepten met anderen te delen.</p><a class="btn" href="#/settings/account">Naar Account</a></div>`}
     ${stList([stSoon(Menus.MENU_ICON, 'Menu’s delen', 'Een menu met je gasten delen'), stSoon(ICONS.basket, 'Gedeelde boodschappenlijst', 'Samen boodschappen doen')], 'Binnenkort')}`;
   if (k === 'koken' && sub === 'gangen') return `${stCrumb(g, 'Gangen')}${stHead('', 'Gangen')}<div class="card-box st-card"><div id="courseSettings"></div></div>`;
@@ -3377,7 +3378,7 @@ function showBook(ownerId, d, head, filtersOpen) {
           : (mine(r) ? `<span class="keep-done mag-keep card">✓ Bewaard</span>` : `<button class="keep-btn mag-keep card" data-keep="${esc(r.id)}">+ Bewaar</button>`),
         courses: rCourses, cats: rCats,
         fillers: [
-          { id: 'bkBooks', icon: 'book', title: 'Gedeeld', sub: 'Recepten van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
+          { id: 'bkBooks', icon: 'shared', title: 'Gedeeld', sub: 'Recepten van anderen bekijken', on: () => { location.hash = '#/kookboeken'; } },
           { id: 'bkMine', icon: 'plate', title: 'Mijn recepten', sub: 'Terug naar je eigen recepten', on: () => { location.hash = '#/'; } },
         ],
         // Uitgelicht recept: de volle foto ophalen (de kleine is te klein voor zo'n grote plaat)
