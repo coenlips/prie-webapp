@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.11.0 · 26 november 2026';
+const APP_VERSION = '1.11.1 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -500,8 +500,7 @@ $('#backBtn').addEventListener('click', () => {
   if (page === 'kookboek' && parts[3]) { location.hash = `#/kookboek/${parts[2]}`; return; }
   if (page === 'kookboek') { location.hash = '#/kookboeken'; return; }
   if (page === 'kookboeken' || page === 'ontvangen') { location.hash = '#/'; return; }
-  if (page === 'gebruikers') { location.hash = '#/settings/beheer'; return; }
-  if (page === 'settings' && parts[3]) { location.hash = `#/settings/${parts[2]}`; return; }
+    if (page === 'settings' && parts[3]) { location.hash = `#/settings/${parts[2]}`; return; }
   if (page === 'settings' && parts[2] && !matchMedia('(min-width: 700px)').matches) { location.hash = '#/settings'; return; }
   if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
@@ -1887,7 +1886,7 @@ function stGroups() {
     { k: 'import', icon: ST_ICONS.import, t: 'Toevoegen & importeren', sub: 'iPhone-opdracht, back-up' },
     { k: 'app', icon: ST_ICONS.device, t: 'App', sub: 'Beginscherm, fout melden' },
     ...(s.user?.admin ? [{ k: 'beheer', icon: ST_ICONS.shield, t: 'Beheer', n: adminN,
-      sub: [me.requests ? `${me.requests} ${me.requests === 1 ? 'aanvraag' : 'aanvragen'}` : '', me.feedback ? `${me.feedback} ${me.feedback === 1 ? 'melding' : 'meldingen'}` : ''].filter(Boolean).join(' · ') || 'Gebruikers, meldingen' }] : []),
+      sub: [me.requests ? `${me.requests} ${me.requests === 1 ? 'aanvraag' : 'aanvragen'}` : '', me.feedback ? `${me.feedback} ${me.feedback === 1 ? 'melding' : 'meldingen'}` : ''].filter(Boolean).join(' · ') || 'Gebruikers, meldingen, imports' }] : []),
   ];
 }
 // Eén regel: icoon, naam, uitleg en rechts een pijltje, schakelaar of keuze
@@ -2005,9 +2004,9 @@ function stPage(k, sub) {
     const me = sync.me || {};
     return `${stHead(ST_ICONS.shield, 'Beheer')}
       ${stList([
-        stRow({ icon: ICONS.people, t: 'Gebruikers', sub: 'Accounts, aanvragen, wachtwoorden, mislukte imports', href: '#/gebruikers', right: me.requests ? `<span class="st-dot">${me.requests}</span>` : undefined }),
         stRow({ icon: ICONS.bug, t: 'Meldingen', sub: 'Fouten en ideeën van gebruikers', href: '#/settings/beheer/meldingen', right: me.feedback ? `<span class="st-dot">${me.feedback}</span>` : undefined }),
-      ])}`;
+      ])}
+      <div id="usersHost" class="st-users">${loaderHtml('Gebruikers ophalen…')}</div>`;
   }
   return '';
 }
@@ -2042,6 +2041,7 @@ function renderSettings(k = '', sub = '') {
   });
   if ($('#fbOpen')) $('#fbOpen').onclick = openFeedbackSheet;
   if ($('#fbAdmin')) drawFeedbackAdmin();
+  if ($('#usersHost')) renderUsers($('#usersHost'));
   if ($('#shareSettings')) bindShareSettings();
   if ($('#exportBtn')) $('#exportBtn').onclick = exportBackup;
   if ($('#importInput')) $('#importInput').onchange = e => importBackup(e.target.files[0]);
@@ -2631,21 +2631,21 @@ function lastSeenText(u) {
 }
 
 const FAIL_REASONS = { blocked: 'geblokkeerd', norecipe: 'geen recept gevonden', http: 'foutmelding van de site', error: 'mislukt', iphone: 'ook via iPhone niet' };
-async function renderUsers() {
+// Gebruikersbeheer, in Instellingen → Beheer (host = het vak waarin het komt)
+async function renderUsers(host) {
   const seq = routeSeq;
-  setHeader({ title: 'Ricetta', docTitle: 'Gebruikers', back: true, timer: false, actions: `<button class="icon-btn settings-btn on" data-go="#/settings" aria-label="Instellingen" aria-current="page">${ICONS.gear}</button>` });
   const me = Sync.status().user;
-  if (!me || !me.admin) { location.hash = '#/settings'; return; }
-  view.innerHTML = `<section class="settings">${loaderHtml('Gebruikers ophalen…')}</section>`;
+  if (!host || !me || !me.admin) return;
+  host.innerHTML = `<section class="settings">${loaderHtml('Gebruikers ophalen…')}</section>`;
   let users, requests = [], fails = null;
   try {
     users = await Sync.call('users');
     requests = await Sync.call('requests').catch(() => []);   // oudere server: geen aanvragen
     fails = await Sync.call('import_fails').catch(() => null);   // oudere server: geen lijst
   }
-  catch (err) { if (!isStale(seq)) view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
-  if (isStale(seq)) return;
-  view.innerHTML = `
+  catch (err) { if (!isStale(seq)) host.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(err.message)}</p></div></section>`; return; }
+  if (isStale(seq) || !host.isConnected) return;
+  host.innerHTML = `
     <section class="settings">
       ${requests.length ? `<div class="card-box req-box">
         <h3>${requests.length === 1 ? 'Nieuwe aanvraag' : `${requests.length} nieuwe aanvragen`}</h3>
@@ -2706,23 +2706,23 @@ async function renderUsers() {
     if (remove && !confirm('De testaccounts en al hun recepten verwijderen?')) return;
     if (!remove && users.some(u => u.test) && !confirm('De testaccounts opnieuw aanmaken? Hun recepten worden vervangen.')) return;
     const res = $('#testResult'); res.hidden = false; res.textContent = 'Bezig…';
-    view.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = true; });
+    host.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = true; });
     try {
       const out = await Sync.call('test_accounts', remove ? { remove: true } : {});
       shareStore.clear();
       toast(remove ? 'Testaccounts verwijderd' : `Klaar: ${out.accounts.map(a => `${a.name} (${a.recipes})`).join(', ')}`);
-      renderUsers();
+      renderUsers(host);
     } catch (err) {
       res.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt pas als de server is bijgewerkt (nieuwe api.php).' : err.message;
-      view.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = false; });
+      host.querySelectorAll('#testMake, #testRemove').forEach(b => { b.disabled = false; });
     }
   };
-  view.querySelectorAll('[data-fail]').forEach(b => b.onclick = async () => { await Sync.call('import_fails_clear', { site: b.dataset.fail }).catch(e => toast(e.message)); renderUsers(); });
-  if ($('#failsClear')) $('#failsClear').onclick = async () => { if (!confirm('Alle mislukte imports wissen?')) return; await Sync.call('import_fails_clear', {}).catch(e => toast(e.message)); renderUsers(); };
+  host.querySelectorAll('[data-fail]').forEach(b => b.onclick = async () => { await Sync.call('import_fails_clear', { site: b.dataset.fail }).catch(e => toast(e.message)); renderUsers(host); });
+  if ($('#failsClear')) $('#failsClear').onclick = async () => { if (!confirm('Alle mislukte imports wissen?')) return; await Sync.call('import_fails_clear', {}).catch(e => toast(e.message)); renderUsers(host); };
   if ($('#testMake')) $('#testMake').onclick = () => testRun(false);
   if ($('#testRemove')) $('#testRemove').onclick = () => testRun(true);
 
-  view.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => {
+  host.querySelectorAll('[data-approve]').forEach(b => b.onclick = () => {
     const q = requests.find(x => x.id === +b.dataset.approve);
     const s = openAccSheet(`
       <div class="sheet-head"><h3>Aanvraag goedkeuren</h3><button class="text-btn" data-close>Annuleer</button></div>
@@ -2743,14 +2743,14 @@ async function renderUsers() {
         s.$('.acc-sheet-text').innerHTML = res.mailed
           ? `✓ De inloggegevens zijn gemaild naar <strong>${esc(res.email)}</strong>. Hieronder staan ze ook, voor als de mail niet aankomt.`
           : `⚠️ De mail naar <strong>${esc(res.email)}</strong> kon niet worden verstuurd. Geef deze gegevens zelf door, bijvoorbeeld via een berichtje.`;
-        renderUsers(); Sync.refreshMe().catch(() => {});
+        renderUsers(host); Sync.refreshMe().catch(() => {});
       } catch (err) { msg.textContent = err.message; btn.disabled = false; }
     };
   });
-  view.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => {
+  host.querySelectorAll('[data-reject]').forEach(b => b.onclick = async () => {
     const q = requests.find(x => x.id === +b.dataset.reject);
     if (!confirm(`De aanvraag van ${q.name} afwijzen? Er wordt geen mail verstuurd en de gegevens worden verwijderd.`)) return;
-    try { await Sync.call('request_reject', { id: q.id }); toast('Aanvraag afgewezen'); renderUsers(); Sync.refreshMe().catch(() => {}); }
+    try { await Sync.call('request_reject', { id: q.id }); toast('Aanvraag afgewezen'); renderUsers(host); Sync.refreshMe().catch(() => {}); }
     catch (err) { toast(err.message); }
   });
 
@@ -2787,12 +2787,12 @@ async function renderUsers() {
       try {
         const r = await Sync.call('user_create', { name: form.name.value });
         showTempPassword(s, r.name, r.password, `Account voor ${r.name}`);
-        renderUsers();
+        renderUsers(host);
       } catch (err) { msg.hidden = false; msg.textContent = err.message; btn.disabled = false; }
     };
   };
 
-  view.querySelectorAll('.users-more').forEach(b => b.onclick = () => {
+  host.querySelectorAll('.users-more').forEach(b => b.onclick = () => {
     const u = users.find(x => x.id === +b.dataset.id);
     const s = openAccSheet(`
       <div class="sheet-head"><h3>${esc(u.name)}</h3><button class="text-btn" data-close>Annuleer</button></div>
@@ -2803,12 +2803,12 @@ async function renderUsers() {
       <p class="sync-msg" id="optMsg" hidden></p>`, `Opties voor ${u.name}`);
     const msg = s.$('#optMsg');
     s.$('#resetPw').onclick = async () => {
-      try { const r = await Sync.call('user_reset', { id: u.id }); showTempPassword(s, r.name, r.password, 'Nieuw wachtwoord'); renderUsers(); }
+      try { const r = await Sync.call('user_reset', { id: u.id }); showTempPassword(s, r.name, r.password, 'Nieuw wachtwoord'); renderUsers(host); }
       catch (err) { msg.hidden = false; msg.textContent = err.message; }
     };
     s.$('#delUser').onclick = async () => {
       if (!confirm(`${u.name} en ${u.recipes === 1 ? 'het recept' : `alle ${u.recipes} recepten`} van ${u.name} verwijderen? Dit kan niet ongedaan worden gemaakt.`)) return;
-      try { await Sync.call('user_delete', { id: u.id }); s.close(); toast(`${u.name} is verwijderd`); renderUsers(); }
+      try { await Sync.call('user_delete', { id: u.id }); s.close(); toast(`${u.name} is verwijderd`); renderUsers(host); }
       catch (err) { msg.hidden = false; msg.textContent = err.message; }
     };
   });
@@ -3477,7 +3477,7 @@ async function route() {
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);
   if (page === 'settings') return renderSettings(id || '', sub || '');
-  if (page === 'gebruikers') return renderUsers();
+  if (page === 'gebruikers') { location.replace('#/settings/beheer'); return; }
   if (page === 'ontvangen' && id) return renderReceived(+id);
   if (page === 'kookboeken') return renderBooks();
   if (page === 'kookboek' && id && sub) return renderBookRecipe(+id, decodeURIComponent(sub));
