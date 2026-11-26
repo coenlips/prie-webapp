@@ -1923,7 +1923,7 @@ body.cook .crumb-back { display: none !important; }
 @media (min-width: 700px) { body.brand-head .topbar h1 { font-size: 80px; line-height: .95; background-size: 125% 100%; } }
 /* Bewaar-balk bij recepten van anderen boven de tabbladen (iPhone) */
 @media (max-width: 699px) {
-  body.has-tabbar .save-bar { bottom: calc(68px + var(--safe-bottom, 0px)); }
+  body.has-tabbar .save-bar { bottom: calc(66px + var(--safe-bottom, 0px)); padding-bottom: 12px; box-shadow: none; }
   body.has-tabbar:has(.save-bar) main { padding-bottom: calc(170px + var(--safe-bottom, 0px)) !important; }
 }
 
