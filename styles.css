@@ -1926,3 +1926,20 @@ body.cook .crumb-back { display: none !important; }
   body.has-tabbar .save-bar { bottom: calc(68px + var(--safe-bottom, 0px)); }
   body.has-tabbar:has(.save-bar) main { padding-bottom: calc(170px + var(--safe-bottom, 0px)) !important; }
 }
+
+/* Recept: kruimelpad met rechts hartje, koksmuts en potlood; porties helemaal rechts */
+.crumb-row { display: flex; align-items: center; gap: 8px; }
+.crumb-row .crumb-back { margin: 0; flex: 1; min-width: 0; }
+.crumb-acts { display: flex; align-items: center; gap: 2px; margin-left: auto; flex: none; }
+.crumb-acts .icon-btn { width: 38px; height: 38px; }
+.crumb-acts .cook-btn { margin: 0; }
+.crumb-acts svg { width: 22px; height: 22px; }
+.photo-col .crumb-photo { margin: 12px 0 -6px; }
+.part-ingr .crumb-ingr { display: none; }
+body.cook .crumb-row { display: none !important; }
+.section-head .stepper { margin-left: auto; }
+.section-head .copy-btn { margin-right: 0; }
+@media (min-width: 900px) {
+  .photo-col .crumb-photo { display: none; }
+  .part-ingr .crumb-ingr { display: flex; margin: 0 0 14px; }
+}

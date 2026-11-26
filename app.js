@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.13.0 · 26 november 2026';
+const APP_VERSION = '1.13.1 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1132,8 +1132,7 @@ function setCookMode(on) {
   { const [, pg, , sb] = (location.hash || '#/').split('/'); updateTabs(pg, sb); if (!on && document.body.classList.contains('brand-head')) { $('#title').textContent = 'Ricetta'; } }
   $('#cookTabs').hidden = !on;
   $('#cookSwitch').hidden = !on;
-  const btn = $('#cook');
-  if (btn) { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on); }
+  document.querySelectorAll('[data-cook]').forEach(btn => { btn.classList.toggle('on', on); btn.setAttribute('aria-pressed', on); });
   showCookTab(state.cookTab || 'ingr');
   if (on && detailWideMQ.matches) window.scrollTo(0, 0);   // iPad/laptop: beide kolommen scrollen zelf
   if (!on) setWakeLock(false);
@@ -1191,6 +1190,11 @@ async function renderDetail(id, opts = {}) {
   const base = Math.max(1, +r.servings || 1);
   let servings = base;
   const crumb = (location.hash || '').startsWith('#/deel/') ? null : opts.crumb || (foreign ? ['Recepten', ''] : recipeCrumb());
+  // Kruimelpad met rechts hartje, koksmuts en potlood (twee keer: onder de foto en boven de ingrediënten; CSS kiest)
+  const crumbRow = cls => `<div class="crumb-row ${cls}">${crumb ? crumbHtml(crumb[0], crumb[1]) : '<span></span>'}<span class="crumb-acts">
+    ${foreign ? '' : `<button class="icon-btn fav-btn${r.favorite ? ' active' : ''}" data-fav aria-label="Favoriet" title="Favoriet">${ICONS.heart}</button>`}
+    <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" data-cook aria-pressed="${!!state.cookMode}" aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
+    ${foreign ? '' : `<button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken" title="Bewerken">${ICONS.edit}</button>`}</span></div>`;
   const done = new Set();
   let curStep = null; // kookstand: de stap waar je nu bent (bijv. 's3')
 
@@ -1199,8 +1203,7 @@ async function renderDetail(id, opts = {}) {
     timerLabel: r.title,
     actions: `
       <button class="icon-btn cart-btn" data-go="#/boodschappen" aria-label="Boodschappenlijst">${ICONS.basket}<span class="cart-badge" hidden></span></button>
-      ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : `<button class="icon-btn${r.favorite ? ' active' : ''}" id="favBtn" aria-label="Favoriet">${ICONS.heart}</button>
-      <button class="icon-btn" data-go="#/edit/${esc(r.id)}" aria-label="Bewerken">${ICONS.edit}</button>`}`,
+      ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : ''}`,
   });
   Shopping.updateBadge();
 
@@ -1219,7 +1222,7 @@ async function renderDetail(id, opts = {}) {
       ${opts.from ? `<div class="from-strip"><div class="acc-avatar" aria-hidden="true">${esc(opts.from.charAt(0).toUpperCase())}</div><span><b>Van ${esc(opts.from)}</b>${opts.message ? ` · <q>${esc(opts.message)}</q>` : ''}</span></div>` : ''}
       <div class="photo-col${r.photo ? '' : ' no-photo'}">
         ${r.photo ? `<img class="hero" src="${r.photo}" alt="">` : ''}
-        ${crumb ? crumbHtml(crumb[0], crumb[1], 'crumb-photo') : ''}
+        ${crumbRow('crumb-photo')}
         <div class="photo-cap">
         <h2 class="detail-title">${esc(r.title)}</h2>
         ${r.description ? `<p class="lead">${esc(r.description)}</p>` : ''}
@@ -1236,7 +1239,7 @@ async function renderDetail(id, opts = {}) {
       <section class="detail">
 
         <div class="part-ingr">
-        ${crumb ? crumbHtml(crumb[0], crumb[1], 'crumb-ingr') : ''}
+        ${crumbRow('crumb-ingr')}
         <div class="section-head">
           <h3>Ingrediënten</h3>
           <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op de boodschappenlijst zetten" title="Op de boodschappenlijst">${ICONS.basket}</button>
@@ -1245,8 +1248,6 @@ async function renderDetail(id, opts = {}) {
             <span>${ICONS.people} ${servings}</span>
             <button id="plus" aria-label="Meer porties">+</button>
           </div>
-          <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" id="cook" aria-pressed="${!!state.cookMode}"
-            aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
         </div>
         <ul class="ingredients">
           ${ingr.map((l, i) => l.startsWith('#')
@@ -1362,11 +1363,18 @@ async function renderDetail(id, opts = {}) {
         if (show) requestAnimationFrame(() => ba.scrollIntoView({ behavior: 'smooth', block: state.cookMode ? 'end' : 'nearest' }));
       }
     });
-    $('#cook').onclick = async () => {
+    view.querySelectorAll('[data-cook]').forEach(b => b.onclick = async () => {
       setCookMode(!state.cookMode);
       const ok = await setWakeLock(state.cookMode);
       if (state.cookMode && (!ok || !('wakeLock' in navigator))) toast('Scherm-aan wordt niet ondersteund op dit toestel');
-    };
+    });
+    view.querySelectorAll('[data-fav]').forEach(b => b.onclick = async () => {
+      r.favorite = !r.favorite;
+      await DB.put(r);
+      await loadRecipes();
+      view.querySelectorAll('[data-fav]').forEach(x => x.classList.toggle('active', r.favorite));
+      toast(r.favorite ? 'Toegevoegd aan favorieten' : 'Verwijderd uit favorieten');
+    });
     if ($('#shareBtn')) $('#shareBtn').onclick = () => openShareSheet(r, servings, factor);
     if ($('#saveCopy')) $('#saveCopy').onclick = async e => { e.currentTarget.disabled = true; try { await opts.onSave(); } catch (err) { toast(err.message); e.currentTarget.disabled = false; } };
     if ($('#discardCopy')) $('#discardCopy').onclick = () => opts.onDiscard();
@@ -1374,14 +1382,6 @@ async function renderDetail(id, opts = {}) {
   }
 
   draw();
-  const favBtn = $('#favBtn');
-  if (favBtn) favBtn.onclick = async () => {
-    r.favorite = !r.favorite;
-    await DB.put(r);
-    await loadRecipes();
-    favBtn.classList.toggle('active', r.favorite);
-    toast(r.favorite ? 'Toegevoegd aan favorieten' : 'Verwijderd uit favorieten');
-  };
 }
 
 // Mandje bij een recept: venster met alle ingrediënten om op de boodschappenlijst te zetten.
