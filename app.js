@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.15.4 · 26 november 2026';
+const APP_VERSION = '1.15.5 · 26 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1252,7 +1252,7 @@ async function renderDetail(id, opts = {}) {
     timerLabel: r.title,
     actions: `
       <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" data-cook aria-pressed="${!!state.cookMode}" aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
-      ${foreign ? `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` : ''}`,
+      `,
   });
   Shopping.updateBadge();
 
@@ -3433,7 +3433,7 @@ async function renderBookRecipe(ownerId, recipeId) {
   const seq = routeSeq;
   let r, owner = bookCache.get(ownerId)?.owner || shareStore.get(`book-${ownerId}`)?.owner;
   const name = bookCache.get(ownerId)?.recipes.find(x => x.id === recipeId)?.title;
-  setHeader({ title: name || 'Recept', back: true, close: true, timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  setHeader({ title: name || 'Recept', back: true, close: true, timer: false });
   view.innerHTML = loaderHtml(name ? `${name} ophalen…` : 'Recept ophalen…');
   try {
     const key = `${ownerId}/${recipeId}`;
