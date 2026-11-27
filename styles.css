@@ -2155,3 +2155,6 @@ body.scanning { overflow: hidden; }
 .card-toggle .ct-chev { transition: transform .2s; transform-origin: 29.5px 12px; }
 .card-toggle.on .ct-chev { transform: rotate(180deg); }
 .shop .loyal-wrap.hidden { display: none; }
+/* Inklapknop: altijd rood; uitgeklapt met een lichtrode stip erachter */
+.card-toggle, .card-toggle.on { color: var(--accent); width: 48px; height: 48px; border-radius: 50%; }
+.card-toggle.on { background: var(--accent-soft); }
