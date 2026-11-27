@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.22.18 · 27 november 2026';
+const APP_VERSION = '1.22.19 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3763,7 +3763,9 @@ Sync.onRemoteChange = async () => {
   if (page === 'boodschappen') Shopping.render(view);
 };
 
-(async () => {
+// Pas starten als alle scripts (ook shopping.js en menus.js) geladen zijn. Bij een trage
+// verbinding is de database soms eerder klaar dan het laatste script.
+const startApp = async () => {
   await loadRecipes();
   await AppSettings.load();
   await migrateCoursesOnce();
@@ -3773,4 +3775,5 @@ Sync.onRemoteChange = async () => {
   Importer.checkInbox();   // recepten die vanuit Safari of door anderen zijn gedeeld
   setTimeout(ensureThumbs, 3000);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-})();
+};
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp); else startApp();
