@@ -2033,3 +2033,10 @@ body:not(.cook) .bon-appetit { display: none; }
   font: 500 12px var(--font-label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
 .serv-lock svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .serv-lock.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Bewerken: porties met − en + in het vakje */
+.ed .stat-serv { cursor: default; }
+.ed .stat-serv > label { font: 500 11px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--mustard); }
+.ed .stat-serv > .serv-pm { display: flex; align-items: center; gap: 2px; font: inherit; letter-spacing: 0; text-transform: none; color: inherit; }
+.ed .stat-serv input { text-align: center; flex: 1 1 auto; width: 0; }
+.ed .stat-serv .pm { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1.5px solid var(--line); border-radius: 50%; background: none; color: var(--accent); font: 500 18px/1 var(--font-label); cursor: pointer; }
+.ed .stat-serv .pm:active { background: var(--accent); border-color: var(--accent); color: #fff; }

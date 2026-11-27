@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.1 · 27 november 2026';
+const APP_VERSION = '1.17.2 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1655,7 +1655,7 @@ async function renderEdit(id) {
 
         <section class="ed-sec"><h3>Porties en tijd</h3>
           <div class="stats">
-            <label class="stat"><span>Porties</span><input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
+            <div class="stat stat-serv"><label for="edServ">Porties</label><span class="serv-pm"><button type="button" class="pm" data-pm="-1" aria-label="Minder porties">−</button><input id="edServ" name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"><button type="button" class="pm" data-pm="1" aria-label="Meer porties">+</button></span></div>
             <label class="stat"><span>Voorbereiden</span><b><input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}" placeholder="0"><small>min</small></b></label>
             <label class="stat"><span>Koken</span><b><input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}" placeholder="0"><small>min</small></b></label>
           </div>
@@ -1700,8 +1700,7 @@ async function renderEdit(id) {
   {
     const servIn = view.querySelector('[name=servings]'), ingTa = view.querySelector('[name=ingredients]');
     const lockBtn = view.querySelector('#servLock'), lockTx = view.querySelector('#servLockTx');
-    let locked = false;
-    try { locked = localStorage.getItem('ricetta-serv-lock') === '1'; } catch {}
+    let locked = true; // standaard vast: porties aanpassen laat de ingrediënten staan
     let baseText = ingTa.value, baseServ = parseInt(servIn.value, 10) || 0;
     const rebase = () => { baseText = ingTa.value; baseServ = parseInt(servIn.value, 10) || 0; };
     const tmp = document.createElement('div');
@@ -1715,9 +1714,12 @@ async function renderEdit(id) {
     showLock();
     lockBtn.addEventListener('click', () => {
       locked = !locked; rebase(); showLock();
-      try { localStorage.setItem('ricetta-serv-lock', locked ? '1' : '0'); } catch {}
     });
     ingTa.addEventListener('input', e => { if (e.isTrusted) rebase(); });
+    view.querySelectorAll('[data-pm]').forEach(b => b.addEventListener('click', () => {
+      servIn.value = Math.max(1, (parseInt(servIn.value, 10) || 1) + Number(b.dataset.pm));
+      servIn.dispatchEvent(new Event('input'));
+    }));
     servIn.addEventListener('input', () => {
       const n = parseInt(servIn.value, 10);
       if (locked || !n || n < 1 || !baseServ) return;
@@ -2554,7 +2556,7 @@ function renderSetPassword() {
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
   { v: '1.17.0', date: '27 november 2026', sections: [{ items: [
-    'Pas je bij het bewerken van een recept het aantal porties aan, dan rekenen de ingrediënten mee. Wil je dat niet, tik dan op Zet vast.',
+    'Bij het bewerken van een recept pas je het aantal porties aan met − en +. Zet je de ingrediënten los, dan rekenen ze mee met de porties.',
   ] }] },
   { v: '1.16.0', date: '26 november 2026', sections: [{ items: [
     'Zet een recept meteen in een menu: tik bij het recept op de serveerstolp met het plusje, kies het menu en de gang. Of begin een nieuw menu met dit recept.',
