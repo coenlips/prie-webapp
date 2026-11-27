@@ -1467,7 +1467,7 @@ body[data-page=book] .topbar { background-color: var(--bg); }
 .ed-photo .ph-btn[hidden] { display: none; }
 .ed-photo .ph-btn svg { width: 17px; height: 17px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .ed-title { margin: 18px 0 0; }
-.ed-title input { display: block; width: 100%; border: 0; border-bottom: 1.5px solid var(--text); background: none; padding: 4px 0 6px; font: 400 34px/1.05 var(--font-title); letter-spacing: .03em; border-radius: 0; }
+.ed-title textarea.ttl.plain { display: block; width: 100%; border: 0; border-bottom: 1.5px solid var(--text); background: none; padding: 4px 0 6px; font: 400 34px/1.05 var(--font-title); letter-spacing: .03em; border-radius: 0; resize: none; overflow: hidden; color: var(--text); }
 .ed-title textarea.desc.plain { display: block; width: 100%; font: 16px/1.4 -apple-system, BlinkMacSystemFont, system-ui, sans-serif; border: 0; border-radius: 0; background: none; padding: 10px 0 8px; color: var(--muted); resize: none; overflow: hidden; }
 .ed-sec { margin-top: 28px; }
 .ed-sec > h3 { display: flex; align-items: baseline; gap: 10px; margin: 0 0 12px; font: 400 24px/1 var(--font-title); letter-spacing: .05em; }

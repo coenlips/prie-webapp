@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.7 · 27 november 2026';
+const APP_VERSION = '1.17.8 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1632,7 +1632,7 @@ async function renderEdit(id) {
           <span class="ph-btns"><span class="ph-btn" id="photoChange">${ICONS.camera}<span>Wijzig</span></span><button type="button" class="ph-btn" id="removePhoto" aria-label="Foto verwijderen" title="Foto verwijderen">${ICONS.trash}</button></span>
         </label>
         <div class="ed-title">
-          <input name="title" required value="${esc(r.title)}" placeholder="Naam van het recept" aria-label="Naam">
+          <textarea name="title" class="ttl grow plain" rows="1" required placeholder="Naam van het recept" aria-label="Naam" enterkeyhint="next">${esc(r.title)}</textarea>
           <textarea name="description" class="desc grow plain" rows="1" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving" enterkeyhint="done">${esc(r.description)}</textarea>
         </div>
 
@@ -1743,9 +1743,12 @@ async function renderEdit(id) {
   const grow = t => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 3}px`; };
   view.querySelectorAll('textarea.grow').forEach(t => { t.addEventListener('input', () => grow(t)); requestAnimationFrame(() => grow(t)); });
   // Omschrijving: één alinea die afbreekt; Enter sluit het toetsenbord in plaats van een nieuwe regel
-  const descTa = view.querySelector('textarea.desc');
-  descTa.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); descTa.blur(); } });
-  descTa.addEventListener('input', () => { if (/\n/.test(descTa.value)) { descTa.value = descTa.value.replace(/\s*\n\s*/g, ' '); grow(descTa); } });
+  // Ook de titel breekt af; Enter gaat door naar de omschrijving
+  const descTa = view.querySelector('textarea.desc'), titleTa = view.querySelector('textarea.ttl');
+  [titleTa, descTa].forEach(ta => {
+    ta.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); ta === titleTa ? descTa.focus() : ta.blur(); } });
+    ta.addEventListener('input', () => { if (/\n/.test(ta.value)) { ta.value = ta.value.replace(/\s*\n\s*/g, ' '); grow(ta); } });
+  });
   // Linkerkolom (iPad/laptop) blijft staan; is hij hoger dan het scherm, dan blijft de onderkant staan
   const side = $('#edSide');
   const stick = () => { if (!side.isConnected) { removeEventListener('resize', stick); return; }
@@ -1850,7 +1853,7 @@ async function renderEdit(id) {
   const form = $('#form');
   const save = async () => {
     const d = Object.fromEntries(new FormData(form));
-    if (!d.title.trim()) { form.title.focus(); toast('Geef het recept een naam'); return; }
+    if (!d.title.trim()) { titleTa.focus(); toast('Geef het recept een naam'); return; }
     const updated = {
       ...r,
       title: d.title.trim(),
