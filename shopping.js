@@ -246,6 +246,7 @@ const Shopping = (() => {
     ['Aldi', '#00205B'], ['Dirk', '#E30613'], ['Coop', '#F7941D'],
   ];
   const DEFAULT_COLOR = '#5FA3A0';   // turquoise van de app (kaderlijn)
+  const PIPET = '<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 4.5l5 5"/><path d="M17.8 2.7a2.1 2.1 0 0 1 3 3l-3.1 3.1-3-3z"/><path d="M14.7 5.8L5.6 14.9 5 18.9 9 18.3l9.1-9.1"/><path d="M3 21l2.5-2.5"/></svg>';
   const SCAN_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>';
   const storeColor = name => (STORES.find(([n]) => n.toLowerCase() === String(name).trim().toLowerCase()) || [])[1] || '';
   const cards = () => (Array.isArray(list.cards) ? list.cards : (list.cards = []));
@@ -313,7 +314,7 @@ const Shopping = (() => {
       <label class="sheet-label">Naam<input id="cardName" value="${esc(card.name)}" placeholder="Bijv. Albert Heijn" autocomplete="off"></label>
       <p class="tm-q">Kleur</p>
       <div class="card-colors">${STORES.map(([n, c]) => `<button type="button" class="swatch-btn" data-color="${c}" style="background:${c}" aria-label="Kleur van ${esc(n)}" title="${esc(n)}"></button>`).join('')}
-        <label class="swatch-btn swatch-other" title="Andere kleur"><input type="color" id="cardColor" value="${esc(color)}" aria-label="Andere kleur kiezen"><span>Anders</span></label></div>
+        <label class="swatch-btn swatch-other" title="Andere kleur"><input type="color" id="cardColor" value="${esc(color)}" aria-label="Andere kleur kiezen">${PIPET}</label></div>
       <label class="sheet-label">Nummer<input id="cardNum" value="${esc(card.number)}" placeholder="Het nummer onder de streepjescode" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
       <p class="small-note" id="cardHint"></p>
       <div class="loyal loyal-preview" id="cardPrev"><div class="loyal-head"><b></b></div><div class="loyal-code"></div></div>
@@ -331,6 +332,7 @@ const Shopping = (() => {
       sh.el.querySelectorAll('[data-color]').forEach(x => x.classList.toggle('on', x.dataset.color.toLowerCase() === color.toLowerCase()));
       sh.$('.swatch-other').classList.toggle('on', custom());
       sh.$('.swatch-other').style.background = custom() ? color : '';
+      sh.$('.swatch-other').style.color = custom() ? inkOn(color) : '';
       const bad13 = /^\d{13}$/.test(v) && !Barcode.isEan13(v);
       sh.$('#cardHint').classList.toggle('found-note', !!v && v === scanned);
       sh.$('#cardHint').textContent = v && v === scanned ? `✓ Gescand. Kijk het nummer nog even na${nameIn.value.trim() ? '' : ' en kies hierboven de winkel'}.` : !v ? 'Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.'

@@ -2136,3 +2136,6 @@ body.scanning { overflow: hidden; }
 .scan-bottom { position: absolute; z-index: 4; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 30px); display: grid; justify-items: center; }
 .scan-photo { background: #fff; color: #000; border-color: #fff; cursor: pointer; }
 .scan-view .scan-photo.btn { width: auto; padding: 0 22px; background: #fff; color: #000; border-color: #fff; }
+/* Eigen kleur: rond pipetknopje in de rij kleuren */
+.swatch-other { width: 34px; padding: 0; border-radius: 50%; display: inline-grid; place-items: center; background: var(--surface); color: var(--text); }
+.swatch-other svg { width: 18px; height: 18px; pointer-events: none; }
