@@ -2069,3 +2069,35 @@ body:not(.cook) .bon-appetit { display: none; }
 .card-sheet #cardEdit { display: block; margin: 10px auto 0; }
 .card-stores.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; padding: 0; overflow: visible; }
 .card-stores .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+/* Klantkaarten als kaarten bovenaan de boodschappenlijst: swipen, direct scanbaar */
+.loyal-wrap { margin: -2px 0 14px; }
+.loyal-rail { display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory; margin: 0 -16px; padding: 4px 16px 8px; scroll-padding: 0 16px; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.loyal-rail::-webkit-scrollbar { display: none; }
+.loyal { flex: 0 0 calc(100% - 40px); max-width: 420px; scroll-snap-align: center; box-sizing: border-box; padding: 12px 14px 14px; border-radius: 14px; background: var(--c, #2B1D16); color: var(--ink, #fff);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .14); display: grid; gap: 10px; }
+.loyal-head { display: flex; align-items: center; justify-content: space-between; min-height: 28px; }
+.loyal-head b { font: 500 15px var(--font-label); letter-spacing: .12em; text-transform: uppercase; }
+.loyal-edit { width: 32px; height: 32px; display: grid; place-items: center; margin: -4px -6px -4px 0; border: 0; background: none; color: inherit; opacity: .85; }
+.loyal-edit svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.loyal-code { background: #fff; border-radius: 8px; padding: 12px 12px 8px; text-align: center; }
+.loyal-code .barcode { display: block; width: 100%; height: 84px; }
+.loyal-code span { display: block; margin-top: 6px; font: 500 15px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em; color: #000; }
+.loyal-code .loyal-empty { font: 400 14px/1.4 -apple-system, system-ui, sans-serif; letter-spacing: 0; color: #888; padding: 30px 0; }
+.loyal-add { flex-basis: 120px; place-content: center; justify-items: center; background: none; color: var(--muted); border: 1.5px dashed var(--line); box-shadow: none;
+  font: 500 12px var(--font-label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.loyal-add span { font-size: 30px; line-height: 1; }
+.loyal-dots { display: flex; justify-content: center; gap: 6px; margin-top: 2px; }
+.loyal-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--line); }
+.loyal-dots i.on { background: var(--text); }
+.loyal-first { display: inline-flex; align-items: center; height: 38px; padding: 0 14px; border: 1.5px dashed var(--accent); border-radius: 3px; background: none; color: var(--accent);
+  font: 500 13px var(--font-label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.loyal-preview { margin-top: 10px; max-width: none; }
+.card-stores .chip .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; vertical-align: 1px; box-shadow: 0 0 0 1px rgba(0,0,0,.15); }
+.card-stores .chip.on .swatch { box-shadow: 0 0 0 1.5px #fff; }
+.card-colors { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 12px; }
+.swatch-btn { width: 34px; height: 34px; border-radius: 50%; border: 0; padding: 0; cursor: pointer; box-shadow: 0 0 0 1px rgba(0,0,0,.15); position: relative; }
+.swatch-btn.on { box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px var(--text); }
+.swatch-other { width: auto; padding: 0 12px; border-radius: 17px; display: inline-flex; align-items: center; background: var(--surface); font: 500 12px var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
+.swatch-other.on span { color: #fff; text-shadow: 0 0 3px rgba(0,0,0,.6); }
+.swatch-other input { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; border: 0; padding: 0; }
+@media (min-width: 700px) { .loyal-rail { margin: 0; padding: 4px 0 8px; scroll-padding: 0; } .loyal { flex-basis: 380px; } }

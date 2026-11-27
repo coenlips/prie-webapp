@@ -240,57 +240,117 @@ const Shopping = (() => {
 
   /* ---------- Klantkaarten (streepjescode bij de kassa) ---------- */
 
-  const CARD_ICON = '<svg viewBox="0 0 24 24"><path d="M3 5v14M6 5v14M9 5v14M13 5v14M15 5v14M18 5v14M21 5v14" stroke-width="1.6"/></svg>';
-  const STORES = ['Albert Heijn', 'Jumbo', 'Lidl', 'Plus', 'Dirk', 'Aldi'];
+  // De grootste supermarkten van Nederland, met hun huiskleur
+  const STORES = [
+    ['Albert Heijn', '#00A0E2'], ['Jumbo', '#FFC800'], ['Lidl', '#0050AA'], ['Plus', '#5EA51E'],
+    ['Aldi', '#00205B'], ['Dirk', '#E30613'], ['Coop', '#F7941D'], ['Spar', '#007A3D'],
+    ['Vomar', '#D7141A'], ['Hoogvliet', '#0066B3'], ['DekaMarkt', '#C4161C'], ['Poiesz', '#E2001A'],
+  ];
+  const DEFAULT_COLOR = '#2B1D16';
+  const storeColor = name => (STORES.find(([n]) => n.toLowerCase() === String(name).trim().toLowerCase()) || [])[1] || '';
   const cards = () => (Array.isArray(list.cards) ? list.cards : (list.cards = []));
+  const colorOf = c => c.color || storeColor(c.name) || DEFAULT_COLOR;
+  // Donkere of lichte tekst, afhankelijk van hoe licht de kaartkleur is
+  const inkOn = hex => {
+    const m = /^#?([0-9a-f]{6})$/i.exec(hex || ''); if (!m) return '#fff';
+    const n = parseInt(m[1], 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255;
+    return (0.299 * r + 0.587 * g + 0.114 * b) > 165 ? '#1d1d1b' : '#fff';
+  };
   const groupNum = n => String(n).replace(/\s+/g, '').replace(/(.{4})(?=.)/g, '$1 ');
+  const LAST = 'ricetta-card-last';
+  const lastCard = () => { try { return localStorage.getItem(LAST); } catch { return null; } };
+  const rememberCard = id => { try { localStorage.setItem(LAST, id); } catch { /* geen opslag */ } };
 
-  function showCard(card, redraw) {
-    const sh = openAccSheet(`
-      <div class="sheet-head"><h3>${esc(card.name)}</h3><button class="text-btn" data-close>Sluit</button></div>
-      <div class="card-code">${Barcode.svg(card.number)}<p class="card-num">${esc(groupNum(card.number))}</p></div>
-      <p class="small-note card-tip">Leest de kassa hem niet? Zet je scherm wat lichter.</p>
-      <button class="link" id="cardEdit">Wijzig of verwijder</button>`, card.name);
-    sh.el.classList.add('card-sheet');
-    sh.$('#cardEdit').onclick = () => { sh.close(); setTimeout(() => editCard(card, redraw), 220); };
+  function railHtml() {
+    const cs = cards();
+    if (!cs.length) return `<button type="button" class="loyal-first" id="cardAdd">+ Klantkaart toevoegen</button>`;
+    return `<div class="loyal-rail" id="cardRail">
+        ${cs.map(c => `<div class="loyal" data-card="${esc(c.id)}" style="--c:${esc(colorOf(c))};--ink:${inkOn(colorOf(c))}">
+          <div class="loyal-head"><b>${esc(c.name)}</b><button type="button" class="loyal-edit" data-edit="${esc(c.id)}" aria-label="${esc(c.name)} wijzigen">${ICONS.edit}</button></div>
+          <div class="loyal-code">${Barcode.svg(c.number)}<span>${esc(groupNum(c.number))}</span></div>
+        </div>`).join('')}
+        <button type="button" class="loyal loyal-add" id="cardAdd" aria-label="Klantkaart toevoegen"><span>+</span>Kaart toevoegen</button>
+      </div>
+      ${cs.length > 1 ? `<div class="loyal-dots" aria-hidden="true">${cs.map(c => `<i data-dot="${esc(c.id)}"></i>`).join('')}</div>` : ''}`;
+  }
+
+  // Swipen tussen de kaarten; de laatst bekeken kaart wordt onthouden
+  function bindRail(view, redraw) {
+    const rail = view.querySelector('#cardRail');
+    view.querySelector('#cardAdd')?.addEventListener('click', () => editCard(null, redraw));
+    view.querySelectorAll('[data-edit]').forEach(b => b.onclick = () => editCard(cards().find(c => c.id === b.dataset.edit), redraw));
+    if (!rail) return;
+    const slides = [...rail.querySelectorAll('[data-card]')];
+    const dots = [...view.querySelectorAll('[data-dot]')];
+    const mark = id => dots.forEach(d => d.classList.toggle('on', d.dataset.dot === id));
+    const current = () => {
+      const mid = rail.scrollLeft + rail.clientWidth / 2;
+      let best = slides[0], dist = Infinity;
+      slides.forEach(sl => { const d = Math.abs(sl.offsetLeft + sl.offsetWidth / 2 - mid); if (d < dist) { dist = d; best = sl; } });
+      return best;
+    };
+    const want = slides.find(sl => sl.dataset.card === lastCard()) || slides[0];
+    rail.scrollLeft = want.offsetLeft - (rail.clientWidth - want.offsetWidth) / 2;
+    mark(want.dataset.card);
+    let t;
+    rail.addEventListener('scroll', () => {
+      clearTimeout(t);
+      t = setTimeout(() => { const sl = current(); if (sl) { rememberCard(sl.dataset.card); mark(sl.dataset.card); } }, 120);
+    }, { passive: true });
   }
 
   function editCard(card, redraw) {
     const isNew = !card;
-    card = card || { id: Date.now().toString(36), name: '', number: '' };
+    card = card || { id: Date.now().toString(36), name: '', number: '', color: '' };
+    let color = colorOf(card);
+    const custom = () => !STORES.some(([, c]) => c.toLowerCase() === color.toLowerCase());
     const sh = openAccSheet(`
       <div class="sheet-head"><h3>${isNew ? 'Klantkaart toevoegen' : 'Klantkaart wijzigen'}</h3><button class="text-btn" data-close>Annuleer</button></div>
       <p class="tm-q">Winkel</p>
-      <div class="chips card-stores">${STORES.map(n => `<button type="button" class="chip${card.name === n ? ' on' : ''}" data-store="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+      <div class="chips card-stores">${STORES.map(([n, c]) => `<button type="button" class="chip${card.name === n ? ' on' : ''}" data-store="${esc(n)}"><i class="swatch" style="background:${c}"></i>${esc(n)}</button>`).join('')}</div>
       <label class="sheet-label">Naam<input id="cardName" value="${esc(card.name)}" placeholder="Bijv. Albert Heijn" autocomplete="off"></label>
+      <p class="tm-q">Kleur</p>
+      <div class="card-colors">${STORES.map(([n, c]) => `<button type="button" class="swatch-btn" data-color="${c}" style="background:${c}" aria-label="Kleur van ${esc(n)}" title="${esc(n)}"></button>`).join('')}
+        <label class="swatch-btn swatch-other" title="Andere kleur"><input type="color" id="cardColor" value="${esc(color)}" aria-label="Andere kleur kiezen"><span>Anders</span></label></div>
       <label class="sheet-label">Nummer<input id="cardNum" value="${esc(card.number)}" placeholder="Het nummer onder de streepjescode" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
-      <p class="small-note" id="cardHint">Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.</p>
-      <div class="card-code card-preview" id="cardPrev"></div>
+      <p class="small-note" id="cardHint"></p>
+      <div class="loyal loyal-preview" id="cardPrev"><div class="loyal-head"><b></b></div><div class="loyal-code"></div></div>
       <button class="btn" id="cardSave" style="width:100%;margin-top:12px">Bewaar</button>
       ${isNew ? '' : '<button class="link danger" id="cardDel" style="margin:14px auto 0;display:block">Kaart verwijderen</button>'}`, 'Klantkaart');
-    const nameIn = sh.$('#cardName'), numIn = sh.$('#cardNum');
-    sh.el.querySelectorAll('[data-store]').forEach(b => b.onclick = () => {
-      sh.el.querySelectorAll('[data-store]').forEach(x => x.classList.toggle('on', x === b));
-      nameIn.value = b.dataset.store; numIn.focus();
-    });
+    sh.el.classList.add('card-edit');
+    const nameIn = sh.$('#cardName'), numIn = sh.$('#cardNum'), colIn = sh.$('#cardColor'), prev = sh.$('#cardPrev');
     const preview = () => {
       const v = numIn.value.replace(/\s+/g, '');
       let svgHtml = '';
       try { svgHtml = v ? Barcode.svg(v) : ''; } catch { svgHtml = ''; }
-      sh.$('#cardPrev').innerHTML = svgHtml;
+      prev.style.setProperty('--c', color); prev.style.setProperty('--ink', inkOn(color));
+      prev.querySelector('b').textContent = nameIn.value.trim() || 'Klantkaart';
+      prev.querySelector('.loyal-code').innerHTML = svgHtml ? `${svgHtml}<span>${esc(groupNum(v))}</span>` : '<span class="loyal-empty">Je streepjescode verschijnt hier</span>';
+      sh.el.querySelectorAll('[data-color]').forEach(x => x.classList.toggle('on', x.dataset.color.toLowerCase() === color.toLowerCase()));
+      sh.$('.swatch-other').classList.toggle('on', custom());
+      sh.$('.swatch-other').style.background = custom() ? color : '';
       const bad13 = /^\d{13}$/.test(v) && !Barcode.isEan13(v);
       sh.$('#cardHint').textContent = !v ? 'Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.'
         : bad13 ? 'Controleer het nummer: bij 13 cijfers klopt het laatste cijfer meestal niet bij de rest.'
-        : !svgHtml ? 'Gebruik alleen cijfers en letters.' : `Zo ziet je streepjescode eruit (${Barcode.format(v)}).`;
+        : !svgHtml ? 'Gebruik alleen cijfers en letters.' : '';
     };
+    sh.el.querySelectorAll('[data-store]').forEach(b => b.onclick = () => {
+      sh.el.querySelectorAll('[data-store]').forEach(x => x.classList.toggle('on', x === b));
+      nameIn.value = b.dataset.store; color = storeColor(b.dataset.store); colIn.value = color; preview();
+      if (!numIn.value) numIn.focus();
+    });
+    sh.el.querySelectorAll('[data-color]').forEach(b => b.onclick = () => { color = b.dataset.color; colIn.value = color; preview(); });
+    colIn.addEventListener('input', () => { color = colIn.value; preview(); });
+    nameIn.addEventListener('input', preview);
     numIn.addEventListener('input', preview); preview();
     sh.$('#cardSave').onclick = async () => {
       const number = numIn.value.replace(/\s+/g, ''), name = nameIn.value.trim() || 'Klantkaart';
       if (!number) { numIn.focus(); return; }
       try { Barcode.svg(number); } catch { numIn.focus(); return; }
-      Object.assign(card, { name, number });
+      Object.assign(card, { name, number, color });
       if (isNew) cards().push(card);
-      await save(); sh.close(); redraw();
+      rememberCard(card.id);
+      await save(); sh.close(); redraw(); window.scrollTo(0, 0);
     };
     sh.$('#cardDel')?.addEventListener('click', async () => {
       if (!confirm(`${card.name} verwijderen?`)) return;
@@ -326,7 +386,7 @@ const Shopping = (() => {
       view.innerHTML = `
         <section class="shop">
           <h2 class="page-title">Boodschappen</h2>
-          <div class="shop-cards">${cards().map(c => `<button type="button" class="shop-card" data-card="${esc(c.id)}">${CARD_ICON}<span>${esc(c.name)}</span></button>`).join('')}<button type="button" class="shop-card add" id="cardAdd">${cards().length ? '+' : `${CARD_ICON}<span>+ Klantkaart</span>`}</button></div>
+          <div class="loyal-wrap">${railHtml()}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences">
             <button class="btn small" aria-label="Toevoegen">+</button>
@@ -372,8 +432,7 @@ const Shopping = (() => {
         };
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };
-      view.querySelectorAll('[data-card]').forEach(b => b.onclick = () => showCard(cards().find(c => c.id === b.dataset.card), draw));
-      on('#cardAdd', () => editCard(null, draw));
+      bindRail(view, draw);
       on('#clearDone', async () => { list.items = list.items.filter(i => !i.checked); await save(); draw(); });
       on('#clearAll', async () => {
         if (!confirm('Hele boodschappenlijst leegmaken?')) return;
