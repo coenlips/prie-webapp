@@ -52,7 +52,38 @@ const Shopping = (() => {
     return { qty, unit, name };
   }
 
-  const keyOf = (name, unit) => name.toLowerCase().replace(/[^a-z0-9à-ÿ ]/gi, '').trim() + '|' + unit;
+
+  // Enkelvoud en meervoud herkennen (1 ui + 2 uien, 1 tomaat + 2 tomaten, 1 wortel + 3 wortels),
+  // zodat ze samen één boodschap worden. Kijkt alleen naar het laatste woord.
+  const IRREG = { eieren: 'ei', eitjes: 'eitje', kinderen: 'kind' };
+  // Alle mogelijke enkelvouden van een woord (plus het woord zelf)
+  function forms(w) {
+    const out = new Set([w]);
+    if (IRREG[w]) out.add(IRREG[w]);
+    if (/'s$/.test(w)) out.add(w.slice(0, -2));                                     // avocado's
+    if (/[^s]s$/.test(w) && w.length > 3 && /(el|er|en|em|je|ie|[aeiouy])s$/.test(w)) out.add(w.slice(0, -1));   // wortels
+    if (/en$/.test(w) && w.length > 3) {
+      let t = w.slice(0, -2);
+      if (/([bcdfgklmnprst])\1$/.test(t)) out.add(t.slice(0, -1));                    // kippen → kip
+      else {
+        t = t.replace(/v$/, 'f').replace(/z$/, 's');                                 // druiven → druif
+        out.add(t);                                                                  // uien → ui, aardappelen → aardappel
+        if (/[^aeiou][aeou][bcdfgklmnprst]$/.test(t)) out.add(t.slice(0, -1) + t.slice(-2));   // tomaten → tomaat
+      }
+    }
+    return out;
+  }
+  const normName = n => n.toLowerCase().replace(/[^a-z0-9à-ÿ' ]/gi, '').trim();
+  const split = n => { const a = normName(n), h = a.replace(/\S+$/, ''); return [h, a.slice(h.length)]; };
+  const sameName = (a, b) => {
+    const [ha, wa] = split(a), [hb, wb] = split(b);
+    if (ha !== hb) return false;
+    const fa = forms(wa), fb = forms(wb);
+    return [...fa].some(x => fb.has(x));
+  };
+  // Is a het meervoud van b?
+  const pluralOf = (a, b) => { const [, wa] = split(a), [, wb] = split(b); return wa !== wb && forms(wa).has(wb); };
+  const sameUnit = (a, b) => (a || 'stuks') === (b || 'stuks');
 
   function fmtQty(q, unit) {
     if (q == null) return '';
@@ -76,11 +107,12 @@ const Shopping = (() => {
     const p = parse(line);
     if (!p.name) return;
     if (p.qty != null) p.qty *= factor;
-    const key = keyOf(p.name, p.unit);
-    const same = list.items.find(i => !i.checked && keyOf(i.name, i.unit) === key);
+    const same = list.items.find(i => !i.checked && sameUnit(i.unit, p.unit) && sameName(i.name, p.name));
     if (same) {
       if (same.qty != null && p.qty != null) same.qty += p.qty;
       else if (same.qty == null && p.qty != null) same.qty = p.qty;
+      // Bij meer dan één de meervoudsvorm laten zien (1 ui + 2 uien = 3 uien)
+      if ((same.qty == null || same.qty > 1) && pluralOf(p.name, same.name)) same.name = p.name;
       if (from && !same.from.includes(from)) same.from.push(from);
     } else {
       list.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...p, checked: false, from: from ? [from] : [] });
