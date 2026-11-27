@@ -2146,3 +2146,12 @@ body.scanning { overflow: hidden; }
 .shop .loyal-wrap:has(#cardRail) { box-shadow: none; border-bottom: 1.5px solid var(--teal); }
 /* Begin precies op de vaste plek, dan schuiven de kaarten niet eerst een stukje mee */
 .shop .loyal-wrap:has(#cardRail) { margin-top: -14px; }
+/* Titel met rechts (boven de rode plus) het knopje om de klantkaarten in en uit te klappen */
+.shop-title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.shop-title-row .page-title { margin-right: auto; }
+.card-toggle { flex: none; width: 48px; height: 40px; margin: 0 0 6px; display: grid; place-items: center; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; }
+.card-toggle.on { color: var(--text); }
+.card-toggle svg { width: 34px; height: 24px; }
+.card-toggle .ct-chev { transition: transform .2s; transform-origin: 29.5px 12px; }
+.card-toggle.on .ct-chev { transform: rotate(180deg); }
+.shop .loyal-wrap.hidden { display: none; }

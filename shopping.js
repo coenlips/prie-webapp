@@ -259,6 +259,11 @@ const Shopping = (() => {
   };
   const groupNum = n => String(n).replace(/\s+/g, '').replace(/(.{4})(?=.)/g, '$1 ');
   const LAST = 'ricetta-card-last';
+  // Klantkaarten in- en uitklappen (per toestel onthouden)
+  const HIDE = 'ricetta-cards-hidden';
+  const cardsHidden = () => { try { return localStorage.getItem(HIDE) === '1'; } catch { return false; } };
+  const setCardsHidden = v => { try { localStorage.setItem(HIDE, v ? '1' : '0'); } catch { /* geen opslag */ } };
+  const CARDS_ICON = '<svg viewBox="0 0 34 24" width="34" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="4.5" width="21" height="15" rx="2.2"/><path d="M6 9v6M8.5 9v6M11.5 9v6M14 9v6M17.5 9v6"/><path class="ct-chev" d="M26.5 10.5l3 3 3-3"/></svg>';
   const lastCard = () => { try { return localStorage.getItem(LAST); } catch { return null; } };
   const rememberCard = id => { try { localStorage.setItem(LAST, id); } catch { /* geen opslag */ } };
 
@@ -397,8 +402,8 @@ const Shopping = (() => {
         </li>`;
       view.innerHTML = `
         <section class="shop">
-          <div class="loyal-wrap">${railHtml()}</div>
-          <h2 class="page-title">Boodschappen</h2>
+          <div class="loyal-wrap${cards().length && cardsHidden() ? ' hidden' : ''}">${railHtml()}</div>
+          <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${cards().length ? `<button type="button" class="card-toggle${cardsHidden() ? '' : ' on'}" id="cardToggle" aria-expanded="${!cardsHidden()}" aria-label="${cardsHidden() ? 'Klantkaarten tonen' : 'Klantkaarten verbergen'}">${CARDS_ICON}</button>` : ''}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences">
             <button class="btn small" aria-label="Toevoegen">+</button>
@@ -445,6 +450,7 @@ const Shopping = (() => {
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };
       bindRail(view, draw);
+      on('#cardToggle', () => { setCardsHidden(!cardsHidden()); draw(); });
       on('#clearDone', async () => { list.items = list.items.filter(i => !i.checked); await save(); draw(); });
       on('#clearAll', async () => {
         if (!confirm('Hele boodschappenlijst leegmaken?')) return;
