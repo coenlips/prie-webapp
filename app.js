@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.6 · 27 november 2026';
+const APP_VERSION = '1.17.7 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1633,7 +1633,7 @@ async function renderEdit(id) {
         </label>
         <div class="ed-title">
           <input name="title" required value="${esc(r.title)}" placeholder="Naam van het recept" aria-label="Naam">
-          <input name="description" class="desc" value="${esc(r.description)}" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving">
+          <textarea name="description" class="desc grow plain" rows="1" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving" enterkeyhint="done">${esc(r.description)}</textarea>
         </div>
 
         <section class="ed-sec"><h3>Soort gerecht</h3>
@@ -1742,6 +1742,10 @@ async function renderEdit(id) {
   // Tekstvakken groeien mee met de tekst (geen scrollen binnen een vakje)
   const grow = t => { t.style.height = 'auto'; t.style.height = `${t.scrollHeight + 3}px`; };
   view.querySelectorAll('textarea.grow').forEach(t => { t.addEventListener('input', () => grow(t)); requestAnimationFrame(() => grow(t)); });
+  // Omschrijving: één alinea die afbreekt; Enter sluit het toetsenbord in plaats van een nieuwe regel
+  const descTa = view.querySelector('textarea.desc');
+  descTa.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); descTa.blur(); } });
+  descTa.addEventListener('input', () => { if (/\n/.test(descTa.value)) { descTa.value = descTa.value.replace(/\s*\n\s*/g, ' '); grow(descTa); } });
   // Linkerkolom (iPad/laptop) blijft staan; is hij hoger dan het scherm, dan blijft de onderkant staan
   const side = $('#edSide');
   const stick = () => { if (!side.isConnected) { removeEventListener('resize', stick); return; }
