@@ -263,8 +263,8 @@ const Shopping = (() => {
   const HIDE = 'ricetta-cards-hidden';
   const cardsHidden = () => { try { return localStorage.getItem(HIDE) === '1'; } catch { return false; } };
   const setCardsHidden = v => { try { localStorage.setItem(HIDE, v ? '1' : '0'); } catch { /* geen opslag */ } };
-  // Zelfde icoon als bij Scan je kaart (streepjescode in een kader), zonder pijltjes
-  const CARDS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>';
+  // Kaartje met streepjescode (zonder pijltjes)
+  const CARDS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.2"/><path d="M6.5 9v6M9 9v6M12 9v6M14.5 9v6M17.5 9v6"/></svg>';
   const lastCard = () => { try { return localStorage.getItem(LAST); } catch { return null; } };
   const rememberCard = id => { try { localStorage.setItem(LAST, id); } catch { /* geen opslag */ } };
 
