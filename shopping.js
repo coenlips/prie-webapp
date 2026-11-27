@@ -385,8 +385,8 @@ const Shopping = (() => {
         </li>`;
       view.innerHTML = `
         <section class="shop">
-          <h2 class="page-title">Boodschappen</h2>
           <div class="loyal-wrap">${railHtml()}</div>
+          <h2 class="page-title">Boodschappen</h2>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences">
             <button class="btn small" aria-label="Toevoegen">+</button>

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.21.1 · 27 november 2026';
+const APP_VERSION = '1.21.2 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 

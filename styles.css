@@ -2112,3 +2112,6 @@ body:not(.cook) .bon-appetit { display: none; }
 .loyal[data-card] .loyal-code span, .loyal-preview .loyal-code span { font-size: 12px; margin-top: 3px; }
 .loyal-preview .loyal-code .loyal-empty { padding: 10px 0 14px; }
 .loyal-add { padding: 8px; }
+/* Kaarten boven de titel Boodschappen */
+.shop .loyal-wrap { margin: 4px 0 6px; }
+.shop .loyal-wrap:has(.loyal-first) { margin: 4px 0 2px; }
