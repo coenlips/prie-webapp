@@ -2191,3 +2191,21 @@ body.scanning { overflow: hidden; }
   .shop .loyal-wrap.closed:has(#cardRail)::before { box-shadow: none; }
   .shop .page-title { margin-top: 22px; }
 }
+
+/* Laptop en iPad: kleine klantkaarten (half zo breed en half zo hoog) in een strook over de volle schermbreedte */
+@media (min-width: 700px) {
+  .shop .loyal-in { overflow: visible; clip-path: inset(0 -100vw); min-width: 0; }
+  .shop .loyal-rail { margin: 0 calc(50% - 50vw); padding: 4px 32px 8px; scroll-padding: 0 32px; gap: 12px; }
+  .shop .loyal { flex: 0 0 190px; scroll-snap-align: start; }
+  .shop .loyal-rail { align-items: stretch; }
+  .shop .loyal-add { flex-basis: 130px; font-size: 10px; padding: 4px 8px; grid-auto-flow: column; gap: 6px; align-items: center; white-space: nowrap; }
+  .shop .loyal-add span { font-size: 18px; }
+  .shop .loyal[data-card] { grid-template-columns: 6px 1fr; border-radius: 7px; }
+  .shop .loyal[data-card] .loyal-head b { left: 13px; top: 3px; font-size: 8px; }
+  .shop .loyal[data-card] .loyal-edit { right: 1px; top: 0; width: 20px; height: 20px; }
+  .shop .loyal[data-card] .loyal-edit svg { width: 11px; height: 11px; }
+  .shop .loyal[data-card] .loyal-code { padding: 14px 8px 3px; }
+  .shop .loyal[data-card] .loyal-code .barcode { height: 20px; }
+  .shop .loyal[data-card] .loyal-code span { font-size: 8px; margin-top: 2px; }
+  .shop .loyal-dots { display: none; }
+}
