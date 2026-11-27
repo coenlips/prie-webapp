@@ -1,7 +1,7 @@
 <?php
 // Online opslag voor de receptenapp Ricetta, met eigen accounts per persoon.
 // Zet dit bestand samen met config.php in een map op je website,
-// bijvoorbeeld https://coenlips.nl/recepten-api/api.php
+// bijvoorbeeld https://api.ricetta-app.nl/api.php
 // De tabellen worden bij de eerste aanroep vanzelf aangemaakt of bijgewerkt.
 //
 // Overstappen vanaf de versie zonder accounts: log in de app in met je naam en het

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.22.17 · 27 november 2026';
+const APP_VERSION = '1.22.18 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2086,7 +2086,7 @@ function stPage(k, sub) {
       <button class="btn ghost" id="copyShareUrl">Kopieer het adres</button>
       <button class="btn ghost" id="copyShareKey">Kopieer je deelsleutel</button>
       <p class="small-note">Je deelsleutel hoort bij jouw account, zodat gedeelde recepten in jouw verzameling komen. Deel hem niet met anderen.</p>
-      <p class="small-note">In Chrome vind je <strong>Deel</strong> via het deelicoon of het menu <strong>⋯</strong>. De eerste keer vraagt je iPhone of de opdracht de website en coenlips.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>
+      <p class="small-note">In Chrome vind je <strong>Deel</strong> via het deelicoon of het menu <strong>⋯</strong>. De eerste keer vraagt je iPhone of de opdracht de website en api.ricetta-app.nl mag gebruiken: kies <strong>Sta toe</strong>. De namen van knoppen in Opdrachten kunnen iets afwijken.</p>
       <details class="howto-box">
         <summary>Alleen Safari: werkt ook bij delicious.</summary>
         <p class="small-note">Sommige sites (zoals delicious.) laten ook je iPhone de pagina niet los ophalen. In Safari kan een opdracht het recept uit de al geladen pagina lezen. Maak dan een tweede opdracht:</p>
@@ -2461,7 +2461,7 @@ function bindInstallCard() {
         </ol>`;
     else if (os === 'win') body = `${installBtn('Ricetta installeren')}
         <p class="why install-or">${installPrompt ? 'Of zelf in Chrome of Edge:' : 'In Chrome of Edge:'}</p>${chromeSteps}
-        <div class="addr" aria-hidden="true"><span>${esc(location.host || 'ricetta.coenlips.nl')}</span>${key('monitor')}</div>
+        <div class="addr" aria-hidden="true"><span>${esc(location.host || 'ricetta-app.nl')}</span>${key('monitor')}</div>
         <p class="addr-note">↑ zo ziet het icoon in de adresbalk eruit</p>`;
     else body = `${installBtn('Ricetta installeren')}
         <p class="why install-or">In Safari${isSafariDesktop ? '' : ' (vanaf macOS Sonoma)'}:</p>
