@@ -2043,3 +2043,9 @@ body:not(.cook) .bon-appetit { display: none; }
   .ed .stat-serv .serv-link svg { width: 14px; height: 14px; }
   .ed .stat-serv > .serv-pm { gap: 3px; }
 }
+/* Verhuismelding */
+.move-sheet .move-lead { font-size: 17px; line-height: 1.45; margin: 4px 0 10px; }
+.move-sheet .move-go { display: flex; justify-content: center; width: 100%; margin: 14px 0 6px; text-decoration: none; }
+.move-sheet #moveBackup { width: 100%; margin-top: 4px; }
+.move-sheet .howto { margin: 4px 0 8px; padding-left: 20px; line-height: 1.45; }
+.move-sheet .howto li { margin-bottom: 6px; }

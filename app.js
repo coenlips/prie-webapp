@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.8 · 27 november 2026';
+const APP_VERSION = '1.18.0 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1570,17 +1570,9 @@ function recipeAsText(r, servings, factor) {
 // Adres voor deellinks: het eigen domein (config.js → publicUrl) als dat bereikbaar is, anders het huidige adres
 let publicBase = `${location.origin}${location.pathname}`;
 const APP_URL = () => publicBase;
-const checkPublicUrl = (() => {
-  let done = null;
-  return () => done || (done = (async () => {
-    const want = (typeof SYNC_CONFIG !== 'undefined' && SYNC_CONFIG.publicUrl) || '';
-    if (!want || want === publicBase) return;
-    try {
-      await Promise.race([fetch(`${want}manifest.webmanifest`, { mode: 'no-cors', cache: 'no-store' }), new Promise((_, no) => setTimeout(no, 4000))]);
-      publicBase = want;
-    } catch { /* eigen domein (nog) niet bereikbaar */ }
-  })());
-})();
+const checkPublicUrl = () => Move.target && Move.target !== publicBase
+  ? Move.live().then(ok => { if (ok) publicBase = Move.target; })
+  : Promise.resolve();
 const shortUrl = u => u.replace(/^https?:\/\//, '').replace(/\/$/, '');
 function shareIntro(link) {
   const pitch = 'Ricetta, de receptenapp met kookstand, timers en een slimme boodschappenlijst';
@@ -2562,6 +2554,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.18.0', date: '27 november 2026', sections: [{ items: [
+    'Ricetta krijgt een nieuw adres. Zodra het klaar is, zie je een melding met een knop die je ingelogd naar het nieuwe adres brengt.',
+  ] }] },
   { v: '1.17.0', date: '27 november 2026', sections: [{ items: [
     'Bij het bewerken van een recept pas je het aantal porties aan met − en +. Tik je op de schakel in dat vakje, dan rekenen de ingrediënten mee met de porties.',
   ] }] },
@@ -2669,6 +2664,7 @@ function maybeShowNews() {
   if (!c) return;
   try { if (localStorage.getItem(NEWS_SEEN) === c.v) return; localStorage.setItem(NEWS_SEEN, c.v); } catch { return; }
   setTimeout(() => {
+    if (document.querySelector('.move-backdrop')) return;   // de verhuismelding gaat voor
     const s = openAccSheet(`
       <div class="sheet-head"><h3>${c.title}</h3><button class="text-btn" data-close>Sluit</button></div>
       <div class="news">${changeHtml(c)}</div>
@@ -2676,6 +2672,54 @@ function maybeShowNews() {
       <p class="small-note news-later">Dit overzicht vind je later terug bij <span class="nowrap">Instellingen → App → Wat is er nieuw.</span></p>`, c.title);
     s.el.classList.add('news-sheet');
   }, 600);
+}
+
+/* ---------- Verhuizing naar een nieuw adres ---------- */
+
+const homescreenSteps = (here = false) => `<ol class="howto">
+    <li><b>iPhone en iPad:</b> ${here ? 'tik in Safari' : `open ${esc(Move.host)} in Safari, tik`} op <strong>Deel</strong> en kies <strong>Zet op beginscherm</strong>.</li>
+    <li><b>Android:</b> ${here ? 'tik in Chrome' : 'open het in Chrome, tik'} op <strong>⋮</strong> en kies <strong>Toevoegen aan startscherm</strong>.</li>
+    <li>Haal daarna het oude Ricetta-icoon weg: houd het ingedrukt en kies <strong>Verwijder app</strong>.</li>
+  </ol>`;
+
+let moveChecked = false;
+async function maybeShowMove() {
+  if (moveChecked) return;
+  moveChecked = true;
+  if (Move.arrived) return setTimeout(showMovedIn, 500);
+  if (!Move.isOld() || !(await Move.live())) return;
+  const acc = loggedIn(), trying = !acc && tryMode();
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Ricetta verhuist</h3><button class="text-btn" data-close>Later</button></div>
+    <div class="move-sheet">
+      <p class="move-lead">Ricetta heeft een nieuw adres: <b>${esc(Move.host)}</b>. Op dit oude adres krijg je geen nieuwe versies meer.</p>
+      ${acc ? `<p>Tik op de knop: je gaat naar het nieuwe adres en bent daar meteen ingelogd. Je recepten, menu’s en boodschappen gaan mee.</p>`
+        : trying ? `<p><b>Je gebruikt Ricetta zonder account.</b> Je recepten staan alleen op dit toestel en gaan niet vanzelf mee. Maak eerst een back-up en zet die op het nieuwe adres terug via Instellingen → Toevoegen & importeren.</p>
+          <button class="btn ghost" id="moveBackup">Back-up maken</button>` : ''}
+      <a class="btn move-go" id="moveGo" href="${esc(Move.target)}" target="_blank" rel="noopener">Naar ${esc(Move.host)}</a>
+      <p class="tm-q">Daarna: zet Ricetta opnieuw op je beginscherm</p>
+      ${homescreenSteps()}
+      <p class="small-note">Moet je op het nieuwe beginscherm-icoon toch nog inloggen? Gebruik dan je gewone naam en wachtwoord.</p>
+    </div>`, 'Ricetta verhuist');
+  document.querySelectorAll('.news-sheet').forEach(x => x.remove());
+  s.el.classList.add('move-backdrop');
+  s.$('#moveBackup')?.addEventListener('click', exportBackup);
+  // Laatste wijzigingen alvast naar de server; de knop krijgt de login mee (vers bij elke tik)
+  if (acc) Sync.syncNow().catch(() => {});
+  const go = s.$('#moveGo'), fresh = () => { go.href = Move.handoffUrl(); };
+  fresh();
+  ['pointerdown', 'focus'].forEach(ev => go.addEventListener(ev, fresh));
+}
+
+function showMovedIn() {
+  const acc = loggedIn();
+  openAccSheet(`
+    <div class="sheet-head"><h3>Welkom op ${esc(Move.host)}</h3><button class="text-btn" data-close>Sluit</button></div>
+    <div class="move-sheet">
+      <p class="move-lead">${acc ? 'Je bent ingelogd en je recepten worden opgehaald.' : 'Ricetta draait nu op het nieuwe adres.'}</p>
+      <p class="tm-q">Zet Ricetta op je beginscherm</p>
+      ${homescreenSteps(true)}
+    </div>`, 'Welkom op het nieuwe adres');
 }
 
 function openAccSheet(html, label) {
@@ -3641,6 +3685,7 @@ async function route() {
   if (!/^(deel)$/.test(page || '')) { try { if (sessionStorage.getItem(PENDING_LINK)) setTimeout(importPendingLink, 300); } catch { /* */ } }
 
   maybeShowNews();
+  maybeShowMove();
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);
