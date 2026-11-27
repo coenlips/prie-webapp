@@ -2151,7 +2151,7 @@ body.scanning { overflow: hidden; }
 .shop-title-row .page-title { margin-right: auto; }
 .card-toggle { flex: none; width: 48px; height: 40px; margin: 0 0 6px; display: grid; place-items: center; border: 0; border-radius: 4px; background: none; color: var(--muted); cursor: pointer; }
 .card-toggle.on { color: var(--text); }
-.card-toggle svg { width: 34px; height: 24px; }
+.card-toggle svg { width: 24px; height: 24px; }
 .card-toggle .ct-chev { transition: transform .2s; transform-origin: 29.5px 12px; }
 .card-toggle.on .ct-chev { transform: rotate(180deg); }
 .shop .loyal-wrap.hidden { display: none; }
