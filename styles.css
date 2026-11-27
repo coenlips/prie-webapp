@@ -2158,3 +2158,7 @@ body.scanning { overflow: hidden; }
 /* Inklapknop: altijd rood; uitgeklapt met een lichtrode stip erachter */
 .card-toggle, .card-toggle.on { color: var(--accent); width: 48px; height: 48px; border-radius: 50%; }
 .card-toggle.on { background: var(--accent-soft); }
+/* Kruisje in het invoerveld van de boodschappen (zelfde als de zoekvelden) */
+.shop-field { flex: 1; min-width: 0; position: relative; display: flex; }
+.shop-field input { flex: 1; padding-right: 40px; }
+.shop-field .search-clear { position: absolute; right: 8px; top: 0; bottom: 0; margin: 0; }

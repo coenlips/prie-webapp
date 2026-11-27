@@ -406,7 +406,7 @@ const Shopping = (() => {
           <div class="loyal-wrap${cards().length && cardsHidden() ? ' hidden' : ''}">${railHtml()}</div>
           <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${cards().length ? `<button type="button" class="card-toggle${cardsHidden() ? '' : ' on'}" id="cardToggle" aria-expanded="${!cardsHidden()}" aria-label="${cardsHidden() ? 'Klantkaarten tonen' : 'Klantkaarten verbergen'}">${CARDS_ICON}</button>` : ''}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
-            <input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences">
+            <span class="shop-field"><input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences"><button type="button" class="search-clear" id="shopClear" aria-label="Veld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
             <button class="btn small" aria-label="Toevoegen">+</button>
           </form>
           ${list.items.length ? '' : `<div class="empty"><h2>Nog niets nodig</h2><p>Voeg boodschappen toe, of tik in een recept op <strong>Op boodschappenlijst</strong>.</p></div>`}
@@ -421,7 +421,9 @@ const Shopping = (() => {
             </div>` : ''}
         </section>`;
 
-      const input = view.querySelector('[name=item]');
+      const input = view.querySelector('[name=item]'), clearBtn = view.querySelector('#shopClear');
+      input.addEventListener('input', () => { clearBtn.hidden = !input.value; });
+      clearBtn.onclick = () => { input.value = ''; clearBtn.hidden = true; input.focus({ preventScroll: true }); };
       view.querySelector('#shopAdd').onsubmit = async e => {
         e.preventDefault();
         const v = input.value.trim();
