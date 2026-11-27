@@ -2139,3 +2139,7 @@ body.scanning { overflow: hidden; }
 /* Eigen kleur: rond pipetknopje in de rij kleuren */
 .swatch-other { width: 34px; padding: 0; border-radius: 50%; display: inline-grid; place-items: center; background: var(--surface); color: var(--text); }
 .swatch-other svg { width: 18px; height: 18px; pointer-events: none; }
+/* Klantkaarten blijven bovenaan staan als je door de lijst scrolt */
+.shop .loyal-wrap:has(#cardRail) { position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 5; background: var(--bg);
+  margin: 0 -16px 6px; padding: 8px 16px 6px; box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
+@media (min-width: 700px) { .shop .loyal-wrap:has(#cardRail) { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; } }
