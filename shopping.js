@@ -261,8 +261,12 @@ const Shopping = (() => {
   const LAST = 'ricetta-card-last';
   // Klantkaarten in- en uitklappen (per toestel onthouden)
   const HIDE = 'ricetta-cards-hidden';
-  const cardsHidden = () => { try { return localStorage.getItem(HIDE) === '1'; } catch { return false; } };
-  const setCardsHidden = v => { try { localStorage.setItem(HIDE, v ? '1' : '0'); } catch { /* geen opslag */ } };
+  // Op de telefoon onthoudt de app of de kaarten in- of uitgeklapt zijn. Op laptop en iPad
+  // (breed scherm) zijn ze bij openen altijd ingeklapt; daar heb je ze niet bij de kassa nodig.
+  const wide = () => matchMedia('(min-width: 700px)').matches;
+  let wideHidden = true;
+  const cardsHidden = () => { if (wide()) return wideHidden; try { return localStorage.getItem(HIDE) === '1'; } catch { return false; } };
+  const setCardsHidden = v => { if (wide()) { wideHidden = v; return; } try { localStorage.setItem(HIDE, v ? '1' : '0'); } catch { /* geen opslag */ } };
   // Kaartje met streepjescode (zonder pijltjes)
   const CARDS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.2"/><path d="M6.5 9v6M9 9v6M12 9v6M14.5 9v6M17.5 9v6"/></svg>';
   const lastCard = () => { try { return localStorage.getItem(LAST); } catch { return null; } };

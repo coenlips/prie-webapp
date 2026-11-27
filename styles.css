@@ -2178,3 +2178,16 @@ body.scanning { overflow: hidden; }
 @media (min-width: 700px) { .shop .loyal-in { padding: 0; } }
 /* Ingeklapt net zo laag als het filtermenu (2px), dan blijft er onder de kopbalk niets hangen */
 .shop .loyal-wrap.closed:has(#cardRail) { padding-top: 2px !important; }
+
+/* Laptop en iPad: de balk met klantkaarten krijgt een achtergrond en schaduw over de volle schermbreedte,
+   net als het filtermenu bij de recepten. De titel Boodschappen staat iets lager. */
+@media (min-width: 700px) {
+  html { overflow-x: clip; }
+  .shop .loyal-wrap:has(#cardRail), .shop .loyal-wrap.closed:has(#cardRail) { box-shadow: none; }
+  .shop .loyal-wrap:has(#cardRail)::before {
+    content: ''; position: absolute; z-index: -1; top: 0; bottom: 0; left: calc(50% - 50vw); right: calc(50% - 50vw);
+    background: var(--bg); box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); pointer-events: none;
+  }
+  .shop .loyal-wrap.closed:has(#cardRail)::before { box-shadow: none; }
+  .shop .page-title { margin-top: 22px; }
+}

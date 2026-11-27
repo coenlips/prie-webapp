@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.22.19 · 27 november 2026';
+const APP_VERSION = '1.22.20 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3698,8 +3698,7 @@ async function route() {
   if (gate) return gate();
   if (!/^(deel)$/.test(page || '')) { try { if (sessionStorage.getItem(PENDING_LINK)) setTimeout(importPendingLink, 300); } catch { /* */ } }
 
-  maybeShowNews();
-  maybeShowMove();
+  maybeShowMove();   // de 'Nieuw in Ricetta'-popup bij openen is uitgezet; het overzicht staat bij Instellingen
   if (page === 'r' && id) return renderDetail(decodeURIComponent(id));
   if (page === 'edit' && id) return renderEdit(decodeURIComponent(id));
   if (page === 'new') return renderEdit(null);
