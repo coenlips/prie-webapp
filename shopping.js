@@ -94,24 +94,27 @@ const Shopping = (() => {
   /* ---------- Emoji bij een artikel (alleen als de naam precies bekend is) ---------- */
 
   const EMOJI_LIST = {
-    '🧅': 'ui, uien, rode ui, rode uien, gele ui, gele uien, zilveruitjes, sjalot, sjalotten, sjalotjes',
-    '🧄': 'knoflook, knoflookteen, knoflookteentjes',
-    '🥕': 'wortel, wortels, wortelen, winterpeen, peen, bospeen',
-    '🥔': 'aardappel, aardappels, aardappelen, kruimige aardappels, vastkokende aardappels, krieltjes',
-    '🍠': 'zoete aardappel, zoete aardappels, zoete aardappelen',
-    '🍅': 'tomaat, tomaten, trostomaten, cherrytomaten, kerstomaatjes, snoeptomaten, romatomaten',
-    '🥒': 'komkommer, komkommers, augurk, augurken',
-    '🥬': 'sla, ijsbergsla, rucola, spinazie, bladspinazie, andijvie, paksoi, veldsla, kropsla',
-    '🥦': 'broccoli',
-    '🫑': 'paprika, paprika\'s, rode paprika, groene paprika, gele paprika',
-    '🌶️': 'rode peper, rode pepers, chilipeper, chilipepers',
+    '🧅': 'ui, uien, uitje, uitjes, rode ui, rode uien, gele ui, gele uien, witte ui, witte uien, zilveruitjes, sjalot, sjalotten, sjalotje, sjalotjes, bosui, bosuien, bosuitjes, lente-ui, lente-uien, lenteui, lenteuien, prei, preien, stengel prei',
+    '🧄': 'knoflook, knoflookteen, knoflookteentjes, teentje knoflook, teentjes knoflook, bol knoflook',
+    '🥕': 'wortel, wortels, wortelen, worteltjes, winterpeen, winterpenen, peen, bospeen, bospenen, pastinaak, pastinaken, schorseneren',
+    '🫜': 'rode biet, rode bieten, biet, bieten, bietjes, gekookte bieten, radijs, radijsjes, knolselderij, koolraap, koolrabi, raap, rapen, meiraap, meiraapjes, mierikswortel',
+    '🥔': 'aardappel, aardappels, aardappelen, kruimige aardappels, vastkokende aardappels, kruimige aardappelen, vastkokende aardappelen, krieltjes, roseval, nieuwe aardappels',
+    '🍠': 'zoete aardappel, zoete aardappels, zoete aardappelen, bataat',
+    '🍅': 'tomaat, tomaten, trostomaat, trostomaten, cherrytomaat, cherrytomaten, kerstomaat, kerstomaten, kerstomaatjes, snoeptomaat, snoeptomaten, snoeptomaatjes, romatomaat, romatomaten, vleestomaat, vleestomaten, pomodori',
+    '🥒': 'komkommer, komkommers, augurk, augurken, courgette, courgettes, gele courgette',
+    '🥬': 'sla, krop sla, kropsla, ijsbergsla, rucola, romaine, romaine sla, little gem, eikenbladsla, lollo rosso, veldsla, spinazie, bladspinazie, babyspinazie, andijvie, paksoi, chinese kool, witlof, rode kool, witte kool, savooiekool, spitskool, boerenkool, groene kool, snijbiet, postelein, waterkers, raapstelen, spruitjes, spruiten, sla-mix, slamix, gemengde sla, venkel, venkelknol, bleekselderij, selderij, stengel bleekselderij',
+    '🥦': 'broccoli, broccolini, bimi, bloemkool, romanesco',
+    '🫑': 'paprika, paprika\'s, rode paprika, rode paprika\'s, groene paprika, groene paprika\'s, gele paprika, gele paprika\'s, oranje paprika, puntpaprika, puntpaprika\'s',
+    '🌶️': 'rode peper, rode pepers, groene peper, groene pepers, chilipeper, chilipepers, jalapeño, jalapeños, jalapeno, spaanse peper, spaanse pepers',
     '🍆': 'aubergine, aubergines',
     '🥑': 'avocado, avocado\'s',
-    '🌽': 'mais, maïs, maiskolf, maiskolven',
-    '🍄': 'champignon, champignons, kastanjechampignons, paddenstoelen',
-    '🫛': 'doperwten, erwten, peultjes, sugarsnaps',
-    '🫘': 'bonen, kidneybonen, witte bonen, bruine bonen, zwarte bonen, kikkererwten, linzen',
-    '🫚': 'gember, verse gember',
+    '🌽': 'mais, maïs, maiskolf, maiskolven, mini-maiskolfjes, minimais',
+    '🍄': 'champignon, champignons, kastanjechampignon, kastanjechampignons, paddenstoelen, oesterzwammen, shiitake, shiitakes, portobello, portobello\'s, cantharellen, eekhoorntjesbrood, boschampignons',
+    '🫛': 'doperwten, erwten, erwtjes, peultjes, sugarsnaps, sperziebonen, snijbonen, tuinbonen, kousenband, edamame, boontjes, prinsessenbonen',
+    '🎃': 'pompoen, pompoenen, flespompoen, butternut, butternutpompoen, hokkaido, hokkaidopompoen, muskaatpompoen, spaghettipompoen',
+    '🌱': 'asperges, asperge, witte asperges, groene asperges, taugé, tauge, tuinkers, kiemgroente, alfalfa, artisjok, artisjokken, rabarber',
+    '🫘': 'bonen, kidneybonen, witte bonen, bruine bonen, zwarte bonen, kikkererwten, linzen, rode linzen, groene linzen, sojabonen',
+    '🫚': 'gember, verse gember, stukje gember, kurkuma, verse kurkuma',
     '🍋': 'citroen, citroenen, limoen, limoenen',
     '🍉': 'watermeloen',
     '🍈': 'meloen',
@@ -234,7 +237,7 @@ const Shopping = (() => {
           li.classList.add('just');
           await save();
           clearTimeout(moveTimer);
-          moveTimer = setTimeout(() => { if (view.isConnected && location.hash === '#/boodschappen') draw(); }, 1500);
+          moveTimer = setTimeout(() => { if (view.isConnected && location.hash === '#/boodschappen') draw(); }, 1000);
         };
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };
