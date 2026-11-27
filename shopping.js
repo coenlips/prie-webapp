@@ -13,6 +13,8 @@ const Shopping = (() => {
     return list;
   }
   async function save() {
+    // Gerechten waar geen boodschap meer bij hoort, vergeten
+    if (Array.isArray(list.sources)) list.sources = list.sources.filter(s => list.items.some(i => i.from.includes(s.title)));
     await DB.put(list);   // DB.put zet de tijdstempel en start de back-up
     updateBadge();
   }
@@ -85,9 +87,15 @@ const Shopping = (() => {
     }
   }
 
-  async function addFromRecipe(lines, factor, title) {
+  // meta: bij welk recept (en eventueel welk menu en welke gang) deze boodschappen horen.
+  // Wordt per receptnaam bewaard in list.sources, voor de kolom Gerechten op laptop en iPad.
+  async function addFromRecipe(lines, factor, title, meta) {
     await load();
     lines.forEach(l => addOne(l, factor, title));
+    if (meta && title) {
+      list.sources = (list.sources || []).filter(s => s.title !== title);
+      list.sources.push({ title, ...meta });
+    }
     await save();
   }
 
@@ -381,6 +389,69 @@ const Shopping = (() => {
     });
   }
 
+  /* ---------- Gerechten (rechterkolom op laptop en iPad) ---------- */
+
+  const forDish = title => list.items.filter(i => i.from.includes(title));
+  const shortDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }).replace('.', '') : '';
+
+  function dishesHtml() {
+    const titles = [...new Set(list.items.flatMap(i => i.from))];
+    if (!titles.length) return '';
+    const src = t => (list.sources || []).find(s => s.title === t) || { title: t };
+    const all = titles.map(src);
+    const dish = s => {
+      const r = s.recipeId && typeof recipeById === 'function' ? recipeById(s.recipeId) : null;
+      const its = forDish(s.title), left = its.filter(i => !i.checked).length;
+      const img = r ? (r.photo || placeholder(r.id)) : placeholder(s.title);
+      const info = [s.servings ? `${s.servings} ${s.servings === 1 ? 'portie' : 'porties'}` : '', s.sub || '',
+        left ? `${left} ${left === 1 ? 'boodschap' : 'boodschappen'}` : '✓ alles in je mandje'].filter(Boolean).join(' · ');
+      return `<div class="dish${r ? ' link' : ''}" data-dish="${esc(s.title)}"${r ? ` data-go="#/r/${encodeURIComponent(r.id)}" role="link" tabindex="0"` : ''}>
+          <img src="${esc(img)}" alt="" loading="lazy"><span class="dt"><b>${esc(s.title)}</b><small>${esc(info)}</small></span>
+          <button type="button" class="dx" data-dx="${esc(s.title)}" aria-label="Boodschappen voor ${esc(s.title)} weghalen">×</button></div>`;
+    };
+    // Per menu een blok, daarin per gang; de rest onder Losse recepten
+    const menus = [];
+    all.filter(s => s.menuId).forEach(s => { let m = menus.find(x => x.id === s.menuId); if (!m) menus.push(m = { id: s.menuId, s, dishes: [] }); m.dishes.push(s); });
+    const loose = all.filter(s => !s.menuId);
+    const menuBlk = ({ s, dishes }) => {
+      const order = [...new Set([...(s.courses || []), ...dishes.map(d => d.course || '')])];
+      const meta = [shortDate(s.menuDate), s.persons ? `${s.persons} ${s.persons === 1 ? 'persoon' : 'personen'}` : ''].filter(Boolean).join(' · ');
+      return `<section class="dish-blk">
+        <header><b>${s.menuEmoji ? `${s.menuEmoji} ` : ''}${esc(s.menuTitle || 'Menu')}</b>${meta ? `<span>${esc(meta)}</span>` : ''}</header>
+        ${order.map(c => { const ds = dishes.filter(d => (d.course || '') === c); return ds.length ? `${c ? `<p class="gang">${esc(c)}</p>` : ''}${ds.map(dish).join('')}` : ''; }).join('')}
+      </section>`;
+    };
+    const extra = list.items.filter(i => !i.from.length && !i.checked).length;
+    return `<aside class="dishes" aria-label="Gerechten">
+        <h2 class="page-title">Gerechten</h2>
+        <p class="dishes-sub">Waar je boodschappen voor zijn. Wijs een gerecht aan om de boodschappen ervan te zien.</p>
+        ${menus.map(menuBlk).join('')}
+        ${loose.length ? `<section class="dish-blk"><header><b>${menus.length ? 'Losse recepten' : 'Recepten'}</b></header>${loose.map(dish).join('')}</section>` : ''}
+        ${extra ? `<div class="dish-extra"><span>Overige boodschappen</span><b>${extra}</b></div>` : ''}
+      </aside>`;
+  }
+
+  function bindDishes(view, redraw) {
+    const items = view.querySelectorAll('.shop-item');
+    const mark = title => items.forEach(li => { const it = list.items.find(i => i.id === li.dataset.id); li.classList.toggle('hl', !!title && !!it && it.from.includes(title)); });
+    view.querySelectorAll('[data-dish]').forEach(d => {
+      d.addEventListener('mouseenter', () => mark(d.dataset.dish));
+      d.addEventListener('mouseleave', () => mark(null));
+      d.addEventListener('focus', () => mark(d.dataset.dish));
+      d.addEventListener('blur', () => mark(null));
+      d.addEventListener('keydown', e => { if (e.key === 'Enter' && d.dataset.go) location.hash = d.dataset.go; });
+    });
+    view.querySelectorAll('[data-dx]').forEach(b => b.onclick = async e => {
+      e.stopPropagation();
+      const t = b.dataset.dx;
+      if (!confirm(`Boodschappen voor ${t} van de lijst halen?\nWat je ook voor een ander gerecht nodig hebt, blijft staan.`)) return;
+      list.items = list.items.filter(i => !(i.from.includes(t) && i.from.length === 1));
+      list.items.forEach(i => { if (i.from.includes(t)) i.from = i.from.filter(f => f !== t); });
+      clearTimeout(moveTimer);
+      await save(); redraw();
+    });
+  }
+
   /* ---------- Badge op het mandje ---------- */
 
   function updateBadge() {
@@ -408,6 +479,7 @@ const Shopping = (() => {
       view.innerHTML = `
         <section class="shop">
           <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
+          <div class="shop-split"><div class="shop-left">
           <h2 class="page-title">Boodschappen</h2>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <span class="shop-field"><input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences"><button type="button" class="search-clear" id="shopClear" aria-label="Veld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
@@ -423,6 +495,7 @@ const Shopping = (() => {
               <button class="btn ghost" id="shareList">${ICONS.share} Lijst delen</button>
               <button class="link danger" id="clearAll">Hele lijst leegmaken</button>
             </div>` : ''}
+          </div>${dishesHtml()}</div>
         </section>`;
 
       const input = view.querySelector('[name=item]'), clearBtn = view.querySelector('#shopClear');
@@ -457,6 +530,7 @@ const Shopping = (() => {
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };
       bindRail(view, draw);
+      bindDishes(view, draw);
       // Knopje om de klantkaarten in en uit te klappen, in de menubalk (voor het tandwiel)
       const acts = document.querySelector('#topActions');
       acts.querySelector('#cardToggle')?.remove();

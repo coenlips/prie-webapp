@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.22.21 · 27 november 2026';
+const APP_VERSION = '1.23.0 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1525,10 +1525,10 @@ function openShopSheet(r, ingr, done, factor) {
   s.$('#shopAdd').onclick = async () => {
     const active = rows.filter(x => x.key && (x.g === 'main' || partOn.has(x.g)));
     const pick = active.filter(x => x.buy);
-    await Shopping.addFromRecipe(pick.filter(x => x.g === 'main').map(x => x.line), fac('main'), r.title);
+    await Shopping.addFromRecipe(pick.filter(x => x.g === 'main').map(x => x.line), fac('main'), r.title, { recipeId: r.id, servings: serv.main });
     for (const p of parts.filter(p => partOn.has(p.id))) {
       const ls = pick.filter(x => x.g === p.id).map(x => x.line);
-      if (ls.length) await Shopping.addFromRecipe(ls, fac(p.id), p.title);
+      if (ls.length) await Shopping.addFromRecipe(ls, fac(p.id), p.title, { recipeId: p.id, servings: serv[p.id], sub: `onderdeel van ${r.title}` });
     }
     // Onthouden wat je wegtikt (niet wat je tijdens het koken hebt afgestreept, en niet de onderdeel-regel zelf)
     await rememberPantry(active.filter(x => !x.used && !(x.part && partOn.has(x.part.id))).map(x => ({ line: x.line, buy: x.buy })));
@@ -2554,6 +2554,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.23.0', date: '27 november 2026', sections: [{ items: [
+    'Op laptop en iPad zie je naast je boodschappenlijst voor welke gerechten je boodschappen doet, per menu en per gang. Wijs een gerecht aan en de boodschappen ervan lichten op; met het kruisje haal je ze in één keer van de lijst.',
+    'Op laptop en iPad staan je klantkaarten klein in een strook over de hele breedte en zijn ze bij openen ingeklapt.',
+  ] }] },
   { v: '1.22.0', date: '27 november 2026', sections: [{ items: [
     'Scan je klantkaart met de camera: tik bij Klantkaart toevoegen op Scan je kaart en houd de streepjescode in het kader. Lukt live scannen niet, maak dan een foto.',
   ] }] },

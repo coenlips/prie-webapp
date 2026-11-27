@@ -180,11 +180,11 @@ const Menus = (() => {
   // met een eigen portiekiezer; alles begint op het aantal personen van het menu.
   function openShop(m, dishes) {
     const groups = [];
-    dishes.forEach(({ r }) => {
+    dishes.forEach(({ r, course }) => {
       const parts = relatedOf(r).parts.filter(Boolean);
       const linked = ingredientLinks(lines(r.ingredients), parts);
-      groups.push({ g: r.id, src: r, title: r.title, skip: new Set(linked.keys()) });
-      parts.forEach(p => groups.push({ g: r.id + '>' + p.id, src: p, title: p.title, sub: `onderdeel van ${r.title}`, skip: new Set() }));
+      groups.push({ g: r.id, src: r, title: r.title, course, skip: new Set(linked.keys()) });
+      parts.forEach(p => groups.push({ g: r.id + '>' + p.id, src: p, title: p.title, course, sub: `onderdeel van ${r.title}`, skip: new Set() }));
     });
     groups.forEach(gr => { gr.base = Math.max(1, +gr.src.servings || 1); gr.serv = m.persons; });
     const rows = [];
@@ -224,7 +224,9 @@ const Menus = (() => {
       const pick = rows.filter(x => x.buy);
       for (const gr of groups) {
         const ls = pick.filter(x => x.gr === gr);
-        if (ls.length) await Shopping.addFromRecipe(ls.map(x => x.line), gr.serv / gr.base, gr.title);
+        if (ls.length) await Shopping.addFromRecipe(ls.map(x => x.line), gr.serv / gr.base, gr.title, {
+          recipeId: gr.src.id, servings: gr.serv, sub: gr.sub || '', course: gr.course || '', courses: coursesOfMenu(m),
+          menuId: m.id, menuTitle: m.title || 'Menu', menuEmoji: (KINDS[m.kind || 'anders'] || {}).emoji || '', menuDate: m.date || '', persons: m.persons });
       }
       await rememberPantry(rows.map(x => ({ line: x.line, buy: x.buy })));
       s.close(); Shopping.updateBadge();

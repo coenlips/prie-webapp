@@ -2209,3 +2209,30 @@ body.scanning { overflow: hidden; }
   .shop .loyal[data-card] .loyal-code span { font-size: 8px; margin-top: 2px; }
   .shop .loyal-dots { display: none; }
 }
+
+/* Laptop en iPad liggend: links de boodschappen, rechts de gerechten waar ze voor zijn (per menu en gang) */
+.dishes { display: none; }
+@media (min-width: 900px) {
+  body[data-page=shop] main { max-width: 1180px; padding-left: 32px; padding-right: 32px; }
+  .shop-split:has(.dishes) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 48px; align-items: start; }
+  .dishes { display: block; position: sticky; top: calc(var(--topbar-h, 72px) + 16px); max-height: calc(100vh - var(--topbar-h, 72px) - 32px); overflow-y: auto; scrollbar-width: thin; }
+  .shop:has(#cardRail) .dishes { top: calc(var(--topbar-h, 72px) + 82px); max-height: calc(100vh - var(--topbar-h, 72px) - 100px); }
+  .shop:has(.loyal-wrap.closed) .dishes { top: calc(var(--topbar-h, 72px) + 16px); max-height: calc(100vh - var(--topbar-h, 72px) - 32px); }
+  .dishes-sub { margin: -6px 0 18px; color: var(--muted); font-size: 14px; line-height: 1.45; }
+  .dish-blk { border: 1px solid var(--line); border-radius: 6px; background: var(--surface, #fffdf8); padding: 14px 16px 8px; margin-bottom: 16px; }
+  .dish-blk header { display: flex; align-items: baseline; gap: 8px; margin-bottom: 6px; }
+  .dish-blk header b { font: 500 17px var(--font-label); letter-spacing: .06em; text-transform: uppercase; color: var(--text); }
+  .dish-blk header span { color: var(--muted); font-size: 13px; margin-left: auto; white-space: nowrap; }
+  .dish-blk .gang { margin: 10px 0 2px; font: 500 11px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard, #b08a2e); }
+  .dish { display: flex; align-items: center; gap: 12px; padding: 8px 6px; margin: 0 -6px; border-radius: 6px; }
+  .dish.link { cursor: pointer; }
+  .dish:hover, .dish:focus-visible { background: var(--accent-soft); outline: none; }
+  .dish img { width: 48px; height: 48px; border-radius: 5px; object-fit: cover; flex: none; }
+  .dish .dt { flex: 1; min-width: 0; }
+  .dish .dt b { display: block; font-weight: 600; font-size: 15px; color: var(--text); }
+  .dish .dt small { display: block; color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .dish .dx { flex: none; border: 0; background: none; color: var(--muted); font-size: 20px; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; }
+  .dish .dx:hover { background: rgba(0, 0, 0, .06); color: var(--accent); }
+  .dish-extra { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; padding: 10px 16px; border-top: 1px dashed var(--line); }
+  .shop-item.hl { background: var(--accent-soft); box-shadow: -10px 0 0 var(--accent-soft), 10px 0 0 var(--accent-soft); }
+}
