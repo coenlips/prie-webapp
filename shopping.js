@@ -245,7 +245,7 @@ const Shopping = (() => {
     ['Albert Heijn', '#00A0E2'], ['Jumbo', '#FFC800'], ['Lidl', '#0050AA'], ['Plus', '#5EA51E'],
     ['Aldi', '#00205B'], ['Dirk', '#E30613'], ['Coop', '#F7941D'],
   ];
-  const DEFAULT_COLOR = '#2B1D16';
+  const DEFAULT_COLOR = '#5FA3A0';   // turquoise van de app (kaderlijn)
   const SCAN_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>';
   const storeColor = name => (STORES.find(([n]) => n.toLowerCase() === String(name).trim().toLowerCase()) || [])[1] || '';
   const cards = () => (Array.isArray(list.cards) ? list.cards : (list.cards = []));
