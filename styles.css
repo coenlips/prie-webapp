@@ -2035,7 +2035,7 @@ body:not(.cook) .bon-appetit { display: none; }
 .ed .stat-serv .serv-link svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .ed .stat-serv .serv-link.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 .ed .stat-serv .pm-col { flex: none; display: grid; gap: 0; }
-.ed .stat-serv .pm { width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--accent); font: 500 20px/1 var(--font-label); cursor: pointer; }
+.ed .stat-serv .pm { width: 20px; height: 20px; display: grid; place-items: center; padding: 0; border: 0; background: none; color: var(--text); font: 500 20px/1 var(--font-label); cursor: pointer; }
 .ed .stat-serv .pm:active { opacity: .5; }
 @media (max-width: 379px) {
   .ed .stats:has(.stat-serv) { grid-template-columns: 1.35fr 1fr 1fr; }
