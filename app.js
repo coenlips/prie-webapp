@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.2 · 27 november 2026';
+const APP_VERSION = '1.17.3 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -40,8 +40,8 @@ const ICONS = {
   check: '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7"/></svg>',
   share: '<svg viewBox="0 0 24 24"><path d="M12 3v12M7 8l5-5 5 5M5 13v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6"/></svg>',
   clock: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
-  lock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
-  unlock: '<svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 7.7-1.5"/></svg>',
+  chain: '<svg viewBox="0 0 24 24"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1-1"/></svg>',
+  unchain: '<svg viewBox="0 0 24 24"><path d="M15 13.5l4.4-2.5a4.5 4.5 0 0 0-6.4-6.4l-1 1"/><path d="M9 10.5l-4.4 2.5a4.5 4.5 0 0 0 6.4 6.4l1-1"/><path d="M8 3v2M3 8h2M16 21v-2M21 16h-2"/></svg>',
   book: '<svg viewBox="0 0 24 24"><path d="M3 5.5C5.5 4 8.5 4 12 6c3.5-2 6.5-2 9-.5v13c-2.5-1.5-5.5-1.5-9 .5-3.5-2-6.5-2-9-.5z"/><path d="M12 6v13.5"/></svg>',
   user: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4.5 20.5a7.5 7.5 0 0 1 15 0"/></svg>',
   people: '<svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3 20a6 6 0 0 1 12 0M16 5a3 3 0 0 1 0 6M18 14a6 6 0 0 1 3 6"/></svg>',
@@ -1659,7 +1659,7 @@ async function renderEdit(id) {
             <label class="stat"><span>Voorbereiden</span><b><input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}" placeholder="0"><small>min</small></b></label>
             <label class="stat"><span>Koken</span><b><input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}" placeholder="0"><small>min</small></b></label>
           </div>
-          <div class="serv-lock-row"><button type="button" class="serv-lock" id="servLock" aria-pressed="false"></button><small id="servLockTx"></small></div>
+          <div class="serv-lock-row"><button type="button" class="serv-lock" id="servLink" aria-pressed="false"></button><small id="servLinkTx"></small></div>
         </section>
 
         ${loggedIn() ? `<section class="ed-sec"><h3>Delen</h3>
@@ -1699,21 +1699,21 @@ async function renderEdit(id) {
   // Porties aanpassen rekent de ingrediënten mee om, tenzij ze vastgezet zijn
   {
     const servIn = view.querySelector('[name=servings]'), ingTa = view.querySelector('[name=ingredients]');
-    const lockBtn = view.querySelector('#servLock'), lockTx = view.querySelector('#servLockTx');
-    let locked = true; // standaard vast: porties aanpassen laat de ingrediënten staan
+    const linkBtn = view.querySelector('#servLink'), linkTx = view.querySelector('#servLinkTx');
+    let linked = false; // standaard los: porties aanpassen laat de ingrediënten staan
     let baseText = ingTa.value, baseServ = parseInt(servIn.value, 10) || 0;
     const rebase = () => { baseText = ingTa.value; baseServ = parseInt(servIn.value, 10) || 0; };
     const tmp = document.createElement('div');
     const plain = (l, f) => { if (/^\s*#/.test(l) || !l.trim()) return l; tmp.innerHTML = scaleLine(l.trim(), f); return l.match(/^\s*/)[0] + tmp.textContent; };
-    const showLock = () => {
-      lockBtn.setAttribute('aria-pressed', locked);
-      lockBtn.classList.toggle('on', locked);
-      lockBtn.innerHTML = `${locked ? ICONS.lock : ICONS.unlock}<span>${locked ? 'Vastgezet' : 'Zet vast'}</span>`;
-      lockTx.textContent = locked ? 'Ingrediënten blijven gelijk als je de porties aanpast.' : 'Ingrediënten rekenen mee met de porties.';
+    const showLink = () => {
+      linkBtn.setAttribute('aria-pressed', linked);
+      linkBtn.classList.toggle('on', linked);
+      linkBtn.innerHTML = `${linked ? ICONS.chain : ICONS.unchain}<span>Gekoppeld</span>`;
+      linkTx.textContent = linked ? 'Ingrediënten rekenen mee met de porties.' : 'Ingrediënten blijven gelijk als je de porties aanpast.';
     };
-    showLock();
-    lockBtn.addEventListener('click', () => {
-      locked = !locked; rebase(); showLock();
+    showLink();
+    linkBtn.addEventListener('click', () => {
+      linked = !linked; rebase(); showLink();
     });
     ingTa.addEventListener('input', e => { if (e.isTrusted) rebase(); });
     view.querySelectorAll('[data-pm]').forEach(b => b.addEventListener('click', () => {
@@ -1722,7 +1722,7 @@ async function renderEdit(id) {
     }));
     servIn.addEventListener('input', () => {
       const n = parseInt(servIn.value, 10);
-      if (locked || !n || n < 1 || !baseServ) return;
+      if (!linked || !n || n < 1 || !baseServ) return;
       ingTa.value = n === baseServ ? baseText : baseText.split('\n').map(l => plain(l, n / baseServ)).join('\n');
       ingTa.dispatchEvent(new Event('input'));
     });
@@ -2556,7 +2556,7 @@ function renderSetPassword() {
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
   { v: '1.17.0', date: '27 november 2026', sections: [{ items: [
-    'Bij het bewerken van een recept pas je het aantal porties aan met − en +. Zet je de ingrediënten los, dan rekenen ze mee met de porties.',
+    'Bij het bewerken van een recept pas je het aantal porties aan met − en +. Zet je Gekoppeld aan, dan rekenen de ingrediënten mee met de porties.',
   ] }] },
   { v: '1.16.0', date: '26 november 2026', sections: [{ items: [
     'Zet een recept meteen in een menu: tik bij het recept op de serveerstolp met het plusje, kies het menu en de gang. Of begin een nieuw menu met dit recept.',
