@@ -91,6 +91,81 @@ const Shopping = (() => {
     await save();
   }
 
+  /* ---------- Emoji bij een artikel (alleen als de naam precies bekend is) ---------- */
+
+  const EMOJI_LIST = {
+    '🧅': 'ui, uien, rode ui, rode uien, gele ui, gele uien, zilveruitjes, sjalot, sjalotten, sjalotjes',
+    '🧄': 'knoflook, knoflookteen, knoflookteentjes',
+    '🥕': 'wortel, wortels, wortelen, winterpeen, peen, bospeen',
+    '🥔': 'aardappel, aardappels, aardappelen, kruimige aardappels, vastkokende aardappels, krieltjes',
+    '🍠': 'zoete aardappel, zoete aardappels, zoete aardappelen',
+    '🍅': 'tomaat, tomaten, trostomaten, cherrytomaten, kerstomaatjes, snoeptomaten, romatomaten',
+    '🥒': 'komkommer, komkommers, augurk, augurken',
+    '🥬': 'sla, ijsbergsla, rucola, spinazie, bladspinazie, andijvie, paksoi, veldsla, kropsla',
+    '🥦': 'broccoli',
+    '🫑': 'paprika, paprika\'s, rode paprika, groene paprika, gele paprika',
+    '🌶️': 'rode peper, rode pepers, chilipeper, chilipepers',
+    '🍆': 'aubergine, aubergines',
+    '🥑': 'avocado, avocado\'s',
+    '🌽': 'mais, maïs, maiskolf, maiskolven',
+    '🍄': 'champignon, champignons, kastanjechampignons, paddenstoelen',
+    '🫛': 'doperwten, erwten, peultjes, sugarsnaps',
+    '🫘': 'bonen, kidneybonen, witte bonen, bruine bonen, zwarte bonen, kikkererwten, linzen',
+    '🫚': 'gember, verse gember',
+    '🍋': 'citroen, citroenen, limoen, limoenen',
+    '🍉': 'watermeloen',
+    '🍈': 'meloen',
+    '🍊': 'sinaasappel, sinaasappels, mandarijn, mandarijnen',
+    '🍎': 'appel, appels',
+    '🍐': 'peer, peren',
+    '🍌': 'banaan, bananen',
+    '🍇': 'druiven',
+    '🍓': 'aardbei, aardbeien',
+    '🫐': 'blauwe bessen, bosbessen',
+    '🍒': 'kersen',
+    '🍑': 'perzik, perziken',
+    '🥭': 'mango, mango\'s',
+    '🍍': 'ananas',
+    '🥝': 'kiwi, kiwi\'s',
+    '🥥': 'kokosmelk, kokosnoot',
+    '🌿': 'basilicum, verse basilicum, peterselie, verse peterselie, platte peterselie, koriander, verse koriander, bieslook, dille, munt, verse munt, tijm, verse tijm, rozemarijn, salie, oregano, dragon',
+    '🥚': 'ei, eieren',
+    '🥛': 'melk, volle melk, halfvolle melk, magere melk, karnemelk',
+    '🧈': 'boter, roomboter, ongezouten boter',
+    '🧀': 'kaas, geraspte kaas, oude kaas, jonge kaas, belegen kaas, parmezaanse kaas, parmezaan, parmigiano reggiano, grana padano, pecorino, mozzarella, gruyère, gruyere, feta, geitenkaas, brie, ricotta, mascarpone',
+    '🥩': 'biefstuk, steak, runderlappen, riblappen, sukadelappen, rundvlees',
+    '🍖': 'gehakt, rundergehakt, half-om-halfgehakt, varkensgehakt',
+    '🥓': 'spek, spekjes, ontbijtspek, pancetta, guanciale, bacon',
+    '🍗': 'kip, kipfilet, kippendijen, kippendijfilet, kippenpoten, drumsticks',
+    '🌭': 'worst, worstjes, rookworst, saucijzen',
+    '🐟': 'vis, zalm, zalmfilet, kabeljauw, kabeljauwfilet, tonijn, makreel',
+    '🦐': 'garnalen, gamba\'s',
+    '🍞': 'brood, volkorenbrood, witbrood, ciabatta',
+    '🥖': 'stokbrood, baguette',
+    '🥐': 'croissant, croissants',
+    '🍝': 'pasta, spaghetti, penne, tagliatelle, macaroni, fusilli, linguine, lasagnebladen',
+    '🍚': 'rijst, basmatirijst, risottorijst, zilvervliesrijst, pandanrijst',
+    '🌾': 'bloem, tarwebloem, patentbloem, zelfrijzend bakmeel',
+    '🧂': 'zout, zeezout',
+    '🍬': 'suiker, kristalsuiker, basterdsuiker, poedersuiker',
+    '🍯': 'honing',
+    '🫒': 'olijfolie, olijven',
+    '🍷': 'wijn, rode wijn, witte wijn',
+    '🍺': 'bier',
+    '☕': 'koffie',
+    '🍵': 'thee',
+    '🧃': 'sinaasappelsap, appelsap',
+    '🍫': 'chocolade, pure chocolade, melkchocolade, cacaopoeder',
+    '🥜': 'pinda\'s, pindakaas',
+    '🌰': 'noten, walnoten, hazelnoten, amandelen, cashewnoten, pijnboompitten',
+    '🍪': 'koekjes',
+    '🥫': 'tomatenpuree, passata, gepelde tomaten, tomatenblokjes',
+    '🧻': 'wc-papier, toiletpapier, keukenpapier, keukenrol',
+  };
+  const EMOJI = new Map();
+  Object.entries(EMOJI_LIST).forEach(([emo, names]) => names.split(',').forEach(n => EMOJI.set(n.trim(), emo)));
+  const emojiOf = name => EMOJI.get(String(name).toLowerCase().replace(/\s+/g, ' ').trim()) || '';
+
   /* ---------- Badge op het mandje ---------- */
 
   function updateBadge() {
@@ -100,7 +175,9 @@ const Shopping = (() => {
 
   /* ---------- Scherm ---------- */
 
+  let moveTimer = null;
   async function render(view) {
+    clearTimeout(moveTimer);
     await load();
     if (location.hash !== '#/boodschappen') return;   // intussen naar een ander scherm gegaan
     const draw = () => {
@@ -109,6 +186,7 @@ const Shopping = (() => {
       const row = i => `
         <li class="shop-item${i.checked ? ' done' : ''}" data-id="${esc(i.id)}">
           <span class="check"></span>
+          ${emojiOf(i.name) ? `<span class="shop-emo" aria-hidden="true">${emojiOf(i.name)}</span>` : ''}
           <span class="shop-text">${amount(i) ? `<b>${esc(amount(i))}</b> ` : ''}<span class="shop-name">${esc(i.name)}</span>${i.from.length ? `<small>voor ${esc(i.from.join(', '))}</small>` : ''}</span>
           <button class="shop-del" aria-label="Verwijderen">×</button>
         </li>`;
@@ -145,10 +223,18 @@ const Shopping = (() => {
         li.onclick = async e => {
           if (e.target.closest('.shop-del')) {
             list.items = list.items.filter(i => i !== item);
-          } else {
-            item.checked = !item.checked;
+            clearTimeout(moveTimer);
+            await save(); draw();
+            return;
           }
-          await save(); draw();
+          // Eerst op zijn plek (door)strepen, zodat je ziet wat je hebt afgestreept;
+          // pas na een korte pauze schuift alles naar de juiste plek. Elke tik geeft weer even uitstel.
+          item.checked = !item.checked;
+          li.classList.toggle('done', item.checked);
+          li.classList.add('just');
+          await save();
+          clearTimeout(moveTimer);
+          moveTimer = setTimeout(() => { if (view.isConnected && location.hash === '#/boodschappen') draw(); }, 2500);
         };
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };

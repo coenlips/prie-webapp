@@ -2049,3 +2049,7 @@ body:not(.cook) .bon-appetit { display: none; }
 .move-sheet #moveBackup { width: 100%; margin-top: 4px; }
 .move-sheet .howto { margin: 4px 0 8px; padding-left: 20px; line-height: 1.45; }
 .move-sheet .howto li { margin-bottom: 6px; }
+/* Boodschappen: emoji vooraan bij bekende artikelen */
+.shop-emo { flex: none; font-size: 20px; line-height: 1.15; margin: 0 -4px 0 -2px; }
+.shop-item.done .shop-emo { opacity: .45; filter: grayscale(1); }
+.shop-item.just .shop-text { transition: color .2s; }
