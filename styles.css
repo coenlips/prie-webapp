@@ -2053,3 +2053,19 @@ body:not(.cook) .bon-appetit { display: none; }
 .shop-emo { flex: none; font-size: 20px; line-height: 1.15; margin: 0 -4px 0 -2px; }
 .shop-item.done .shop-emo { opacity: .45; filter: grayscale(1); }
 .shop-item.just .shop-text { transition: color .2s; }
+/* Klantkaarten op de boodschappenlijst */
+.shop-cards { display: flex; flex-wrap: wrap; gap: 8px; margin: -2px 0 12px; }
+.shop-card { display: inline-flex; align-items: center; gap: 8px; height: 38px; padding: 0 14px; border: 1.5px solid var(--text); border-radius: 3px; background: var(--surface); color: var(--text);
+  font: 500 13px var(--font-label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
+.shop-card svg { width: 20px; height: 20px; fill: none; stroke: currentColor; }
+.shop-card.add { border-style: dashed; border-color: var(--line); color: var(--muted); }
+.shop-card.add:only-child { color: var(--accent); border-color: var(--accent); }
+.card-code { background: #fff; padding: 18px 14px 10px; border-radius: 6px; margin: 8px 0 6px; }
+.card-code .barcode { display: block; width: 100%; height: 110px; }
+.card-num { margin: 8px 0 0; text-align: center; font: 500 18px/1 ui-monospace, Menlo, monospace; letter-spacing: .12em; color: #000; }
+.card-preview:empty { display: none; }
+.card-preview .barcode { height: 70px; }
+.card-tip { text-align: center; }
+.card-sheet #cardEdit { display: block; margin: 10px auto 0; }
+.card-stores.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 10px; padding: 0; overflow: visible; }
+.card-stores .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }

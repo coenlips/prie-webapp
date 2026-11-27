@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.19.4 · 27 november 2026';
+const APP_VERSION = '1.20.0 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2554,6 +2554,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.20.0', date: '27 november 2026', sections: [{ items: [
+    'Zet je klantkaart, zoals de Bonuskaart van AH, op je boodschappenlijst. Tik erop en de kassa scant de streepjescode van je scherm.',
+  ] }] },
   { v: '1.19.0', date: '27 november 2026', sections: [{ items: [
     'Boodschappen: een afgestreept artikel blijft eerst even doorgestreept op zijn plek staan, zodat je ziet of je het goede hebt afgestreept. Daarna schuift het naar je mandje.',
     'Bekende artikelen op je boodschappenlijst krijgen een emoji, zoals 🧅 bij uien en 🥚 bij eieren.',

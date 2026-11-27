@@ -238,6 +238,67 @@ const Shopping = (() => {
   Object.entries(EMOJI_LIST).forEach(([emo, names]) => names.split(',').forEach(n => EMOJI.set(n.trim(), emo)));
   const emojiOf = name => EMOJI.get(String(name).toLowerCase().replace(/\s+/g, ' ').trim()) || '';
 
+  /* ---------- Klantkaarten (streepjescode bij de kassa) ---------- */
+
+  const CARD_ICON = '<svg viewBox="0 0 24 24"><path d="M3 5v14M6 5v14M9 5v14M13 5v14M15 5v14M18 5v14M21 5v14" stroke-width="1.6"/></svg>';
+  const STORES = ['Albert Heijn', 'Jumbo', 'Lidl', 'Plus', 'Dirk', 'Aldi'];
+  const cards = () => (Array.isArray(list.cards) ? list.cards : (list.cards = []));
+  const groupNum = n => String(n).replace(/\s+/g, '').replace(/(.{4})(?=.)/g, '$1 ');
+
+  function showCard(card, redraw) {
+    const sh = openAccSheet(`
+      <div class="sheet-head"><h3>${esc(card.name)}</h3><button class="text-btn" data-close>Sluit</button></div>
+      <div class="card-code">${Barcode.svg(card.number)}<p class="card-num">${esc(groupNum(card.number))}</p></div>
+      <p class="small-note card-tip">Leest de kassa hem niet? Zet je scherm wat lichter.</p>
+      <button class="link" id="cardEdit">Wijzig of verwijder</button>`, card.name);
+    sh.el.classList.add('card-sheet');
+    sh.$('#cardEdit').onclick = () => { sh.close(); setTimeout(() => editCard(card, redraw), 220); };
+  }
+
+  function editCard(card, redraw) {
+    const isNew = !card;
+    card = card || { id: Date.now().toString(36), name: '', number: '' };
+    const sh = openAccSheet(`
+      <div class="sheet-head"><h3>${isNew ? 'Klantkaart toevoegen' : 'Klantkaart wijzigen'}</h3><button class="text-btn" data-close>Annuleer</button></div>
+      <p class="tm-q">Winkel</p>
+      <div class="chips card-stores">${STORES.map(n => `<button type="button" class="chip${card.name === n ? ' on' : ''}" data-store="${esc(n)}">${esc(n)}</button>`).join('')}</div>
+      <label class="sheet-label">Naam<input id="cardName" value="${esc(card.name)}" placeholder="Bijv. Albert Heijn" autocomplete="off"></label>
+      <label class="sheet-label">Nummer<input id="cardNum" value="${esc(card.number)}" placeholder="Het nummer onder de streepjescode" inputmode="numeric" autocomplete="off" autocapitalize="off" spellcheck="false"></label>
+      <p class="small-note" id="cardHint">Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.</p>
+      <div class="card-code card-preview" id="cardPrev"></div>
+      <button class="btn" id="cardSave" style="width:100%;margin-top:12px">Bewaar</button>
+      ${isNew ? '' : '<button class="link danger" id="cardDel" style="margin:14px auto 0;display:block">Kaart verwijderen</button>'}`, 'Klantkaart');
+    const nameIn = sh.$('#cardName'), numIn = sh.$('#cardNum');
+    sh.el.querySelectorAll('[data-store]').forEach(b => b.onclick = () => {
+      sh.el.querySelectorAll('[data-store]').forEach(x => x.classList.toggle('on', x === b));
+      nameIn.value = b.dataset.store; numIn.focus();
+    });
+    const preview = () => {
+      const v = numIn.value.replace(/\s+/g, '');
+      let svgHtml = '';
+      try { svgHtml = v ? Barcode.svg(v) : ''; } catch { svgHtml = ''; }
+      sh.$('#cardPrev').innerHTML = svgHtml;
+      const bad13 = /^\d{13}$/.test(v) && !Barcode.isEan13(v);
+      sh.$('#cardHint').textContent = !v ? 'Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.'
+        : bad13 ? 'Controleer het nummer: bij 13 cijfers klopt het laatste cijfer meestal niet bij de rest.'
+        : !svgHtml ? 'Gebruik alleen cijfers en letters.' : `Zo ziet je streepjescode eruit (${Barcode.format(v)}).`;
+    };
+    numIn.addEventListener('input', preview); preview();
+    sh.$('#cardSave').onclick = async () => {
+      const number = numIn.value.replace(/\s+/g, ''), name = nameIn.value.trim() || 'Klantkaart';
+      if (!number) { numIn.focus(); return; }
+      try { Barcode.svg(number); } catch { numIn.focus(); return; }
+      Object.assign(card, { name, number });
+      if (isNew) cards().push(card);
+      await save(); sh.close(); redraw();
+    };
+    sh.$('#cardDel')?.addEventListener('click', async () => {
+      if (!confirm(`${card.name} verwijderen?`)) return;
+      list.cards = cards().filter(c => c.id !== card.id);
+      await save(); sh.close(); redraw();
+    });
+  }
+
   /* ---------- Badge op het mandje ---------- */
 
   function updateBadge() {
@@ -265,6 +326,7 @@ const Shopping = (() => {
       view.innerHTML = `
         <section class="shop">
           <h2 class="page-title">Boodschappen</h2>
+          <div class="shop-cards">${cards().map(c => `<button type="button" class="shop-card" data-card="${esc(c.id)}">${CARD_ICON}<span>${esc(c.name)}</span></button>`).join('')}<button type="button" class="shop-card add" id="cardAdd">${cards().length ? '+' : `${CARD_ICON}<span>+ Klantkaart</span>`}</button></div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences">
             <button class="btn small" aria-label="Toevoegen">+</button>
@@ -310,6 +372,8 @@ const Shopping = (() => {
         };
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };
+      view.querySelectorAll('[data-card]').forEach(b => b.onclick = () => showCard(cards().find(c => c.id === b.dataset.card), draw));
+      on('#cardAdd', () => editCard(null, draw));
       on('#clearDone', async () => { list.items = list.items.filter(i => !i.checked); await save(); draw(); });
       on('#clearAll', async () => {
         if (!confirm('Hele boodschappenlijst leegmaken?')) return;
