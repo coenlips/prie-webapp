@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.0 · 27 november 2026';
+const APP_VERSION = '1.17.1 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1636,15 +1636,6 @@ async function renderEdit(id) {
           <input name="description" class="desc" value="${esc(r.description)}" placeholder="Korte omschrijving (optioneel)" aria-label="Korte omschrijving">
         </div>
 
-        <section class="ed-sec"><h3>Porties en tijd</h3>
-          <div class="stats">
-            <label class="stat"><span>Porties</span><input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
-            <label class="stat"><span>Voorbereiden</span><b><input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}" placeholder="0"><small>min</small></b></label>
-            <label class="stat"><span>Koken</span><b><input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}" placeholder="0"><small>min</small></b></label>
-          </div>
-          <div class="serv-lock-row"><button type="button" class="serv-lock" id="servLock" aria-pressed="false"></button><small id="servLockTx"></small></div>
-        </section>
-
         <section class="ed-sec"><h3>Soort gerecht</h3>
           <span class="ed-sub">Gang</span>
           <div class="chips" id="courseChoices">
@@ -1660,6 +1651,15 @@ async function renderEdit(id) {
           <div class="chips diet-pick" role="group" aria-label="Vegetarisch of vegan">
             ${Object.keys(DIETS).map(k => `<label class="chip diet-check"><input type="checkbox" name="diet" value="${k}"${dietOf(r) === k ? ' checked' : ''}>${dietBadge(k, { tip: false })}<span class="diet-on" aria-hidden="true">${ICONS.check}</span></label>`).join('')}
           </div>
+        </section>
+
+        <section class="ed-sec"><h3>Porties en tijd</h3>
+          <div class="stats">
+            <label class="stat"><span>Porties</span><input name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"></label>
+            <label class="stat"><span>Voorbereiden</span><b><input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}" placeholder="0"><small>min</small></b></label>
+            <label class="stat"><span>Koken</span><b><input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}" placeholder="0"><small>min</small></b></label>
+          </div>
+          <div class="serv-lock-row"><button type="button" class="serv-lock" id="servLock" aria-pressed="false"></button><small id="servLockTx"></small></div>
         </section>
 
         ${loggedIn() ? `<section class="ed-sec"><h3>Delen</h3>
