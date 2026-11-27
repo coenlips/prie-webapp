@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.17.3 · 27 november 2026';
+const APP_VERSION = '1.17.4 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1655,11 +1655,10 @@ async function renderEdit(id) {
 
         <section class="ed-sec"><h3>Porties en tijd</h3>
           <div class="stats">
-            <div class="stat stat-serv"><label for="edServ">Porties</label><span class="serv-pm"><button type="button" class="pm" data-pm="-1" aria-label="Minder porties">−</button><input id="edServ" name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"><button type="button" class="pm" data-pm="1" aria-label="Meer porties">+</button></span></div>
+            <div class="stat stat-serv"><label for="edServ">Porties</label><span class="serv-pm"><button type="button" class="serv-link" id="servLink" aria-pressed="false"></button><input id="edServ" name="servings" type="number" inputmode="numeric" min="1" value="${esc(r.servings)}"><span class="pm-col"><button type="button" class="pm" data-pm="1" aria-label="Meer porties">+</button><button type="button" class="pm" data-pm="-1" aria-label="Minder porties">−</button></span></span></div>
             <label class="stat"><span>Voorbereiden</span><b><input name="prepTime" type="number" inputmode="numeric" min="0" value="${esc(r.prepTime)}" placeholder="0"><small>min</small></b></label>
             <label class="stat"><span>Koken</span><b><input name="cookTime" type="number" inputmode="numeric" min="0" value="${esc(r.cookTime)}" placeholder="0"><small>min</small></b></label>
           </div>
-          <div class="serv-lock-row"><button type="button" class="serv-lock" id="servLink" aria-pressed="false"></button><small id="servLinkTx"></small></div>
         </section>
 
         ${loggedIn() ? `<section class="ed-sec"><h3>Delen</h3>
@@ -1699,7 +1698,7 @@ async function renderEdit(id) {
   // Porties aanpassen rekent de ingrediënten mee om, tenzij ze vastgezet zijn
   {
     const servIn = view.querySelector('[name=servings]'), ingTa = view.querySelector('[name=ingredients]');
-    const linkBtn = view.querySelector('#servLink'), linkTx = view.querySelector('#servLinkTx');
+    const linkBtn = view.querySelector('#servLink');
     let linked = false; // standaard los: porties aanpassen laat de ingrediënten staan
     let baseText = ingTa.value, baseServ = parseInt(servIn.value, 10) || 0;
     const rebase = () => { baseText = ingTa.value; baseServ = parseInt(servIn.value, 10) || 0; };
@@ -1708,12 +1707,13 @@ async function renderEdit(id) {
     const showLink = () => {
       linkBtn.setAttribute('aria-pressed', linked);
       linkBtn.classList.toggle('on', linked);
-      linkBtn.innerHTML = `${linked ? ICONS.chain : ICONS.unchain}<span>Gekoppeld</span>`;
-      linkTx.textContent = linked ? 'Ingrediënten rekenen mee met de porties.' : 'Ingrediënten blijven gelijk als je de porties aanpast.';
+      linkBtn.innerHTML = linked ? ICONS.chain : ICONS.unchain;
+      linkBtn.title = linkBtn.ariaLabel = linked ? 'Gekoppeld: ingrediënten rekenen mee met de porties' : 'Niet gekoppeld: ingrediënten blijven gelijk';
     };
     showLink();
     linkBtn.addEventListener('click', () => {
       linked = !linked; rebase(); showLink();
+      toast(linked ? 'Gekoppeld: ingrediënten rekenen mee met de porties' : 'Ontkoppeld: ingrediënten blijven gelijk');
     });
     ingTa.addEventListener('input', e => { if (e.isTrusted) rebase(); });
     view.querySelectorAll('[data-pm]').forEach(b => b.addEventListener('click', () => {
@@ -2556,7 +2556,7 @@ function renderSetPassword() {
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
   { v: '1.17.0', date: '27 november 2026', sections: [{ items: [
-    'Bij het bewerken van een recept pas je het aantal porties aan met − en +. Zet je Gekoppeld aan, dan rekenen de ingrediënten mee met de porties.',
+    'Bij het bewerken van een recept pas je het aantal porties aan met − en +. Tik je op de schakel in dat vakje, dan rekenen de ingrediënten mee met de porties.',
   ] }] },
   { v: '1.16.0', date: '26 november 2026', sections: [{ items: [
     'Zet een recept meteen in een menu: tik bij het recept op de serveerstolp met het plusje, kies het menu en de gang. Of begin een nieuw menu met dit recept.',

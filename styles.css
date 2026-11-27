@@ -2026,17 +2026,21 @@ body:not(.cook) .steps li.done .time-chip { background: var(--accent-soft); colo
 body:not(.cook) .bon-appetit { display: none; }
 /* iPhone: logo iets groter, evenveel ruimte boven en onder de letters */
 @media (max-width: 699px) { body.brand-head .topbar h1 { font-size: 48px; line-height: 40px; position: relative; top: 4px; } }
-/* Bewerken: ingrediënten vastzetten bij het aanpassen van de porties */
-.serv-lock-row { display: flex; align-items: center; gap: 10px; margin-top: 10px; }
-.serv-lock-row small { color: var(--muted); font-size: 13px; line-height: 1.3; }
-.serv-lock { flex: none; display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border: 1.5px solid var(--line); border-radius: 999px; background: var(--surface); color: var(--text);
-  font: 500 12px var(--font-label); letter-spacing: .1em; text-transform: uppercase; cursor: pointer; }
-.serv-lock svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.serv-lock.on { background: var(--accent); border-color: var(--accent); color: #fff; }
-/* Bewerken: porties met − en + in het vakje */
-.ed .stat-serv { cursor: default; }
+/* Bewerken: porties-vak met links de koppelknop en rechts + en − onder elkaar */
+.ed .stat-serv { cursor: default; padding-right: 6px; }
 .ed .stat-serv > label { font: 500 11px var(--font-label); letter-spacing: .12em; text-transform: uppercase; color: var(--mustard); }
-.ed .stat-serv > .serv-pm { display: flex; align-items: center; gap: 2px; font: inherit; letter-spacing: 0; text-transform: none; color: inherit; }
+.ed .stat-serv > .serv-pm { display: flex; align-items: center; gap: 4px; font: inherit; letter-spacing: 0; text-transform: none; color: inherit; }
 .ed .stat-serv input { text-align: center; flex: 1 1 auto; width: 0; }
-.ed .stat-serv .pm { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1.5px solid var(--line); border-radius: 50%; background: none; color: var(--accent); font: 500 18px/1 var(--font-label); cursor: pointer; }
+.ed .stat-serv .serv-link { flex: none; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 1.5px solid var(--line); border-radius: 50%; background: none; color: var(--muted); cursor: pointer; }
+.ed .stat-serv .serv-link svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.ed .stat-serv .serv-link.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ed .stat-serv .pm-col { flex: none; display: grid; gap: 3px; }
+.ed .stat-serv .pm { width: 24px; height: 18px; display: grid; place-items: center; padding: 0; border: 1.5px solid var(--line); border-radius: 4px; background: none; color: var(--accent); font: 500 14px/1 var(--font-label); cursor: pointer; }
 .ed .stat-serv .pm:active { background: var(--accent); border-color: var(--accent); color: #fff; }
+@media (max-width: 379px) {
+  .ed .stats:has(.stat-serv) { grid-template-columns: 1.35fr 1fr 1fr; }
+  .ed .stat-serv .serv-link { width: 24px; height: 24px; }
+  .ed .stat-serv .serv-link svg { width: 14px; height: 14px; }
+  .ed .stat-serv .pm { width: 22px; }
+  .ed .stat-serv > .serv-pm { gap: 3px; }
+}
