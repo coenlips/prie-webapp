@@ -465,7 +465,7 @@ const Shopping = (() => {
           btn.classList.toggle('on', open);
           btn.setAttribute('aria-expanded', open);
           btn.setAttribute('aria-label', open ? 'Klantkaarten verbergen' : 'Klantkaarten tonen');
-          foldFilters(view.querySelector('#loyalWrap'), open, { clip: true });
+          foldFilters(view.querySelector('#loyalWrap'), open);
         };
       }
       on('#clearDone', async () => { list.items = list.items.filter(i => !i.checked); await save(); draw(); });

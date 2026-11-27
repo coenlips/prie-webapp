@@ -2176,3 +2176,5 @@ body.scanning { overflow: hidden; }
 .shop .loyal-wrap:has(#cardRail) { padding-left: 0; padding-right: 0; }
 .shop .loyal-in { padding: 0 16px; }
 @media (min-width: 700px) { .shop .loyal-in { padding: 0; } }
+/* Ingeklapt net zo laag als het filtermenu (2px), dan blijft er onder de kopbalk niets hangen */
+.shop .loyal-wrap.closed:has(#cardRail) { padding-top: 2px !important; }
