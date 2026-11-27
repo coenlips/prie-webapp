@@ -403,7 +403,7 @@ const Shopping = (() => {
         </li>`;
       view.innerHTML = `
         <section class="shop">
-          <div class="loyal-wrap${cards().length && cardsHidden() ? ' hidden' : ''}">${railHtml()}</div>
+          <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
           <h2 class="page-title">Boodschappen</h2>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <span class="shop-field"><input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences"><button type="button" class="search-clear" id="shopClear" aria-label="Veld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
@@ -458,7 +458,15 @@ const Shopping = (() => {
       acts.querySelector('#cardToggle')?.remove();
       if (cards().length) {
         acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle${cardsHidden() ? '' : ' on'}" id="cardToggle" aria-expanded="${!cardsHidden()}" aria-label="${cardsHidden() ? 'Klantkaarten tonen' : 'Klantkaarten verbergen'}">${CARDS_ICON}</button>`);
-        acts.querySelector('#cardToggle').onclick = () => { setCardsHidden(!cardsHidden()); draw(); };
+        // In- en uitklappen met dezelfde animatie als het filtermenu
+        acts.querySelector('#cardToggle').onclick = e => {
+          const open = cardsHidden(), btn = e.currentTarget;
+          setCardsHidden(!open);
+          btn.classList.toggle('on', open);
+          btn.setAttribute('aria-expanded', open);
+          btn.setAttribute('aria-label', open ? 'Klantkaarten verbergen' : 'Klantkaarten tonen');
+          foldFilters(view.querySelector('#loyalWrap'), open);
+        };
       }
       on('#clearDone', async () => { list.items = list.items.filter(i => !i.checked); await save(); draw(); });
       on('#clearAll', async () => {
