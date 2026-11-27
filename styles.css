@@ -2144,3 +2144,5 @@ body.scanning { overflow: hidden; }
   margin: 0 -16px 6px; padding: 8px 16px 6px; box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
 @media (min-width: 700px) { .shop .loyal-wrap:has(#cardRail) { margin-left: 0; margin-right: 0; padding-left: 0; padding-right: 0; } }
 .shop .loyal-wrap:has(#cardRail) { box-shadow: none; border-bottom: 1.5px solid var(--teal); }
+/* Begin precies op de vaste plek, dan schuiven de kaarten niet eerst een stukje mee */
+.shop .loyal-wrap:has(#cardRail) { margin-top: -14px; }
