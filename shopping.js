@@ -234,7 +234,7 @@ const Shopping = (() => {
           li.classList.add('just');
           await save();
           clearTimeout(moveTimer);
-          moveTimer = setTimeout(() => { if (view.isConnected && location.hash === '#/boodschappen') draw(); }, 2500);
+          moveTimer = setTimeout(() => { if (view.isConnected && location.hash === '#/boodschappen') draw(); }, 1500);
         };
       });
       const on = (sel, fn) => { const el = view.querySelector(sel); if (el) el.onclick = fn; };
