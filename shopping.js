@@ -247,6 +247,7 @@ const Shopping = (() => {
     ['Vomar', '#D7141A'], ['Hoogvliet', '#0066B3'], ['DekaMarkt', '#C4161C'], ['Poiesz', '#E2001A'],
   ];
   const DEFAULT_COLOR = '#2B1D16';
+  const SCAN_ICON = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 8V6a2 2 0 0 1 2-2h2M17 4h2a2 2 0 0 1 2 2v2M21 16v2a2 2 0 0 1-2 2h-2M7 20H5a2 2 0 0 1-2-2v-2"/><path d="M7 8v8M10 8v8M13 8v8M17 8v8"/></svg>';
   const storeColor = name => (STORES.find(([n]) => n.toLowerCase() === String(name).trim().toLowerCase()) || [])[1] || '';
   const cards = () => (Array.isArray(list.cards) ? list.cards : (list.cards = []));
   const colorOf = c => c.color || storeColor(c.name) || DEFAULT_COLOR;
@@ -306,6 +307,8 @@ const Shopping = (() => {
     const custom = () => !STORES.some(([, c]) => c.toLowerCase() === color.toLowerCase());
     const sh = openAccSheet(`
       <div class="sheet-head"><h3>${isNew ? 'Klantkaart toevoegen' : 'Klantkaart wijzigen'}</h3><button class="text-btn" data-close>Annuleer</button></div>
+      <button type="button" class="btn scan-btn${isNew ? '' : ' ghost'}" id="cardScan">${SCAN_ICON} ${isNew ? 'Scan je kaart' : 'Opnieuw scannen'}</button>
+      ${isNew ? '<p class="scan-or">of kies de winkel en typ het nummer</p>' : ''}
       <p class="tm-q">Winkel</p>
       <div class="chips card-stores">${STORES.map(([n, c]) => `<button type="button" class="chip${card.name === n ? ' on' : ''}" data-store="${esc(n)}"><i class="swatch" style="background:${c}"></i>${esc(n)}</button>`).join('')}</div>
       <label class="sheet-label">Naam<input id="cardName" value="${esc(card.name)}" placeholder="Bijv. Albert Heijn" autocomplete="off"></label>
@@ -330,9 +333,17 @@ const Shopping = (() => {
       sh.$('.swatch-other').classList.toggle('on', custom());
       sh.$('.swatch-other').style.background = custom() ? color : '';
       const bad13 = /^\d{13}$/.test(v) && !Barcode.isEan13(v);
-      sh.$('#cardHint').textContent = !v ? 'Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.'
+      sh.$('#cardHint').classList.toggle('found-note', !!v && v === scanned);
+      sh.$('#cardHint').textContent = v && v === scanned ? `✓ Gescand. Kijk het nummer nog even na${nameIn.value.trim() ? '' : ' en kies hierboven de winkel'}.` : !v ? 'Typ het nummer over dat onder de streepjescode op je kaart staat. Bij de Bonuskaart van AH zijn dat 13 cijfers.'
         : bad13 ? 'Controleer het nummer: bij 13 cijfers klopt het laatste cijfer meestal niet bij de rest.'
         : !svgHtml ? 'Gebruik alleen cijfers en letters.' : '';
+    };
+    let scanned = '';
+    sh.$('#cardScan').onclick = async () => {
+      const v = await Scanner.open();
+      if (!v) return;
+      numIn.value = v; scanned = v; preview();
+      if (!nameIn.value.trim()) sh.$('.card-stores').scrollIntoView({ block: 'center', behavior: 'smooth' });
     };
     sh.el.querySelectorAll('[data-store]').forEach(b => b.onclick = () => {
       sh.el.querySelectorAll('[data-store]').forEach(x => x.classList.toggle('on', x === b));

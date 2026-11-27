@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.21.2 · 27 november 2026';
+const APP_VERSION = '1.22.0 · 27 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2554,6 +2554,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.22.0', date: '27 november 2026', sections: [{ items: [
+    'Scan je klantkaart met de camera: tik bij Klantkaart toevoegen op Scan je kaart en houd de streepjescode in het kader. Lukt live scannen niet, maak dan een foto.',
+  ] }] },
   { v: '1.21.0', date: '27 november 2026', sections: [{ items: [
     'Je klantkaarten staan nu direct bovenaan je boodschappenlijst, klaar om te scannen. Swipe naar je andere kaarten; de app onthoudt welke kaart je het laatst gebruikte.',
     'Geef elke kaart een kleur: die van je supermarkt, of kies zelf een kleur.',
