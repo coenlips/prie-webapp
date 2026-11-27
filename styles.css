@@ -2169,3 +2169,10 @@ body.scanning { overflow: hidden; }
 .shop .loyal-in { min-height: 0; overflow: hidden; }
 .shop .loyal-wrap.closed:has(#cardRail) { grid-template-rows: 0fr; padding-top: 14px !important; padding-bottom: 0 !important; border-bottom-color: transparent; }
 .shop .loyal-wrap.closed .loyal-in { visibility: hidden; }
+/* Toch een schaduw onder de klantkaarten, net als onder het filtermenu */
+.shop .loyal-wrap:has(#cardRail) { border-bottom: 0; box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
+.shop .loyal-wrap.closed:has(#cardRail) { box-shadow: none; }
+/* Zijruimte in de binnenlaag, zodat de kaartstrook tot de schermrand doorloopt (niet afgeknipt) */
+.shop .loyal-wrap:has(#cardRail) { padding-left: 0; padding-right: 0; }
+.shop .loyal-in { padding: 0 16px; }
+@media (min-width: 700px) { .shop .loyal-in { padding: 0; } }
