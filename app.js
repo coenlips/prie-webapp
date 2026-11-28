@@ -2906,9 +2906,11 @@ function renderResetPassword(token) {
   document.body.dataset.page = 'welcome';
   bareHeader();
   view.innerHTML = `
-    <section class="acc-welcome">
-      ${flagHtml('Nieuw wachtwoord')}
-      <p class="acc-lead">Kies een nieuw wachtwoord voor Ricetta.</p>
+    <section class="acc-welcome acc-reset">
+      <h1 class="welcome-logo">Ricetta</h1>
+      <div class="login-col">
+      <h2 class="login-title">Nieuw wachtwoord</h2>
+      <p class="acc-lead">Kies een nieuw wachtwoord. Daarna ben je meteen ingelogd.</p>
       <form class="acc-form" id="rsForm" autocomplete="on">
         <input type="text" name="username" autocomplete="username" hidden>
         <label>Nieuw wachtwoord<input type="password" name="pw" autocomplete="new-password" minlength="8" required></label>
@@ -2917,6 +2919,7 @@ function renderResetPassword(token) {
         <p class="sync-msg" id="rsMsg" hidden></p>
       </form>
       <p class="acc-note">Minstens 8 tekens.</p>
+      </div>
     </section>`;
   const form = $('#rsForm'), msg = $('#rsMsg');
   form.onsubmit = async e => {
