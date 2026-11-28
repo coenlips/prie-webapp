@@ -577,7 +577,7 @@ const Shopping = (() => {
         <section class="shop">
           <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}${cards().length ? '' : ' none'}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
           <div class="shop-split"><div class="shop-left">
-          <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${list.items.length ? `<button type="button" class="icon-btn shop-share" id="shareTop" aria-label="Lijst delen" title="Lijst delen">${ICONS.share}</button>` : ''}</div>
+          <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${cards().length ? '' : `<button type="button" class="icon-btn shop-share" id="cardFirst" aria-label="Klantkaart toevoegen" title="Klantkaart toevoegen">${CARDS_PLUS}</button>`}${list.items.length ? `<button type="button" class="icon-btn shop-share" id="shareTop" aria-label="Lijst delen" title="Lijst delen">${ICONS.share}</button>` : ''}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <span class="shop-field"><input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences"><button type="button" class="search-clear" id="shopClear" aria-label="Veld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
             <button class="btn small" aria-label="Toevoegen">+</button>
@@ -631,10 +631,8 @@ const Shopping = (() => {
       // Knopje om de klantkaarten in en uit te klappen, in de menubalk (voor het tandwiel)
       const acts = document.querySelector('#topActions');
       acts.querySelector('#cardToggle')?.remove();
-      if (!cards().length) {
-        acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle" id="cardToggle" aria-label="Klantkaart toevoegen" title="Klantkaart toevoegen">${CARDS_PLUS}</button>`);
-        acts.querySelector('#cardToggle').onclick = () => editCard(null, draw);
-      } else {
+      on('#cardFirst', () => editCard(null, draw));
+      if (cards().length) {
         acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle${cardsHidden() ? '' : ' on'}" id="cardToggle" aria-expanded="${!cardsHidden()}" aria-label="${cardsHidden() ? 'Klantkaarten tonen' : 'Klantkaarten verbergen'}">${CARDS_ICON}</button>`);
         // In- en uitklappen met dezelfde animatie als het filtermenu
         acts.querySelector('#cardToggle').onclick = e => {
