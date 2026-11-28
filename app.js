@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.30.3 · 28 november 2026';
+const APP_VERSION = '1.31.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2125,6 +2125,7 @@ function stPage(k, sub) {
       `<li><label class="st-row"><span class="st-ic">${ST_ICONS.import}</span><span class="st-tx"><b>Back-up importeren</b><small>Recepten uit een back-upbestand terugzetten</small></span><span class="st-right"><span class="st-chev">${ST_ICONS.next}</span></span><input type="file" accept="application/json,.json" id="importInput" hidden></label></li>`,
     ], 'Back-up als bestand')}
     <p class="small-note st-note">Ben je ingelogd, dan worden je recepten ook al automatisch online bewaard.</p>`;
+  if (k === 'app' && sub === 'privacy') return `${stCrumb(g, 'Privacy')}${stHead('', 'Privacy')}<div class="card-box st-card">${privacyHtml()}</div>`;
   if (k === 'app' && sub === 'beginscherm') return `${stCrumb(g, 'Op je beginscherm')}${stHead('', 'Op je beginscherm zetten')}
     <div class="card-box st-card"><ol class="howto">
       <li>Open deze pagina in <strong>Safari</strong>.</li>
@@ -2136,6 +2137,7 @@ function stPage(k, sub) {
       ...(standalone ? [stRow({ icon: ICONS.check, t: 'Op je beginscherm', sub: 'Ricetta is als app geïnstalleerd', tag: 'div', right: '' })]
         : [stRow({ icon: ICONS.phone, t: 'Op je beginscherm zetten', sub: 'Ricetta openen als een gewone app', href: '#/settings/app/beginscherm' })]),
       stRow({ icon: ICONS.news, t: 'Wat is er nieuw', sub: `Versie ${CHANGELOG[0].v.split('.').slice(0, 2).join('.')}`, href: '#/settings/nieuw' }),
+      stRow({ icon: ST_ICONS.shield, t: 'Privacy', sub: 'Welke gegevens Ricetta bewaart en waarom', href: '#/settings/app/privacy' }),
       ...(loggedIn() ? [stRow({ icon: ICONS.bug, t: 'Fout melden of idee insturen', sub: 'Wij lezen alles', tag: 'button', id: 'fbOpen' })] : []),
     ])}
     <p class="version">Versie ${APP_VERSION}</p>`;
@@ -2530,6 +2532,7 @@ function renderWelcome() {
         <button class="btn ghost" id="requestBtn">Account aanvragen</button>
       </div>
       <p class="acc-note"><button class="link" id="tryBtn">Eerst zonder account proberen</button></p>
+      <p class="acc-note pv-link"><button type="button" class="link" data-privacy>Privacy</button></p>
       </div>
     </section>`;
   Sync.bindLoginForm($('#syncForm'), user => Sync.onSignIn(user));
@@ -2573,6 +2576,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.31.0', date: '28 november 2026', sections: [{ items: [
+    'Privacyverklaring: lees welke gegevens Ricetta bewaart en waarom, bij Instellingen → App → Privacy.',
+  ] }] },
   { v: '1.30.0', date: '28 november 2026', sections: [{ items: [
     'Startkookboek: de beheerder kiest in Beheer welke recepten nieuwe gebruikers in één keer kunnen overnemen. Alleen die recepten worden voorgesteld bij een leeg receptenboek.',
   ] }] },
@@ -2818,6 +2824,50 @@ function openPasswordSheet() {
 }
 
 // Account aanvragen: naam en e-mailadres naar de beheerder
+// Privacyverklaring: in Instellingen → App, op het welkomstscherm en bij het aanvragen van een account
+const PRIVACY_DATE = '28 november 2026';
+function privacyHtml() {
+  return `<div class="privacy">
+    <p class="pv-lead">Ricetta is een kleine, niet-commerciële receptenapp. We verzamelen zo weinig mogelijk, verkopen niets, tonen geen advertenties en volgen je niet.</p>
+    <h4>Wie is verantwoordelijk?</h4>
+    <p>Ricetta wordt beheerd door een particulier: de beheerder van Ricetta. Vragen over je gegevens stel je via <a href="mailto:beheer@ricetta-app.nl">beheer@ricetta-app.nl</a>.</p>
+    <h4>Welke gegevens en waarom?</h4>
+    <ul>
+      <li><b>Account</b>: je naam, je e-mailadres (als je een account aanvraagt) en je wachtwoord. Het wachtwoord wordt alleen versleuteld (gehasht) bewaard; niemand kan het teruglezen. We onthouden ook wanneer je de app voor het laatst gebruikte. Je e-mailadres gebruiken we alleen om je inloggegevens te sturen, bijvoorbeeld als je je wachtwoord kwijt bent.</li>
+      <li><b>Wat je in de app zet</b>: recepten met foto's en notities, favorieten, menu's, je boodschappenlijst, klantkaarten (winkelnaam en kaartnummer) en je instellingen. Ben je ingelogd, dan wordt dit als back-up op onze server bewaard, zodat je het op al je toestellen hebt.</li>
+      <li><b>Delen</b>: recepten die je deelt, zijn zichtbaar voor de mensen die je daarvoor kiest. Deel je een recept met een link of QR-code, dan kan iedereen met die link dat recept bekijken.</li>
+      <li><b>Inloggen beveiligen</b>: bij een mislukte inlogpoging bewaren we de naam en het IP-adres, om raden van wachtwoorden tegen te gaan. Dit wordt na 24 uur gewist.</li>
+      <li><b>Recepten van websites</b>: plak je een link, dan haalt onze server die pagina voor je op. Lukt dat niet, dan bewaren we het adres van de website en de reden, zodat we de app kunnen verbeteren.</li>
+      <li><b>Fouten en ideeën</b>: stuur je een melding, dan bewaren we je tekst, de versie van de app en het soort toestel en browser.</li>
+    </ul>
+    <h4>Wat we niet doen</h4>
+    <ul>
+      <li>Geen advertenties, geen trackers en geen statistiekdiensten van anderen.</li>
+      <li>We verkopen of geven je gegevens niet aan anderen.</li>
+      <li>De camera wordt alleen gebruikt om de streepjescode van een klantkaart te scannen; de beelden blijven op je toestel.</li>
+    </ul>
+    <h4>Op je eigen toestel</h4>
+    <p>De app bewaart je recepten en instellingen ook op je toestel (in de opslag van de browser), zodat hij snel en zonder internet werkt. Dat zijn geen trackingcookies. Gebruik je Ricetta zonder account, dan blijft alles alleen op je toestel.</p>
+    <h4>Waar staan de gegevens?</h4>
+    <ul>
+      <li>De server, de database en de mail draaien bij <b>Webreus</b>, een hostingbedrijf in Nederland.</li>
+      <li>De app zelf (de pagina's) wordt geleverd via <b>GitHub Pages</b> (GitHub, VS). GitHub kan daarbij technische gegevens zoals je IP-adres kort bewaren; daar staan geen recepten of accountgegevens.</li>
+    </ul>
+    <h4>Wie kan erbij?</h4>
+    <p>Andere gebruikers zien alleen wat je met ze deelt. De beheerder ziet in de app de lijst met accounts (naam, e-mailadres, aantal recepten en laatste gebruik) en de meldingen. De beheerder kan technisch bij de database, maar kijkt niet in je recepten zonder jouw vraag of een dringende reden, zoals het oplossen van een storing.</p>
+    <h4>Hoe lang?</h4>
+    <p>Zolang je account bestaat. Wordt je account verwijderd, dan verdwijnen ook je recepten, menu's, boodschappenlijst, meldingen en wat je hebt gedeeld van de server. Een aanvraag voor een account wordt na goedkeuren of afwijzen verwijderd.</p>
+    <h4>Jouw rechten</h4>
+    <p>Je mag vragen welke gegevens we van je hebben, ze laten aanpassen of laten verwijderen, ook je hele account. Mail naar <a href="mailto:beheer@ricetta-app.nl">beheer@ricetta-app.nl</a>. Je recepten kun je ook zelf als bestand downloaden via Instellingen → Toevoegen &amp; importeren → Back-up exporteren. Ben je het ergens niet mee eens, dan kun je een klacht indienen bij de <a href="https://autoriteitpersoonsgegevens.nl" target="_blank" rel="noopener">Autoriteit Persoonsgegevens</a>.</p>
+    <p class="pv-date">Laatst bijgewerkt: ${PRIVACY_DATE}</p>
+  </div>`;
+}
+function openPrivacySheet() {
+  const s = openAccSheet(`<div class="sheet-head"><h3>Privacy</h3><button class="text-btn" data-close>Sluit</button></div>${privacyHtml()}`, 'Privacyverklaring');
+  s.el.querySelector('.sheet').classList.add('tall');
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-privacy]')) { e.preventDefault(); openPrivacySheet(); } });
+
 function openRequestSheet() {
   const s = openAccSheet(`
     <div class="sheet-head"><h3>Account aanvragen</h3><button class="text-btn" data-close>Annuleer</button></div>
@@ -2828,7 +2878,7 @@ function openRequestSheet() {
       <label class="hp" aria-hidden="true">Website<input name="website" tabindex="-1" autocomplete="off"></label>
       <p class="sync-msg" id="reqMsg" hidden></p>
       <button class="btn" type="submit">Aanvraag versturen</button>
-      <p class="small-note">Je e-mailadres wordt alleen gebruikt om je de inloggegevens te sturen, en daarna niet bewaard.</p>
+      <p class="small-note">Je e-mailadres gebruiken we alleen om je de inloggegevens te sturen, bijvoorbeeld ook als je je wachtwoord kwijt bent. Lees ook de <button type="button" class="link" data-privacy>privacyverklaring</button>.</p>
     </form>`, 'Account aanvragen');
   const form = s.$('#reqForm'), msg = s.$('#reqMsg');
   form.name.focus({ preventScroll: true });
