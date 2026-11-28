@@ -2544,3 +2544,18 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .bk-main .mag-hero .mh-photo { aspect-ratio: auto; align-self: stretch; height: auto; min-height: calc(60cqw * .75); }
 .bk-main .mag-hero .mh-photo img, .bk-main .mag-hero .mh-photo img.cropped { position: static; width: 100% !important; height: 100% !important; left: auto !important; top: auto !important; object-fit: cover; }
 }
+/* Gedeeld naast de strook: uitgelicht recept compacter (kleiner vaandel en kleinere knoppen), zodat de recepten eronder al in beeld komen */
+@media (min-width: 1000px) {
+  .bk-main .mag-hero .mh-photo { min-height: calc(60cqw * .58); }
+  .bk-main .mag-hero .mh-text { padding: 22px 26px 22px 0; gap: 10px; }
+  .bk-main .mag-hero .mh-text > :not(.flag) { margin-left: 26px; }
+  .bk-main .mag-hero .flag { margin-top: 2px; margin-bottom: 4px; }
+  .bk-main .mag-hero .flag a, .bk-main .mag-hero .flag > span { font-size: clamp(30px, 2.9vw, 42px); padding: 11px 20px 8px; outline-offset: -6px; }
+  .bk-main .mag-hero .mh-lead { font-size: 15px; line-height: 1.45; }
+  .bk-main .mag-hero .mh-actions { gap: 8px; margin-top: 2px; }
+  .bk-main .mag-hero .mh-actions > .btn { width: 150px; padding: 8px 14px; font-size: 14px; }
+}
+@media (min-width: 1000px) {
+  .bk-main .mag-hero .mh-photo { position: relative; }
+  .bk-main .mag-hero .mh-photo img, .bk-main .mag-hero .mh-photo img.cropped { position: absolute; inset: 0; }
+}
