@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.30.1 · 28 november 2026';
+const APP_VERSION = '1.30.2 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1346,7 +1346,7 @@ async function renderDetail(id, opts = {}) {
         ${r.notes ? `<h3 class="notes-head">Notities</h3><p class="notes">${esc(r.notes).replace(/\n/g, '<br>')}</p>` : ''}
 
         ${r.source ? `<p class="source">Bron: <a href="${esc(r.source)}" target="_blank" rel="noopener">${esc(siteOf(r.source))}</a></p>` : ''}
-        ${r.fromUser && !foreign ? `<p class="source">Van ${esc(r.fromUser)}</p>` : ''}
+        ${r.fromStarter && !foreign ? '<p class="source">Uit het startkookboek</p>' : r.fromUser && !foreign ? `<p class="source">Van ${esc(r.fromUser)}</p>` : ''}
 
         ${foreign ? '' : `<div class="detail-actions">
           <button class="btn ghost" id="shareBtn">${ICONS.share} Delen</button>
@@ -3339,7 +3339,7 @@ async function copyStarter(d, list, asked = false) {
     if (btn) btn.textContent = `Bezig… ${done + failed + 1} van ${todo.length}`;
     try {
       const full = await Sync.call('starter_recipe', { id: r.id });
-      const copy = { ...full, id: uid(), shared: false, starter: false, links: [], favorite: false, fromUser: d.owner.name, createdAt: Date.now() };
+      const copy = { ...full, id: uid(), shared: false, starter: false, links: [], favorite: false, fromUser: '', fromStarter: true, createdAt: Date.now() };
       delete copy.updatedAt; delete copy._inboxId; delete copy.thumb; delete copy.thumbS; delete copy.thumbV;
       await DB.put(copy); done++;
     } catch { failed++; }
