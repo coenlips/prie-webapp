@@ -2609,3 +2609,5 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 @media (min-width: 752px) and (max-width: 899.98px) {
   body[data-page=detail]:not(.cook) .hero { width: 100vw; max-width: none; margin-left: calc(-1 * (max(24px, (100vw - var(--page-w, 1320px)) / 2 + 24px) + 4px)); margin-right: 0; }
 }
+/* Categorieën bij Recept aanpassen: wat ruimte rondom, zodat de randen van de knopjes nooit wegvallen */
+.chips.cat-choices { padding: 3px 3px 3px; margin: -3px -3px 0; }
