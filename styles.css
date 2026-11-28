@@ -2599,3 +2599,13 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .mm-edit .mm-ehead { border-bottom: 0; }
   .mm-edit .mm-ehead::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 1.5px; background: var(--text); }
 }
+/* Recept op iPad liggend en laptop: rechterkant gelijk met het koksmutsje in de menubalk */
+@media (min-width: 900px) {
+  body[data-page=detail]:not(.cook) .detail { --edge-r: max(24px, calc((100vw - var(--page-w, 1320px)) / 2 + 32px)); margin: 0 var(--edge-r) 0 auto; padding-right: 0; max-width: 760px; box-sizing: border-box; }
+}
+@media (min-width: 700px) and (max-width: 899.98px) {
+  body[data-page=detail]:not(.cook) main { max-width: none; margin-left: 0; margin-right: 0; padding-left: calc(max(24px, (100% - var(--page-w, 1320px)) / 2 + 24px) + 4px); padding-right: max(24px, calc((100% - var(--page-w, 1320px)) / 2 + 32px)); }
+}
+@media (min-width: 752px) and (max-width: 899.98px) {
+  body[data-page=detail]:not(.cook) .hero { width: 100vw; max-width: none; margin-left: calc(-1 * (max(24px, (100vw - var(--page-w, 1320px)) / 2 + 24px) + 4px)); margin-right: 0; }
+}
