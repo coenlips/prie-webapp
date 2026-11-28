@@ -2314,3 +2314,7 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .shop-split:has(.dishes) > .shop-left::-webkit-scrollbar, .shop-split > .dishes::-webkit-scrollbar { display: none; width: 0; height: 0; }
 /* Plusknop rechtsonder met pannetje (recepten) of stolp (menu's) */
 .fab[data-mode] svg { width: 34px; height: 34px; stroke-width: 1.9; }
+/* Boodschappen op iPad en laptop: de twee kolommen even breed als de inhoud van de menubalk (logo tot accountknop) */
+@media (min-width: 900px) {
+  body[data-page=shop]:has(.dishes) main { max-width: none; margin: 0; padding-left: calc(max(24px, (100% - var(--page-w, 1320px)) / 2 + 24px) + 4px); padding-right: max(24px, calc((100% - var(--page-w, 1320px)) / 2 + 32px)); }
+}
