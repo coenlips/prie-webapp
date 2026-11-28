@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.26.4 · 28 november 2026';
+const APP_VERSION = '1.27.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2569,6 +2569,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.27.0', date: '28 november 2026', sections: [{ items: [
+    'Menu\'s en Gedeeld hebben nu ook op de iPhone dezelfde stijl als op de laptop.',
+    'Nieuw in het accountmenu: Ricetta aanbevelen. Stuur vrienden met één tik een berichtje over de app.',
+  ] }] },
   { v: '1.26.0', date: '28 november 2026', sections: [{ items: [
     'Gedeeld op iPad en laptop: links een strook met alle kookboeken, rechts het gekozen kookboek als magazine.',
     'Klantkaarten hebben een nieuw icoon: een portemonnee met pasje.',
@@ -3145,6 +3149,25 @@ function accBtnHtml(onSettings) {
     : `<button class="icon-btn settings-btn acc-btn${u ? '' : ' anon'}" data-acc aria-label="${u ? 'Account: ' + esc(u.name) : 'Account'}" aria-haspopup="true" aria-expanded="false">${face}</button>`;
 }
 const ACC_OUT = '<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>';
+// Ricetta aanbevelen: een aanprijzend berichtje via WhatsApp, Berichten, mail enz.
+async function tellFriends() {
+  await checkPublicUrl();
+  const url = APP_URL();
+  const text = `Ken jij Ricetta al? 🍝\n\n`
+    + `Al mijn recepten op één plek, en het is gewoon leuk om te gebruiken:\n`
+    + `📲 Een recept van een website of uit een kookboek bewaar je in een paar tikken\n`
+    + `🛒 Met één druk staan alle ingrediënten op je boodschappenlijst, netjes opgeteld\n`
+    + `🎄 Stel een menu samen voor kerst of een etentje, de boodschappen komen vanzelf\n`
+    + `👩‍🍳 Kookstand met timers, en je scherm blijft gewoon aan\n`
+    + `🤝 En we kunnen elkaars recepten bekijken en bewaren\n\n`
+    + `Werkt op je telefoon, tablet en laptop. Probeer het hier:\n${url}`;
+  if (navigator.share) {
+    try { await navigator.share({ title: 'Ricetta, de receptenapp', text }); } catch { /* geannuleerd */ }
+    return;
+  }
+  try { await navigator.clipboard.writeText(text); toast('Bericht gekopieerd: plak het in WhatsApp, een mail of een sms'); }
+  catch { window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank', 'noopener'); }
+}
 function closeAccPop() {
   const pop = $('#accPop'); if (!pop) return;
   pop.remove(); document.querySelectorAll('[data-acc]').forEach(b => b.setAttribute('aria-expanded', 'false'));
@@ -3165,11 +3188,13 @@ function openAccPop(btn) {
     <dl><dt>Naam</dt><dd>${esc(u.name)}</dd><dt>E-mail</dt><dd>${me && me.email ? esc(me.email) : '<i>nog niet ingevuld</i>'}</dd></dl>
     ${document.body.classList.contains('has-requests') ? row('#/gebruikers', ICONS.user, 'Accountaanvragen', 'new') : ''}
     ${row('#/settings', ICONS.gear, 'Instellingen')}
+    ${row('', ICONS.heart, 'Ricetta aanbevelen', 'tell', 'accTell')}
     ${row('', ACC_OUT, 'Uitloggen', 'out', 'accOut')}` : `
     <div class="acc-pop-who"><div class="acc-avatar anon">${ICONS.user}</div>
       <div><b>Niet ingelogd</b><small>Bewaar je recepten online en deel ze</small></div></div>
     ${row('#/settings/account', ICONS.user, 'Inloggen')}
-    ${row('#/settings', ICONS.gear, 'Instellingen')}`;
+    ${row('#/settings', ICONS.gear, 'Instellingen')}
+    ${row('', ICONS.heart, 'Ricetta aanbevelen', 'tell', 'accTell')}`;
   document.body.append(pop);
   const place = () => {
     const r = btn.getBoundingClientRect(), wide = innerWidth >= 700;
@@ -3180,6 +3205,7 @@ function openAccPop(btn) {
   place();
   btn.setAttribute('aria-expanded', 'true');
   pop.addEventListener('click', e => { if (e.target.closest('a')) closeAccPop(); });
+  $('#accTell')?.addEventListener('click', () => { closeAccPop(); tellFriends(); });
   $('#accOut')?.addEventListener('click', async () => {
     closeAccPop();
     if (!confirm('Uitloggen? Je recepten worden van dit toestel gehaald. Online blijven ze bewaard.')) return;
@@ -3483,8 +3509,9 @@ async function renderBooksSplit(ownerId) {
     ${ownerId != null ? `<button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>` : ''}
     ${accBtnHtml()}` });
   head('Gedeeld');
+  const one = !BOOK_SPLIT.matches;   // iPhone en iPad staand: alleen de lijst, een kookboek opent als eigen pagina
   const shell = books => {
-    const sel = ownerId != null ? ownerId : books[0]?.id;
+    const sel = one ? null : ownerId != null ? ownerId : books[0]?.id;
     const strip = `<aside class="mm-side bk-side" aria-label="Alle kookboeken">
       <h2 class="page-title">Gedeeld</h2>
       <p class="bk-intro">Recepten die anderen met jou delen.</p>
@@ -3494,6 +3521,7 @@ async function renderBooksSplit(ownerId) {
         <small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · <span class="bk-new">${b.new} nieuw</span>` : ''}</small></div></a>`).join('')
         : `<p class="mm-none">Er deelt nog niemand recepten met je. Deel je eigen recepten bij <a href="#/settings/delen" class="link">Instellingen → Delen</a>.</p>`}
     </aside>`;
+    if (one) { view.innerHTML = `<div class="mm-one">${strip}</div>`; return null; }
     view.innerHTML = `<div class="mm bk-split">${strip}<div class="mm-main bk-main" id="bkMain">${sel != null ? loaderHtml('Recepten openen…') : ''}</div></div>`;
     const side = view.querySelector('.bk-side');
     side.scrollTop = bookStripScroll;
@@ -3501,7 +3529,7 @@ async function renderBooksSplit(ownerId) {
     view.querySelectorAll('.bk-side .mm-item').forEach(a => a.addEventListener('click', e => { e.preventDefault(); location.replace(a.getAttribute('href')); }));
     return sel;
   };
-  view.innerHTML = `<div class="mm bk-split"><aside class="mm-side bk-side">${loaderHtml('Gedeelde recepten ophalen…')}</aside><div class="mm-main bk-main" id="bkMain"></div></div>`;
+  view.innerHTML = one ? `<div class="mm-one">${loaderHtml('Gedeelde recepten ophalen…')}</div>` : `<div class="mm bk-split"><aside class="mm-side bk-side">${loaderHtml('Gedeelde recepten ophalen…')}</aside><div class="mm-main bk-main" id="bkMain"></div></div>`;
   let shown = null;
   await cachedLoad(seq, 'books', () => Sync.call('books'), async books => {
     const sel = shell(books);
@@ -3517,7 +3545,7 @@ async function renderBooksSplit(ownerId) {
 
 /* Ricette van anderen: '#/kookboeken' */
 async function renderBooks() {
-  if (BOOK_SPLIT.matches && loggedIn()) return renderBooksSplit(null);
+  if (loggedIn()) return renderBooksSplit(null);   // zelfde stijl op alle schermen
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
   setHeader({ docTitle: 'Gedeeld', timer: false, actions: `${accBtnHtml()}` });
@@ -3591,8 +3619,8 @@ function showBook(ownerId, d, head, filtersOpen) {
   if (!chips.some(([k]) => k === f.filter)) f.filter = 'all';
   if (f.course && !courseNames.includes(f.course)) f.course = null;
 
-  const split = root !== view;
-  const bk = split ? (shareStore.get('books') || []).find(b => b.id === d.owner.id) : null;
+  const split = true;   // overal dezelfde titel: Le Ricette di, naam groot in rood, aantal recepten
+  const bk = (shareStore.get('books') || []).find(b => b.id === d.owner.id);
   const nNew = bk?.new || 0, nAll = d.recipes.length;
   root.innerHTML = `<section class="book-page">
     ${split ? `<div class="mm-head bk-head"><div class="mm-ht"><div class="mm-kick">Le Ricette di</div><h1>${esc(d.owner.name)}</h1>

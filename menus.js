@@ -110,7 +110,7 @@ const Menus = (() => {
 
   /* ---------- Overzicht ---------- */
   async function renderList(view) {
-    if (SPLIT.matches) return renderSplit(view, null);
+    return renderSplit(view, null);   // zelfde stijl op alle schermen; de oude opzet hieronder wordt niet meer gebruikt
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
     setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
@@ -155,21 +155,24 @@ const Menus = (() => {
         : `<p class="mm-none">Nog geen menu's. Kies hierboven waarvoor je een menu wilt maken, of tik op de plusknop.</p>`}
     </aside>`;
   }
-  function bindStrip(view, beforeLeave) {
+  function bindStrip(view, beforeLeave, page) {
     const strip = view.querySelector('.mm-side');
+    view.querySelectorAll('.mm-side [data-new]').forEach(b => b.onclick = async () => { if (beforeLeave) await beforeLeave(); create(b.dataset.new); });
+    if (page) return;   // eigen pagina (iPhone): gewone links, de pagina scrolt zelf
     strip.scrollTop = stripScroll;
     strip.addEventListener('scroll', () => { stripScroll = strip.scrollTop; }, { passive: true });
-    view.querySelectorAll('.mm-side [data-new]').forEach(b => b.onclick = async () => { if (beforeLeave) await beforeLeave(); create(b.dataset.new); });
     view.querySelectorAll('.mm-item').forEach(a => a.addEventListener('click', async e => { e.preventDefault(); if (beforeLeave) await beforeLeave(); location.replace(a.getAttribute('href')); }));
   }
   async function renderSplit(view, id) {
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
-    setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
+    const one = !SPLIT.matches;   // iPhone en iPad staand: het overzicht en een menu elk als eigen pagina
     const menus = sortMenus(await all());
     if (isStale(seq)) return;
-    const m = (id && menus.find(x => x.id === id)) || (!id && menus[0]) || null;
+    const m = (id && menus.find(x => x.id === id)) || (!id && !one && menus[0]) || null;
     if (id && !m) { location.replace('#/menus'); return; }
+    if (one && m) { setHeader({ title: m.title || 'Menu', back: true, timer: false }); Shopping.updateBadge(); }
+    else setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
     const side = stripHtml(menus, m && m.id);
     let main = `<div class="mm-main"><p class="mm-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p></div>`;
     let dishes = [], courses = [];
@@ -192,8 +195,9 @@ const Menus = (() => {
           : `<div class="mm-empty"><p>Nog geen gerechten in dit menu.</p><button class="btn" data-go="#/menu/${encodeURIComponent(m.id)}/bewerk">${ICONS.edit} Gerechten kiezen</button></div>`}
       </div>`;
     }
-    view.innerHTML = `<div class="mm">${side}${main}</div>`;
-    bindStrip(view);
+    if (one && !m) { view.innerHTML = `<div class="mm-one">${side}</div>`; bindStrip(view, null, true); }
+    else if (one) view.innerHTML = `<div class="mm-solo"><div class="crumb-row crumb-top">${crumbHtml("Menu's")}</div>${main}</div>`;
+    else { view.innerHTML = `<div class="mm">${side}${main}</div>`; bindStrip(view); }
     if (m) {
       view.querySelectorAll('.mm-dish').forEach(el => el.addEventListener('click', () => {
         state.fromMenu = m.id; state.fromMenuTitle = m.title || 'Menu'; state.fromMenuCourse = el.dataset.course || '';
@@ -210,7 +214,7 @@ const Menus = (() => {
     pasen: c => `<svg class="mk-deco ${c}" viewBox="0 0 90 60" aria-hidden="true"><ellipse cx="38" cy="34" rx="13" ry="17" fill="#f2c94c" transform="rotate(-16 38 34)"/><path d="M27 30q5-4 10 0t10 0" stroke="#fff" stroke-width="2.4" fill="none" transform="rotate(-16 38 34)"/><ellipse cx="58" cy="38" rx="11" ry="14" fill="#9fd3c7" transform="rotate(14 58 38)"/><circle cx="55" cy="34" r="2" fill="#fff"/><circle cx="61" cy="40" r="2" fill="#fff"/><circle cx="56" cy="44" r="1.6" fill="#fff"/><path d="M20 50q10-8 22-2" stroke="#6aa84f" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
   };
   async function renderMenu(view, id) {
-    if (SPLIT.matches) return renderSplit(view, id);
+    return renderSplit(view, id);
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
     const m = await DB.get(id);
