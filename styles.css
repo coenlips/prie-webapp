@@ -2657,7 +2657,8 @@ body.cook .topbar .acc-btn { display: none; }
 .forgot-row .link { font-size: 14px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
 /* Logo: zilveren vork links van RICETTA, even hoog als de letters */
 body.brand-head .topbar h1::before, .welcome-logo::before {
-  content: ''; display: inline-block; height: .7em; aspect-ratio: 59 / 469; margin-right: .077em; vertical-align: baseline;
+  /* het plaatje heeft rondom 10px ruimte voor de schaduw (zit in het plaatje zelf, zodat hij nooit wordt afgeknipt) */
+  content: ''; display: inline-block; height: calc(.7em * 489 / 469); aspect-ratio: 79 / 489; vertical-align: calc(-.7em * 10 / 469);
+  margin-right: calc(.077em - .7em * 10 / 469);
   background: url(images/fork.png) center / contain no-repeat;
-  filter: drop-shadow(0 .02em .012em rgb(40 20 10 / .3));
 }
