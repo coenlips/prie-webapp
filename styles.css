@@ -2508,3 +2508,6 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 @media (min-width: 600px) and (max-width: 899.98px) { .mm-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .mm-head h1 { font-size: 56px; } }
 @media (max-width: 699.98px) { body[data-page=book] .bk-head + .list-head { margin-top: 0; } }
 @media (min-width: 700px) and (max-width: 899.98px) { body[data-page=book] .bk-head { margin-left: var(--gutter-l); margin-right: var(--gutter-r); padding-top: 22px; } body[data-page=book] .bk-head + .list-head { margin-top: 0; } }
+/* Koppen Menu's, Boodschappen en Gedeeld op iPhone en iPad staand op precies dezelfde hoogte */
+@media (max-width: 699.98px) { .mm-one .page-title { margin-top: 2px; } }
+@media (min-width: 700px) and (max-width: 899.98px) { .mm-one .page-title { margin-top: 16px; } }
