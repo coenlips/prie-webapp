@@ -2587,3 +2587,15 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .me-tip b { font: 500 18px var(--font-label); text-transform: uppercase; letter-spacing: .03em; color: var(--accent); }
 .me-tip span { font-size: 14px; color: var(--muted); line-height: 1.45; }
 .me-tip .btn { justify-self: start; width: auto; padding: 8px 18px; margin-top: 6px; font-size: 14px; }
+/* Annuleer en Bewaar blijven bovenaan staan bij het scrollen (Menu aanpassen en Recept aanpassen, iPad en laptop) */
+@media (min-width: 900px) {
+  .mm-edit .mm-ehead { position: sticky; top: -28px; z-index: 6; background: var(--bg); margin: -28px -12px 0; padding: 28px 12px 12px; }
+}
+@media (min-width: 700px) {
+  .ed-head { position: sticky; top: calc(var(--topbar-h, 72px) - 2px); z-index: 6; background: var(--bg); margin-left: -12px; margin-right: -12px; padding-left: 12px; padding-right: 12px; padding-top: 30px; margin-top: -36px; border-bottom: 0; }
+  .ed-head::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: -1.5px; height: 1.5px; background: var(--text); }
+}
+@media (min-width: 900px) {
+  .mm-edit .mm-ehead { border-bottom: 0; }
+  .mm-edit .mm-ehead::after { content: ''; position: absolute; left: 12px; right: 12px; bottom: 0; height: 1.5px; background: var(--text); }
+}
