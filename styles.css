@@ -2457,3 +2457,13 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .shop .loyal-wrap.none { display: none; }
 @media (min-width: 700px) { .shop:has(.loyal-wrap.none) > .shop-split { margin-top: -6px; } }
 @media (max-width: 699px) { .shop:has(.loyal-wrap.none) .page-title { margin-top: 2px; } }
+/* iPad en laptop: eerste klantkaart links gelijk met het Ricetta-logo */
+@media (min-width: 700px) {
+  .shop .loyal-rail { --edge-l: calc(max(24px, (100vw - var(--page-w, 1320px)) / 2 + 24px) + 4px); padding-left: var(--edge-l); scroll-padding-left: var(--edge-l); }
+}
+@media (min-width: 700px) {
+  .shop .loyal-rail { --edge-r: max(24px, calc((100vw - var(--page-w, 1320px)) / 2 + 32px)); margin-left: calc(-1 * var(--edge-l)); margin-right: calc(-1 * var(--edge-r)); }
+}
+@media (min-width: 700px) {
+  .shop .loyal-wrap:has(#cardRail)::before { left: calc(-1 * (max(24px, (100vw - var(--page-w, 1320px)) / 2 + 24px) + 4px)); right: calc(-1 * max(24px, calc((100vw - var(--page-w, 1320px)) / 2 + 32px))); }
+}
