@@ -2526,3 +2526,11 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .bk-side .mm-item b { color: var(--accent); }
 /* Namen van de menu's ook rood (strook op laptop en lijst op iPhone) */
 .mm-item b { color: var(--accent); }
+/* Gedeeld naast de strook: zoekbalk en filters boven de titel, uitklappen net als bij je eigen recepten */
+@media (min-width: 900px) {
+  .bk-main .list-head { margin: 0 -12px; padding: 18px 12px 14px; box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
+  .bk-main .list-head.closed { padding-top: 0 !important; padding-bottom: 0 !important; box-shadow: none; }
+  .bk-main .list-head + .bk-head { padding-top: 28px; }
+  .bk-main .list-head:not(.closed) + .bk-head { padding-top: 14px; }
+}
+@media (min-width: 900px) { .bk-main .list-head.closed + .bk-head { padding-top: 19px; } }

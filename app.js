@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.27.5 · 28 november 2026';
+const APP_VERSION = '1.27.6 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3633,8 +3633,6 @@ function showBook(ownerId, d, head, filtersOpen) {
   const bk = (shareStore.get('books') || []).find(b => b.id === d.owner.id);
   const nNew = bk?.new || 0, nAll = d.recipes.length;
   root.innerHTML = `<section class="book-page">
-    ${split ? `<div class="mm-head bk-head"><div class="mm-ht"><div class="mm-kick">Le Ricette di</div><h1>${esc(d.owner.name)}</h1>
-      <p>${nAll} ${nAll === 1 ? 'recept' : 'recepten'}${nNew ? ` · <span class="bk-new">${nNew} nieuw deze week</span>` : ''}</p></div></div>` : ''}
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
       <div class="list-tools"><div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze recepten" value="${esc(f.q)}" autocomplete="off"></div>${shuffleBtnHtml('bookShuffle')}</div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -3642,6 +3640,8 @@ function showBook(ownerId, d, head, filtersOpen) {
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
         : `<button class="chip${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
     </div></div>
+    ${split ? `<div class="mm-head bk-head"><div class="mm-ht"><div class="mm-kick">Le Ricette di</div><h1>${esc(d.owner.name)}</h1>
+      <p>${nAll} ${nAll === 1 ? 'recept' : 'recepten'}${nNew ? ` · <span class="bk-new">${nNew} nieuw deze week</span>` : ''}</p></div></div>` : ''}
     ${split ? '' : `<div class="book-flag"><div class="acc-flag"><span><small>Le Ricette di</small>${esc(d.owner.name)}</span></div></div>`}
     <ul class="cards book-cards" id="bookCards"></ul>
   </section>`;
