@@ -2615,5 +2615,6 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 /* Alleen op de laptop (muis): naam van het recept boven Ingrediënten */
 .detail-name { display: none; }
 @media (min-width: 900px) and (hover: hover) and (pointer: fine) {
-  body[data-page=detail]:not(.cook) .detail h2.detail-name { display: block; margin: 14px 0 22px; font: 400 38px/1 var(--font-title); letter-spacing: .03em; text-transform: uppercase; color: var(--text); overflow-wrap: anywhere; text-wrap: balance; }
+  body[data-page=detail]:not(.cook) .detail h2.detail-name { display: block; margin: 14px 0 0; font: 400 38px/1 var(--font-title); letter-spacing: .03em; text-transform: uppercase; color: var(--text); overflow-wrap: anywhere; text-wrap: balance; }
 }
+@media (min-width: 900px) and (hover: hover) and (pointer: fine) { body[data-page=detail]:not(.cook) .detail-name + .section-head { margin-top: -8px; } }
