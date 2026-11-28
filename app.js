@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.29.0 · 28 november 2026';
+const APP_VERSION = '1.29.1 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3061,11 +3061,25 @@ async function drawUserList(box) {
     const s = openAccSheet(`
       <div class="sheet-head"><h3>${esc(u.name)}</h3><button class="text-btn" data-close>Annuleer</button></div>
       <p class="acc-sheet-text">${u.recipes} ${u.recipes === 1 ? 'recept' : 'recepten'} · ${lastSeenText(u)}</p>
+      ${u.email ? `<button class="btn" id="mailPw">Inloggegevens opnieuw mailen</button>
+      <p class="acc-sheet-text small-note">${esc(u.name)} krijgt een nieuw tijdelijk wachtwoord per mail op ${esc(u.email)}.</p>` : ''}
       <button class="btn ghost" id="resetPw">Nieuw tijdelijk wachtwoord geven</button>
       <p class="acc-sheet-text small-note">Handig als ${esc(u.name)} het wachtwoord kwijt is. ${esc(u.name)} wordt dan overal uitgelogd.</p>
       <button class="btn danger" id="delUser">Account verwijderen</button>
       <p class="sync-msg" id="optMsg" hidden></p>`, `Opties voor ${u.name}`);
     const msg = s.$('#optMsg');
+    s.$('#mailPw')?.addEventListener('click', async () => {
+      if (!confirm(`${u.name} een nieuw tijdelijk wachtwoord mailen? Het oude wachtwoord werkt dan niet meer.`)) return;
+      const btn = s.$('#mailPw'); btn.disabled = true; btn.textContent = 'Bezig…';
+      try {
+        const r = await Sync.call('user_reset', { id: u.id, mail: true, appUrl: location.origin + location.pathname });
+        showTempPassword(s, r.name, r.password, `Inloggegevens voor ${r.name}`);
+        s.$('.acc-sheet-text').innerHTML = r.mailed
+          ? `✓ De nieuwe inloggegevens zijn gemaild naar <strong>${esc(r.email)}</strong>. Hieronder staan ze ook, voor als de mail niet aankomt.`
+          : `⚠️ De mail naar <strong>${esc(r.email || u.email)}</strong> kon niet worden verstuurd. Geef deze gegevens zelf door, bijvoorbeeld via een berichtje.`;
+        drawUserList(box);
+      } catch (err) { msg.hidden = false; msg.textContent = err.message; btn.disabled = false; btn.textContent = 'Inloggegevens opnieuw mailen'; }
+    });
     s.$('#resetPw').onclick = async () => {
       try { const r = await Sync.call('user_reset', { id: u.id }); showTempPassword(s, r.name, r.password, 'Nieuw wachtwoord'); drawUserList(box); }
       catch (err) { msg.hidden = false; msg.textContent = err.message; }

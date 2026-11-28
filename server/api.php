@@ -813,7 +813,18 @@ switch ($action) {
         db()->prepare('UPDATE recepten_users SET pw_hash = ?, must_change = 1 WHERE id = ?')->execute([password_hash($pw, PASSWORD_DEFAULT), $u['id']]);
         db()->prepare('DELETE FROM recepten_tokens WHERE user_id = ?')->execute([$u['id']]);
         db()->prepare('DELETE FROM recepten_fails WHERE name_key = ?')->execute([$u['name_key']]);
-        out(['name' => $u['name'], 'password' => $pw]);
+        // Desgewenst de nieuwe inloggegevens mailen naar het e-mailadres van de gebruiker
+        $b = body(); $mailed = null; $email = (string) ($u['email'] ?? '');
+        if (!empty($b['mail']) && $email !== '') {
+            $url = app_url((string) ($b['appUrl'] ?? ''));
+            $body = "Hoi {$u['name']},\n\nHier zijn je inloggegevens voor Ricetta.\n\n"
+                . "Open de app: $url\nNaam: {$u['name']}\nTijdelijk wachtwoord: $pw\n\n"
+                . "Bij het inloggen kies je zelf een nieuw wachtwoord.\n"
+                . "Tip: op de iPhone open je de app in Safari en kies je Deel → Zet op beginscherm.\n\n"
+                . "Eet smakelijk!\n{$me['name']}\n";
+            $mailed = send_mail($email, 'Je inloggegevens voor Ricetta', $body);
+        }
+        out(['name' => $u['name'], 'password' => $pw, 'email' => $email, 'mailed' => $mailed]);
     }
 
     case 'user_delete': {
