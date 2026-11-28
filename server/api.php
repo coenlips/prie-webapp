@@ -1004,7 +1004,7 @@ switch ($action) {
             $thumbs = array_values(array_filter(array_map(fn($r) => $r['thumbS'] ?? '', $byNew)));
             $out[] = ['id' => (int) $o['id'], 'name' => $o['name'], 'count' => count($list),
                       'new' => count(array_filter($list, fn($r) => ($r['createdAt'] ?? 0) > $week)),
-                      'thumbs' => array_slice($thumbs, 0, 4)];
+                      'thumbs' => array_slice($thumbs, 0, 4), 'admin' => (bool) $o['is_admin']];
         }
         out($out);
     }

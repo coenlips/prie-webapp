@@ -2618,3 +2618,15 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   body[data-page=detail]:not(.cook) .detail h2.detail-name { display: block; margin: 14px 0 0; font: 400 38px/1 var(--font-title); letter-spacing: .03em; text-transform: uppercase; color: var(--text); overflow-wrap: anywhere; text-wrap: balance; }
 }
 @media (min-width: 900px) and (hover: hover) and (pointer: fine) { body[data-page=detail]:not(.cook) .detail-name + .section-head { margin-top: -8px; } }
+/* Leeg receptenboek: kookboek van de beheerder om mee te beginnen */
+.starter { display: grid; grid-template-columns: auto 1fr; gap: 12px 16px; align-items: center; text-align: left; max-width: 520px; margin: 22px auto 14px; padding: 16px; background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--accent); border-radius: 6px; box-shadow: 0 10px 24px -14px rgb(40 20 10 / .3); }
+.starter .covers { width: 64px; height: 64px; display: grid; grid-template-columns: repeat(2, 31px); grid-template-rows: repeat(2, 31px); gap: 2px; border-radius: 4px; overflow: hidden; }
+.starter .covers img { width: 31px; height: 31px; object-fit: cover; display: block; }
+.starter-tx b { display: block; font: 500 22px/1.1 var(--font-label); text-transform: uppercase; letter-spacing: .02em; color: var(--accent); }
+.starter-tx small { display: block; color: var(--muted); font-size: 14px; margin-top: 3px; }
+.starter-acts { grid-column: 1 / -1; display: flex; gap: 8px; }
+.starter-acts .btn { flex: 1; width: auto; margin: 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 10px 12px; font-size: 15px; }
+.starter-acts .btn svg { width: 18px; height: 18px; }
+.starter { margin: 18px auto 18px; }
+.starter-acts .btn { white-space: nowrap; font-size: 14px; letter-spacing: .05em; }
+.starter-acts .btn:disabled { opacity: .75; }

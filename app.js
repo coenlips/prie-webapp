@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.28.8 · 28 november 2026';
+const APP_VERSION = '1.29.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -700,10 +700,12 @@ function renderCards() {
         <div class="empty-emoji">🍲</div>
         <h2>Nog geen recepten</h2>
         <p>Tik op <strong>+</strong> om je eerste recept toe te voegen.</p>
+        ${loggedIn() ? '<div id="starterBook"></div>' : ''}
         <button class="btn ghost" id="sample">Voorbeeldrecept toevoegen</button>
         ${loggedIn() ? `<a class="btn ghost empty-books" href="#/kookboeken">${ICONS.shared} Gedeelde recepten van anderen bekijken</a>` : ''}
       </div>`;
     $('#sample').addEventListener('click', addSample);
+    if (loggedIn()) showStarterBook();
     return;
   }
   el.classList.toggle('mag', isWide());
@@ -2571,6 +2573,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.29.0', date: '28 november 2026', sections: [{ items: [
+    'Nog geen recepten? Dan zie je het kookboek van de beheerder, om te bekijken of in één keer helemaal over te nemen.',
+  ] }] },
   { v: '1.28.0', date: '28 november 2026', sections: [{ items: [
     'Menu aanpassen op iPad en laptop: links staan al je gerechten. Sleep ze naar de juiste gang, of versleep een gerecht naar een andere gang.',
   ] }] },
@@ -3260,6 +3265,50 @@ async function ensureThumbs() {
 }
 
 // Een recept van iemand anders als eigen kopie bewaren
+// Leeg receptenboek: het kookboek van de beheerder voorstellen, om te bekijken of in één keer helemaal over te nemen
+async function showStarterBook() {
+  let books = shareStore.get('books');
+  try { books = await Sync.call('books'); shareStore.set('books', books); } catch { /* offline: wat we nog weten */ }
+  const box = $('#starterBook');
+  if (!box || !books?.length || state.recipes.length) return;
+  const me = Sync.status().user?.id;
+  const b = books.find(x => x.admin && x.id !== me) || [...books].sort((x, y) => y.count - x.count)[0];
+  if (!b) return;
+  box.innerHTML = `<div class="starter">
+    <div class="covers">${bookCovers(b)}</div>
+    <div class="starter-tx"><span class="mm-tag">Le Ricette di</span><b>${esc(b.name)}</b>
+      <small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'} om mee te beginnen</small></div>
+    <div class="starter-acts">
+      <a class="btn ghost" href="#/kookboek/${b.id}">Bekijken</a>
+      <button type="button" class="btn" id="starterAll">Alles toevoegen</button>
+    </div>
+  </div>`;
+  $('#starterAll').onclick = () => copyWholeBook(b);
+}
+async function copyWholeBook(b) {
+  if (!confirm(`Alle ${b.count} recepten van ${b.name} aan je eigen recepten toevoegen?`)) return;
+  const btn = $('#starterAll');
+  if (btn) btn.disabled = true;
+  let d;
+  try { d = await Sync.call('book', { owner: b.id }); } catch (err) { toast(shareErr(err)); if (btn) btn.disabled = false; return; }
+  const have = new Set(state.recipes.filter(x => x.fromUser === d.owner.name).map(x => x.title));
+  const todo = d.recipes.filter(r => !have.has(r.title));
+  let done = 0, failed = 0;
+  for (const r of todo) {
+    if (btn) btn.textContent = `Bezig… ${done + failed + 1} van ${todo.length}`;
+    try {
+      const full = await Sync.call('book_recipe', { owner: d.owner.id, id: r.id });
+      const copy = { ...full, id: uid(), shared: false, links: [], favorite: false, fromUser: d.owner.name, createdAt: Date.now() };
+      delete copy.updatedAt; delete copy._inboxId; delete copy.thumb; delete copy.thumbS; delete copy.thumbV;
+      await DB.put(copy); done++;
+    } catch { failed++; }
+  }
+  await loadRecipes();
+  toast(failed ? `${done} recepten toegevoegd, ${failed} lukten niet` : `${done} recepten van ${d.owner.name} toegevoegd`);
+  if (typeof Sync.syncNow === 'function') Sync.syncNow();
+  route();
+}
+
 async function saveCopy(src, fromName) {
   const copy = { ...src, id: uid(), shared: false, links: [], favorite: false, fromUser: fromName, createdAt: Date.now() };
   delete copy.updatedAt; delete copy._inboxId; delete copy.thumb; delete copy.thumbS; delete copy.thumbV;
