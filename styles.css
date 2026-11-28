@@ -2530,8 +2530,9 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 @media (min-width: 900px) {
   .bk-main .list-head { margin: 0 -12px; padding: 18px 12px 14px; box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
   .bk-main .list-head.closed { padding-top: 0 !important; padding-bottom: 0 !important; box-shadow: none; }
-  .bk-main .list-head + .bk-head { padding-top: 28px; }
-  .bk-main .list-head:not(.closed) + .bk-head { padding-top: 14px; }
+  /* vaste ruimte boven de titel; het verschil tussen open en dicht zit in de filterbalk zelf, zodat de titel na het inklappen niet verspringt */
+  .bk-main .list-head + .bk-head { padding-top: 14px; }
+  .bk-main .list-head.closed { padding-bottom: 14px !important; }
 }
 /* iPhone en iPad staand: kruimelpad '‹ Gedeeld' boven Le Ricette di */
 .bk-crumb { margin: 4px 0 0; }
