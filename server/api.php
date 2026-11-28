@@ -164,6 +164,11 @@ function db(): PDO {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0");
     }
     // Foutmeldingen en ideeën van gebruikers (de beheerder ziet ze bij Instellingen → Wat is er nieuw)
+    // Anoniem gebruik tellen: per toestel een willekeurige code, één regel per dag (geen IP-adres, geen account)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_visits (
+        day INT NOT NULL, device CHAR(32) NOT NULL, account TINYINT(1) NOT NULL DEFAULT 0, installed TINYINT(1) NOT NULL DEFAULT 0,
+        PRIMARY KEY (day, device), INDEX (device)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_feedback (
         id INT AUTO_INCREMENT PRIMARY KEY, user_id INT NOT NULL, kind VARCHAR(8) NOT NULL, text TEXT NOT NULL,
         done TINYINT(1) NOT NULL DEFAULT 0, app_version VARCHAR(40) NOT NULL DEFAULT '', device VARCHAR(255) NOT NULL DEFAULT '',
@@ -596,6 +601,38 @@ switch ($action) {
     case 'ping':
         db();
         out(['ok' => true, 'accounts' => true]);
+
+    // Anoniem: dit toestel heeft de app vandaag gebruikt (met of zonder account, geïnstalleerd of in de browser)
+    case 'hello': {
+        $b = body();
+        $dev = strtolower((string) ($b['device'] ?? ''));
+        if (!preg_match('/^[a-f0-9]{32}$/', $dev)) fail(400, 'Ongeldig.');
+        $day = (int) date('Ymd');
+        db()->prepare('INSERT INTO recepten_visits (day, device, account, installed) VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE account = GREATEST(account, VALUES(account)), installed = GREATEST(installed, VALUES(installed))')
+            ->execute([$day, $dev, empty($b['account']) ? 0 : 1, empty($b['installed']) ? 0 : 1]);
+        if (random_int(1, 50) === 1) db()->prepare('DELETE FROM recepten_visits WHERE day < ?')->execute([(int) date('Ymd', strtotime('-400 days'))]);
+        out(['ok' => true]);
+    }
+
+    // Beheerder: hoeveel toestellen gebruiken de app
+    case 'stats': {
+        require_admin();
+        $since = fn($days) => (int) date('Ymd', strtotime('-' . ($days - 1) . ' days'));
+        $q = db()->prepare('SELECT COUNT(DISTINCT device) AS n, COUNT(DISTINCT CASE WHEN account = 1 THEN device END) AS acc,
+            COUNT(DISTINCT CASE WHEN installed = 1 THEN device END) AS inst FROM recepten_visits WHERE day >= ?');
+        $out = [];
+        foreach (['today' => 1, 'week' => 7, 'month' => 30, 'year' => 365] as $k => $d) {
+            $q->execute([$since($d)]); $r = $q->fetch();
+            $out[$k] = ['devices' => (int) $r['n'], 'account' => (int) $r['acc'], 'installed' => (int) $r['inst']];
+        }
+        $first = (int) (db()->query('SELECT MIN(day) FROM recepten_visits')->fetchColumn() ?: 0);
+        $users = db()->prepare('SELECT COUNT(*) FROM recepten_users WHERE is_test = 0 AND last_seen >= ?');
+        $users->execute([now_ms() - 30 * 86400 * 1000]);
+        $out['since'] = $first;
+        $out['activeAccounts30'] = (int) $users->fetchColumn();
+        out($out);
+    }
 
     /* ---------- Inloggen en account ---------- */
 

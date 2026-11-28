@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.31.0 · 28 november 2026';
+const APP_VERSION = '1.32.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2576,6 +2576,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.32.0', date: '28 november 2026', sections: [{ items: [
+    'Beheer → Gebruik: zie hoeveel toestellen Ricetta gebruiken, met en zonder account. Anoniem geteld, zonder namen of IP-adressen.',
+  ] }] },
   { v: '1.31.0', date: '28 november 2026', sections: [{ items: [
     'Privacyverklaring: lees welke gegevens Ricetta bewaart en waarom, bij Instellingen → App → Privacy.',
   ] }] },
@@ -2839,10 +2842,11 @@ function privacyHtml() {
       <li><b>Inloggen beveiligen</b>: bij een mislukte inlogpoging bewaren we de naam en het IP-adres, om raden van wachtwoorden tegen te gaan. Dit wordt na 24 uur gewist.</li>
       <li><b>Recepten van websites</b>: plak je een link, dan haalt onze server die pagina voor je op. Lukt dat niet, dan bewaren we het adres van de website en de reden, zodat we de app kunnen verbeteren.</li>
       <li><b>Fouten en ideeën</b>: stuur je een melding, dan bewaren we je tekst, de versie van de app en het soort toestel en browser.</li>
+      <li><b>Gebruik tellen</b>: om te weten hoeveel mensen Ricetta gebruiken, stuurt de app één keer per dag een willekeurige code van je toestel naar de server, met of je bent ingelogd en of de app op je beginscherm staat. Die code zegt niets over wie je bent; er gaat geen naam, account of IP-adres mee. We bewaren dit ruim een jaar.</li>
     </ul>
     <h4>Wat we niet doen</h4>
     <ul>
-      <li>Geen advertenties, geen trackers en geen statistiekdiensten van anderen.</li>
+      <li>Geen advertenties, geen trackers en geen statistiekdiensten van anderen; we tellen alleen zelf, anoniem, hoeveel toestellen de app gebruiken.</li>
       <li>We verkopen of geven je gegevens niet aan anderen.</li>
       <li>De camera wordt alleen gebruikt om de streepjescode van een klantkaart te scannen; de beelden blijven op je toestel.</li>
     </ul>
@@ -2921,6 +2925,15 @@ function showTempPassword(s, name, pw, title) {
   };
 }
 
+async function drawUsage(box) {
+  box.innerHTML = loaderHtml('Cijfers ophalen…');
+  let st;
+  try { st = await Sync.call('stats'); } catch (err) { box.innerHTML = `<p class="small-note">${esc(/Onbekende actie/.test(err.message) ? 'Zet eerst de nieuwe api.php op de server.' : err.message)}</p>`; return; }
+  const since = st.since ? new Date(String(st.since).replace(/(\d{4})(\d{2})(\d{2})/, '$1-$2-$3') + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' }) : '';
+  const tile = (t, d) => `<div class="us-tile"><b>${d.devices}</b><span>${t}</span><small>${d.account} met account<br>${d.devices - d.account} zonder</small></div>`;
+  box.innerHTML = `<div class="us-grid">${tile('Vandaag', st.today)}${tile('7 dagen', st.week)}${tile('30 dagen', st.month)}${tile('12 maanden', st.year)}</div>
+    <p class="small-note">Geteld worden <b>toestellen</b>: wie Ricetta op telefoon én laptop gebruikt, telt twee keer. ${st.month.installed} ${st.month.installed === 1 ? 'toestel heeft' : 'toestellen hebben'} de app op het beginscherm. ${st.activeAccounts30} ${st.activeAccounts30 === 1 ? 'account was' : 'accounts waren'} de afgelopen 30 dagen actief.${since ? ` Geteld sinds ${since}.` : ''}</p>`;
+}
 function starterSub() { const n = state.recipes.filter(r => r.starter).length; return n ? `${n} ${n === 1 ? 'recept' : 'recepten'} voor nieuwe gebruikers` : 'Nog leeg: kies recepten voor nieuwe gebruikers'; }
 function lastSeenText(u) {
   if (!u.lastSeen) return 'nog niet ingelogd';
@@ -2967,6 +2980,7 @@ async function renderUsers(host) {
         </ul></div>`, `<span class="st-dot">${requests.length}</span>`) : ''}
       ${stFold('meldingen', ICONS.bug, 'Meldingen', (Sync.status().me?.feedback ? `${Sync.status().me.feedback} open` : 'Fouten en ideeën van gebruikers'), '<div id="fbAdmin"></div>', Sync.status().me?.feedback ? `<span class="st-dot">${Sync.status().me.feedback}</span>` : '')}
       ${stFold('gebruikers', ICONS.people, 'Gebruikers', 'Accounts en testaccounts', `<div id="userList">${loaderHtml('Gebruikers ophalen…')}</div>`)}
+      ${stFold('gebruik', ICONS.people, 'Gebruik', 'Hoeveel toestellen de app gebruiken', '<div id="usageBox"></div>')}
       ${stFold('start', ICONS.book, 'Startkookboek', starterSub(), `<p>Nieuwe gebruikers zonder recepten zien dit kookboek en kunnen de recepten in één keer overnemen. Alleen de recepten die je hier kiest staan erin; de rest van je recepten blijft privé.</p>
         <button class="btn ghost" id="starterPick">Recepten kiezen</button>`)}
       ${fails ? stFold('imports', ICONS.search, 'Mislukte imports', fails.length ? `${fails.length} ${fails.length === 1 ? 'website' : 'websites'} · ${nFails}× mislukt` : 'Nog geen', `<p>Websites waarvan het ophalen van een recept niet lukte, met de meeste mislukte pogingen bovenaan.</p>
@@ -2985,6 +2999,10 @@ async function renderUsers(host) {
     </ul>`;
   bindFolds(host);
   drawFeedbackAdmin();
+  const uf = host.querySelector('[data-f=gebruik]');
+  const loadUsage = () => { if (uf.dataset.loaded) return; uf.dataset.loaded = '1'; drawUsage($('#usageBox')); };
+  if (uf.open) loadUsage();
+  uf.addEventListener('toggle', () => { if (uf.open) loadUsage(); });
   $('#starterPick')?.addEventListener('click', () => openStarterPicker(() => { const sub = host.querySelector('[data-f=start] .st-tx small, [data-f=start] small'); if (sub) sub.textContent = starterSub(); }));
   // Gebruikers pas ophalen als je het kopje openklapt
   const gf = host.querySelector('[data-f=gebruikers]');
@@ -4132,5 +4150,20 @@ const startApp = async () => {
   Importer.checkInbox();   // recepten die vanuit Safari of door anderen zijn gedeeld
   setTimeout(ensureThumbs, 3000);
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  setTimeout(sayHello, 4000);
 };
+// Anoniem gebruik tellen: één keer per dag een willekeurige toestelcode naar de server (geen naam, geen IP-adres)
+function sayHello() {
+  try {
+    const day = new Date().toISOString().slice(0, 10);
+    if (localStorage.getItem('ricetta-hello') === day) return;
+    let dev = localStorage.getItem('ricetta-device');
+    if (!/^[a-f0-9]{32}$/.test(dev || '')) {
+      dev = [...crypto.getRandomValues(new Uint8Array(16))].map(b => b.toString(16).padStart(2, '0')).join('');
+      localStorage.setItem('ricetta-device', dev);
+    }
+    Sync.publicCall('hello', { device: dev, account: loggedIn(), installed: isStandalone() })
+      .then(() => { try { localStorage.setItem('ricetta-hello', day); } catch { /* geen opslag */ } }).catch(() => {});
+  } catch { /* geen opslag of geen server: niet tellen */ }
+}
 if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', startApp); else startApp();
