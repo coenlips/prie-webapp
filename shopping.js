@@ -350,9 +350,9 @@ const Shopping = (() => {
   const cardsHidden = () => { if (wide()) return wideHidden; try { return localStorage.getItem(HIDE) === '1'; } catch { return false; } };
   const setCardsHidden = v => { if (wide()) { wideHidden = v; return; } try { localStorage.setItem(HIDE, v ? '1' : '0'); } catch { /* geen opslag */ } };
   // Kaartje met streepjescode (zonder pijltjes)
-  const CARDS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.2"/><path d="M6.5 9v6M9 9v6M12 9v6M14.5 9v6M17.5 9v6"/></svg>';
+  const CARDS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 7.5l11-3.2a1.5 1.5 0 0 1 1.85 1.03l.6 2.17"/><rect x="2.5" y="7.5" width="19" height="12" rx="2.2"/><path d="M21.5 11.5h-4a2 2 0 0 0 0 4h4"/><circle cx="17.6" cy="13.5" r=".6" fill="currentColor"/></svg>';
   // Kaartje met plusje: nog geen klantkaarten, eerste toevoegen
-  const CARDS_PLUS = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="8" width="17" height="12" rx="2"/><path d="M5 11.5v5M7.2 11.5v5M9.4 11.5v5M11.6 11.5v5M14.5 11.5v5"/><path d="M19.5 1.5v6M16.5 4.5h6"/></svg>';
+  const CARDS_PLUS = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8.5-2.5a1.3 1.3 0 0 1 1.6.9l.4 1.6"/><rect x="1.5" y="10" width="16" height="10" rx="2"/><path d="M17.5 13.2h-3.2a1.7 1.7 0 0 0 0 3.4h3.2"/><path d="M19.5 1.5v6M16.5 4.5h6"/></svg>';
   const lastCard = () => { try { return localStorage.getItem(LAST); } catch { return null; } };
   const rememberCard = id => { try { localStorage.setItem(LAST, id); } catch { /* geen opslag */ } };
 
@@ -577,7 +577,7 @@ const Shopping = (() => {
         <section class="shop">
           <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}${cards().length ? '' : ' none'}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
           <div class="shop-split"><div class="shop-left">
-          <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${cards().length ? '' : `<button type="button" class="icon-btn shop-share" id="cardFirst" aria-label="Klantkaart toevoegen" title="Klantkaart toevoegen">${CARDS_PLUS}</button>`}${list.items.length ? `<button type="button" class="icon-btn shop-share" id="shareTop" aria-label="Lijst delen" title="Lijst delen">${ICONS.share}</button>` : ''}</div>
+          <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${list.items.length ? `<button type="button" class="icon-btn shop-share" id="shareTop" aria-label="Lijst delen" title="Lijst delen">${ICONS.share}</button>` : ''}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <span class="shop-field"><input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences"><button type="button" class="search-clear" id="shopClear" aria-label="Veld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
             <button class="btn small" aria-label="Toevoegen">+</button>
@@ -631,8 +631,10 @@ const Shopping = (() => {
       // Knopje om de klantkaarten in en uit te klappen, in de menubalk (voor het tandwiel)
       const acts = document.querySelector('#topActions');
       acts.querySelector('#cardToggle')?.remove();
-      on('#cardFirst', () => editCard(null, draw));
-      if (cards().length) {
+      if (!cards().length) {
+        acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle" id="cardToggle" aria-label="Klantkaart toevoegen" title="Klantkaart toevoegen">${CARDS_PLUS}</button>`);
+        acts.querySelector('#cardToggle').onclick = () => editCard(null, draw);
+      } else {
         acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle${cardsHidden() ? '' : ' on'}" id="cardToggle" aria-expanded="${!cardsHidden()}" aria-label="${cardsHidden() ? 'Klantkaarten tonen' : 'Klantkaarten verbergen'}">${CARDS_ICON}</button>`);
         // In- en uitklappen met dezelfde animatie als het filtermenu
         acts.querySelector('#cardToggle').onclick = e => {
