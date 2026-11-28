@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.27.1 · 28 november 2026';
+const APP_VERSION = '1.27.2 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3494,12 +3494,22 @@ async function cachedLoad(seq, key, fetcher, show, fail) {
 const BOOK_SPLIT = matchMedia('(min-width: 900px)');
 BOOK_SPLIT.addEventListener('change', () => { if (/^#\/kookboek(en|\/\d+)$/.test(location.hash)) route(); });
 let bookStripScroll = 0;
-function bookCovers(b) {
+function bookCoverList(b) {
   const t = (b.thumbs || []).slice(0, 4);
   const free = Array.from({ length: PLACEHOLDERS }, (_, i) => `images/placeholders/p${i + 1}.svg`);
   let k = hashStr(String(b.id));
   while (t.length < 4) t.push({ ph: free.splice(k++ % free.length, 1)[0] });
-  return t.map(s => s.ph ? `<img src="${s.ph}" alt="">` : `<img src="${s}" alt="" loading="lazy" onerror="this.src='${free[0]}'">`).join('');
+  return t.map(s => s.ph ? `<img src="${s.ph}" alt="">` : `<img src="${s}" alt="" loading="lazy" onerror="this.src='${free[0]}'">`);
+}
+const bookCovers = b => bookCoverList(b).join('');
+// iPhone en iPad staand: per kookboek de naam en een strook met vier gerechten (op de laatste: hoeveel er nog meer zijn)
+function bookRowHtml(b) {
+  const more = b.count > 4 ? b.count - 3 : 0;
+  return `<a class="bk-row" href="#/kookboek/${b.id}">
+    <span class="mm-tag">Le Ricette di</span>
+    <div class="bk-row-head"><b>${esc(b.name)}</b><small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · <span class="bk-new">${b.new} nieuw</span>` : ''}</small></div>
+    <div class="bk-strip">${bookCoverList(b).slice(0, Math.max(1, Math.min(4, b.count))).map((img, k) => `<span${k === 3 && more ? ` class="more" data-more="+${more}"` : ''}>${img}</span>`).join('')}</div>
+  </a>`;
 }
 async function renderBooksSplit(ownerId) {
   const seq = routeSeq;
@@ -3515,7 +3525,7 @@ async function renderBooksSplit(ownerId) {
     const strip = `<aside class="mm-side bk-side" aria-label="Alle kookboeken">
       <h2 class="page-title">Gedeeld</h2>
       <p class="bk-intro">Recepten die anderen met jou delen.</p>
-      ${books.length ? books.map(b => `<a class="mm-item${b.id === sel ? ' on' : ''}" href="#/kookboek/${b.id}"${b.id === sel ? ' aria-current="true"' : ''}>
+      ${books.length ? books.map(b => one ? bookRowHtml(b) : `<a class="mm-item${b.id === sel ? ' on' : ''}" href="#/kookboek/${b.id}"${b.id === sel ? ' aria-current="true"' : ''}>
         <div class="covers">${bookCovers(b)}</div>
         <div><span class="mm-tag">Le Ricette di</span><b>${esc(b.name)}</b>
         <small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · <span class="bk-new">${b.new} nieuw</span>` : ''}</small></div></a>`).join('')
