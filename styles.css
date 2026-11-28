@@ -2524,3 +2524,5 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .bk-row:active .bk-strip { opacity: .85; }
 .bk-row-head b { color: var(--accent); }
 .bk-side .mm-item b { color: var(--accent); }
+/* Namen van de menu's ook rood (strook op laptop en lijst op iPhone) */
+.mm-item b { color: var(--accent); }
