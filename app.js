@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.28.5 · 28 november 2026';
+const APP_VERSION = '1.28.6 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1306,6 +1306,7 @@ async function renderDetail(id, opts = {}) {
 
         <div class="part-ingr">
         ${crumbRow('crumb-ingr')}
+        <h2 class="page-title detail-name">${esc(r.title)}</h2>
         <div class="section-head">
           <h3>Ingrediënten</h3>
           <button class="icon-btn copy-btn" id="copyBtn" aria-label="Op de boodschappenlijst zetten" title="Op de boodschappenlijst">${ICONS.basketPlus}</button>
