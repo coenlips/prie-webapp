@@ -2482,3 +2482,9 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .bk-main .book-cards { margin: 0; }
   .bk-main > .loader, .bk-side > .loader { margin-top: 40px; }
 }
+@media (min-width: 900px) {
+  .bk-main .bk-head { padding-top: 28px; margin-bottom: 0; }
+  .bk-main .list-head { padding-top: 14px; }
+  .bk-main .list-head.closed { padding-top: 0 !important; }
+  .bk-main .book-cards { margin-top: 24px; }
+}
