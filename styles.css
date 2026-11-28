@@ -2427,3 +2427,8 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .mm-grid > .mm-addd { display: block; width: 100%; margin: 0; align-self: start; font: inherit; }
   .mm-grid > .mm-addd .ph { width: 100%; box-sizing: border-box; }
 }
+@media (min-width: 900px) {
+  .mm-x { padding: 0; font-size: 0; }
+  .mm-x svg { width: 18px; height: 18px; stroke-width: 2.4; }
+  .mm-addd .ph svg { width: 40px; height: 40px; stroke-width: 1.8; }
+}

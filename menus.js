@@ -366,8 +366,8 @@ const Menus = (() => {
           </div>
         </div>
         ${courses.map(c => `<section class="mm-course"><h3>${esc(c)}</h3><div class="mm-grid">
-          ${dishes.filter(d => d.course === c).map(d => `<div class="mm-dish mm-edish"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><button type="button" class="mm-x" data-rm="${esc(d.r.id)}" data-course="${esc(c)}" aria-label="${esc(d.r.title)} weghalen" title="Weghalen">×</button></div><b>${esc(d.r.title)}</b></div>`).join('')}
-          <button type="button" class="mm-dish mm-addd" data-add="${esc(c)}"><div class="ph">${ICONS.plus}<span>Recept toevoegen</span></div></button>
+          ${dishes.filter(d => d.course === c).map(d => `<div class="mm-dish mm-edish"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><button type="button" class="mm-x" data-rm="${esc(d.r.id)}" data-course="${esc(c)}" aria-label="${esc(d.r.title)} weghalen" title="Weghalen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div><b>${esc(d.r.title)}</b></div>`).join('')}
+          <button type="button" class="mm-dish mm-addd" data-add="${esc(c)}"><div class="ph">${POT_PLUS}<span>Recept toevoegen</span></div></button>
         </div></section>`).join('')}
         ${extra.length ? `<div class="ms-more"><span>Gang toevoegen:</span>${extra.map(c => `<button type="button" class="chip" data-gang="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>` : ''}
         <button type="button" class="ed-del" id="msDel">Menu verwijderen</button>
