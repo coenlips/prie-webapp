@@ -50,12 +50,23 @@ const RecipePdf = (() => {
     const r = Math.max(w / img.width, h / img.height), sw = w / r, sh = h / r;
     ctx.drawImage(img, (img.width - sw) / 2, (img.height - sh) / 2, sw, sh, x, y, w, h);
   }
+  // Zilveren vork van het logo (plaatje met 10px ruimte rondom voor de schaduw; de vork zelf is 469px hoog)
+  let forkImg = null;
+  const loadFork = () => forkImg ? Promise.resolve(forkImg) : new Promise(res => {
+    const i = new Image(); i.onload = () => { forkImg = i; res(i); }; i.onerror = () => res(null); i.src = 'images/fork.png';
+  });
+  // Logo: vork + RICETTA, net als in de app (vork even hoog als de letters, ruimte tot de R gelijk aan die tussen R en I)
   function wordmark(ctx, x, y, size, align = 'left') {
     ctx.font = `400 ${size}px "Bebas Neue"`;
-    const w = spacedWidth(ctx, 'RICETTA', size * .05), x0 = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
-    const g = ctx.createLinearGradient(x0, y - size, x0 + w, y);
+    const tw = spacedWidth(ctx, 'RICETTA', size * .05);
+    const k = forkImg ? size * .7 / 469 : 0;                   // schaal van het vorkplaatje
+    const fw = forkImg ? 79 * k : 0, gap = forkImg ? size * .077 - 10 * k : 0;
+    const w = fw + gap + tw, x0 = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
+    if (forkImg) ctx.drawImage(forkImg, x0, y - size * .7 - 10 * k, fw, 489 * k);
+    const tx = x0 + fw + gap;
+    const g = ctx.createLinearGradient(tx, y - size, tx + tw, y);
     [[0, C.redDark], [.32, C.red], [.46, C.light], [.6, C.red], [1, C.redDark]].forEach(([o, c]) => g.addColorStop(o, c));
-    ctx.fillStyle = g; spaced(ctx, 'RICETTA', x0, y, size * .05);
+    ctx.fillStyle = g; spaced(ctx, 'RICETTA', tx, y, size * .05);
   }
   function stat(ctx, label, value, cx, y) {
     ctx.fillStyle = C.mustard; ctx.font = `500 ${pt(6.5)}px Oswald`; spaced(ctx, label.toUpperCase(), cx, y, pt(6.5) * .18, 'center');
@@ -143,7 +154,7 @@ const RecipePdf = (() => {
   }
 
   async function render(r, { url, from, placeholder }) {
-    await Promise.all(['400 40px "Bebas Neue"', '500 20px Oswald'].map(f => document.fonts.load(f).catch(() => {})));
+    await Promise.all([...['400 40px "Bebas Neue"', '500 20px Oswald'].map(f => document.fonts.load(f).catch(() => {})), loadFork()]);
     await loadQr();
     const img = rasterImg(await loadImg(r.photo || placeholder));
     const pages = [];
@@ -265,7 +276,7 @@ const RecipePdf = (() => {
     ctx.restore();
   }
   async function menu(m, groups) {
-    await Promise.all(['400 40px "Bebas Neue"', '500 20px Oswald'].map(f => document.fonts.load(f).catch(() => {})));
+    await Promise.all([...['400 40px "Bebas Neue"', '500 20px Oswald'].map(f => document.fonts.load(f).catch(() => {})), loadFork()]);
     const cv = document.createElement('canvas'); cv.width = W; cv.height = H;
     const ctx = cv.getContext('2d');
     ctx.fillStyle = C.cream; ctx.fillRect(0, 0, W, H);
