@@ -2453,3 +2453,7 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .mm-side, .mm-main { padding-top: 28px; }
 }
 @media (min-width: 700px) { .ed-head { margin-top: -6px; } }
+/* Nog geen klantkaarten: geen balk boven de lijst; toevoegen via het kaartje met plusje in de menubalk */
+.shop .loyal-wrap.none { display: none; }
+@media (min-width: 700px) { .shop:has(.loyal-wrap.none) > .shop-split { margin-top: -6px; } }
+@media (max-width: 699px) { .shop:has(.loyal-wrap.none) .page-title { margin-top: 2px; } }

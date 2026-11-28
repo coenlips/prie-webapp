@@ -351,12 +351,14 @@ const Shopping = (() => {
   const setCardsHidden = v => { if (wide()) { wideHidden = v; return; } try { localStorage.setItem(HIDE, v ? '1' : '0'); } catch { /* geen opslag */ } };
   // Kaartje met streepjescode (zonder pijltjes)
   const CARDS_ICON = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="5" width="20" height="14" rx="2.2"/><path d="M6.5 9v6M9 9v6M12 9v6M14.5 9v6M17.5 9v6"/></svg>';
+  // Kaartje met plusje: nog geen klantkaarten, eerste toevoegen
+  const CARDS_PLUS = '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1.5" y="8" width="17" height="12" rx="2"/><path d="M5 11.5v5M7.2 11.5v5M9.4 11.5v5M11.6 11.5v5M14.5 11.5v5"/><path d="M19.5 1.5v6M16.5 4.5h6"/></svg>';
   const lastCard = () => { try { return localStorage.getItem(LAST); } catch { return null; } };
   const rememberCard = id => { try { localStorage.setItem(LAST, id); } catch { /* geen opslag */ } };
 
   function railHtml() {
     const cs = cards();
-    if (!cs.length) return `<button type="button" class="loyal-first" id="cardAdd">+ Klantkaart toevoegen</button>`;
+    if (!cs.length) return '';   // nog geen kaarten: toevoegen via het kaartje met plusje in de menubalk
     return `<div class="loyal-rail" id="cardRail">
         ${cs.map(c => `<div class="loyal" data-card="${esc(c.id)}" style="--c:${esc(colorOf(c))};--ink:${inkOn(colorOf(c))}">
           <div class="loyal-head"><b>${esc(c.name)}</b><button type="button" class="loyal-edit" data-edit="${esc(c.id)}" aria-label="${esc(c.name)} wijzigen">${ICONS.edit}</button></div>
@@ -573,7 +575,7 @@ const Shopping = (() => {
         </li>`;
       view.innerHTML = `
         <section class="shop">
-          <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
+          <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}${cards().length ? '' : ' none'}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
           <div class="shop-split"><div class="shop-left">
           <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${list.items.length ? `<button type="button" class="icon-btn shop-share" id="shareTop" aria-label="Lijst delen" title="Lijst delen">${ICONS.share}</button>` : ''}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
@@ -629,7 +631,10 @@ const Shopping = (() => {
       // Knopje om de klantkaarten in en uit te klappen, in de menubalk (voor het tandwiel)
       const acts = document.querySelector('#topActions');
       acts.querySelector('#cardToggle')?.remove();
-      if (cards().length) {
+      if (!cards().length) {
+        acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle" id="cardToggle" aria-label="Klantkaart toevoegen" title="Klantkaart toevoegen">${CARDS_PLUS}</button>`);
+        acts.querySelector('#cardToggle').onclick = () => editCard(null, draw);
+      } else {
         acts.insertAdjacentHTML('afterbegin', `<button type="button" class="icon-btn card-toggle${cardsHidden() ? '' : ' on'}" id="cardToggle" aria-expanded="${!cardsHidden()}" aria-label="${cardsHidden() ? 'Klantkaarten tonen' : 'Klantkaarten verbergen'}">${CARDS_ICON}</button>`);
         // In- en uitklappen met dezelfde animatie als het filtermenu
         acts.querySelector('#cardToggle').onclick = e => {
