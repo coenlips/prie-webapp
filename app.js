@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.27.12 · 28 november 2026';
+const APP_VERSION = '1.28.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2570,6 +2570,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.28.0', date: '28 november 2026', sections: [{ items: [
+    'Menu aanpassen op iPad en laptop: links staan al je gerechten. Sleep ze naar de juiste gang, of versleep een gerecht naar een andere gang.',
+  ] }] },
   { v: '1.27.0', date: '28 november 2026', sections: [{ items: [
     'Menu\'s en Gedeeld hebben nu ook op de iPhone dezelfde stijl als op de laptop.',
     'Nieuw in het accountmenu: Ricetta aanbevelen. Stuur vrienden met één tik een berichtje over de app.',

@@ -340,9 +340,8 @@ const Menus = (() => {
       menus = sortMenus(await all());
       if (isStale(seq)) return;
       setHeader({ docTitle: 'Menu aanpassen', timer: false, actions: `${accBtnHtml()}` });
-      view.innerHTML = `<div class="mm">${stripHtml(menus, m.id)}<div class="mm-main mm-edit"><div class="mm-head mm-ehead"><div class="mm-ht"><div class="mm-kick">Menu aanpassen</div></div>
+      view.innerHTML = `<div class="mm">${recipePanelHtml()}<div class="mm-main mm-edit"><div class="mm-head mm-ehead"><div class="mm-ht"><div class="mm-kick">Menu aanpassen</div></div>
         <div class="mm-eacts"><button class="btn ghost" id="mkCancel">Annuleer</button><button class="btn" id="mkDone">${ICONS.check} Bewaar</button></div></div><div id="mmEdit"></div></div></div>`;
-      bindStrip(view, async () => { clearTimeout(timer); await save(m); if (isNew) state.newMenu = null; });
     } else
     setHeader({ title: 'Menu aanpassen', back: true, timer: false, actions: `<button class="text-btn cancel-btn" id="mkCancel">Annuleer</button><button class="text-btn" id="mkDone">Bewaar</button>` });
     // Wijzigingen worden tussendoor al bewaard; Annuleer zet de oude versie terug (of haalt een nieuw menu weg)
@@ -355,7 +354,8 @@ const Menus = (() => {
     };
     let timer = null;
     const persist = () => { clearTimeout(timer); timer = setTimeout(() => save(m), 300); };
-    const draw = () => {
+    const draw = () => { drawForm(); if (wide) drawPanel(); };
+    const drawForm = () => {
       const courses = coursesOfMenu(m), dishes = dishesOf(m);
       const extra = courseList().filter(c => !courses.includes(c));
       const box = wide ? view.querySelector('#mmEdit') : view;
@@ -369,13 +369,14 @@ const Menus = (() => {
             <label><span>Personen</span><span class="stepper ms-pers"><button type="button" id="msMin" aria-label="Minder personen">−</button><b id="msPers">${m.persons}</b><button type="button" id="msPlus" aria-label="Meer personen">+</button></span></label>
           </div>
         </div>
-        ${courses.map(c => `<section class="mm-course"><h3>${esc(c)}</h3><div class="mm-grid">
-          ${dishes.filter(d => d.course === c).map(d => `<div class="mm-dish mm-edish"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><button type="button" class="mm-x" data-rm="${esc(d.r.id)}" data-course="${esc(c)}" aria-label="${esc(d.r.title)} weghalen" title="Weghalen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div><b>${esc(d.r.title)}</b></div>`).join('')}
+        ${courses.map(c => `<section class="mm-course" data-drop="${esc(c)}"><h3>${esc(c)}</h3><div class="mm-grid">
+          ${dishes.filter(d => d.course === c).map(d => `<div class="mm-dish mm-edish" draggable="true" data-drag="${esc(d.r.id)}" data-from="${esc(c)}"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><button type="button" class="mm-x" data-rm="${esc(d.r.id)}" data-course="${esc(c)}" aria-label="${esc(d.r.title)} weghalen" title="Weghalen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div><b>${esc(d.r.title)}</b></div>`).join('')}
           <button type="button" class="mm-dish mm-addd" data-add="${esc(c)}"><div class="ph">${POT_PLUS}<span>Recept toevoegen</span></div></button>
         </div></section>`).join('')}
-        ${extra.length ? `<div class="ms-more"><span>Gang toevoegen:</span>${extra.map(c => `<button type="button" class="chip" data-gang="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>` : ''}
+        ${extra.length ? `<div class="ms-more"><span>Gang toevoegen:</span>${extra.map(c => `<button type="button" class="chip" data-gang="${esc(c)}" data-drop="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>` : ''}
         <button type="button" class="ed-del" id="msDel">Menu verwijderen</button>
       </section>`;
+        bindDrops();
       } else
       view.innerHTML = `<section class="ms">
         <div class="ms-top">
@@ -405,6 +406,59 @@ const Menus = (() => {
         clearTimeout(timer); await DB.remove(m.id); toast('Menu verwijderd'); location.hash = '#/menus';
       };
     };
+    // iPad liggend en laptop: links al je gerechten, die je naar de juiste gang sleept
+    function recipePanelHtml() {
+      return `<aside class="mm-side me-side" aria-label="Je gerechten">
+        <h2 class="page-title">Gerechten</h2>
+        <p class="bk-intro">Sleep een gerecht naar de juiste gang.</p>
+        <div class="search me-search">${ICONS.search}<input type="search" id="meQ" placeholder="Zoek een recept" autocomplete="off"></div>
+        <ul class="me-list" id="meList"></ul>
+      </aside>`;
+    }
+    let dragId = null, dragFrom = null;
+    function drawPanel() {
+      const list = view.querySelector('#meList'); if (!list) return;
+      const q = (view.querySelector('#meQ')?.value || '').trim().toLowerCase();
+      const rs = state.recipes.filter(x => !q || x.title.toLowerCase().includes(q)).sort((a, b) => a.title.localeCompare(b.title, 'nl'));
+      list.innerHTML = rs.length ? rs.map(x => {
+        const inMenu = m.dishes.some(d => d.id === x.id);
+        return `<li class="me-item${inMenu ? ' in' : ''}" draggable="true" data-drag="${esc(x.id)}" title="Sleep naar een gang">
+          <img src="${x.photo || placeholder(x.id)}" alt="" loading="lazy" draggable="false"><span><b>${esc(x.title)}</b>${(x.courses || []).length ? `<small>${esc(x.courses.join(', '))}</small>` : ''}</span>
+          ${inMenu ? '<i class="me-in" aria-label="Staat in het menu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></i>' : ''}</li>`;
+      }).join('') : '<li class="pick-none">Geen recepten gevonden.</li>';
+    }
+    // Slepen: uit de lijst links (toevoegen) of een gerecht in het menu (naar een andere gang verplaatsen)
+    const dnd = wide ? view.querySelector('.mm') : null;
+    dnd?.addEventListener('dragstart', e => {
+      const el = e.target.closest?.('[data-drag]'); if (!el) return;
+      dragId = el.dataset.drag; dragFrom = el.dataset.from || null;
+      e.dataTransfer.effectAllowed = dragFrom ? 'move' : 'copy';
+      try { e.dataTransfer.setData('text/plain', dragId); } catch { /* oudere browsers */ }
+      el.classList.add('dragging'); view.classList.add('me-dragging');
+    });
+    dnd?.addEventListener('dragend', e => {
+      e.target.closest?.('[data-drag]')?.classList.remove('dragging');
+      view.classList.remove('me-dragging'); view.querySelectorAll('.drop-on').forEach(x => x.classList.remove('drop-on'));
+      dragId = dragFrom = null;
+    });
+    function bindDrops() {
+      view.querySelectorAll('#mmEdit [data-drop]').forEach(t => {
+        t.addEventListener('dragover', e => { if (!dragId) return; e.preventDefault(); e.dataTransfer.dropEffect = dragFrom ? 'move' : 'copy'; t.classList.add('drop-on'); });
+        t.addEventListener('dragleave', e => { if (!t.contains(e.relatedTarget)) t.classList.remove('drop-on'); });
+        t.addEventListener('drop', e => {
+          e.preventDefault(); t.classList.remove('drop-on'); view.classList.remove('me-dragging');
+          const course = t.dataset.drop, id = dragId, from = dragFrom;
+          if (!id) return;
+          if (!coursesOfMenu(m).includes(course)) m.courses = [...coursesOfMenu(m), course];
+          if (from) m.dishes = m.dishes.filter(d => !(d.id === id && d.course === from));
+          if (!m.dishes.some(d => d.id === id && d.course === course)) m.dishes.push({ id, course });
+          const r = recipeById(id);
+          if (!from && r) toast(`${r.title} bij ${course.toLowerCase()} gezet`);
+          dragId = dragFrom = null;
+          persist(); draw(); drawPanel();
+        });
+      });
+    }
     // Recepten kiezen voor een gang: recepten van die gang bovenaan, aantikken = toevoegen of weghalen
     const pick = course => {
       const s = openAccSheet(`
@@ -432,6 +486,7 @@ const Menus = (() => {
       s.$('#mpSearch').focus({ preventScroll: true });
     };
     draw();
+    if (wide) view.querySelector('#meQ').oninput = drawPanel;
   }
 
   return { create, renderList, renderMenu, renderEdit, openAddSheet, MENU_ICON, MENU_PLUS, KINDS, easter };
