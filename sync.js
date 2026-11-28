@@ -349,6 +349,6 @@ const Sync = (() => {
     return api(action, body, { auth: false });
   }
 
-  return { syncNow, cardHtml, bindCard, status, onChange, call, publicCall, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
+  return { when, syncNow, cardHtml, bindCard, status, onChange, call, publicCall, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
     onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onEmailButton: null, onRequestButton: null };
 })();

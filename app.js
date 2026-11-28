@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.23.6 · 28 november 2026';
+const APP_VERSION = '1.24.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -540,7 +540,7 @@ function renderList() {
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
   setHeader({ actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="listHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
-    <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>
+    ${accBtnHtml()}
     <button class="add-top" id="addTop" aria-label="Nieuw recept">${ICONS.plus}</button>` });
   $('#addTop').onclick = () => Importer.openSheet();
   Shopping.updateBadge();
@@ -2138,7 +2138,7 @@ function renderSettings(k = '', sub = '') {
   const active = k || (wide ? 'account' : '');
   const g = groups.find(x => x.k === active);
   setHeader({ title: 'Ricetta', docTitle: g ? `${g.t} · Instellingen` : k === 'nieuw' ? 'Wat is er nieuw' : 'Instellingen', back: true, timer: false,
-    actions: `<button class="icon-btn settings-btn on" id="settingsClose" aria-label="Instellingen sluiten" title="Terug naar waar je was" aria-current="page">${ICONS.gear}</button>` });
+    actions: `${accBtnHtml(true)}` });
   // Tandwiel nog een keer: terug naar het scherm waar je vandaan kwam
   $('#settingsClose').onclick = () => { location.hash = state.settingsFrom || '#/'; };
   view.innerHTML = `
@@ -2556,6 +2556,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.24.0', date: '28 november 2026', sections: [{ items: [
+    'Het tandwieltje is een rondje met je eerste letter geworden. Tik erop en je ziet je accountgegevens, met een link naar de instellingen en een knop om uit te loggen.',
+    'Op iPad en laptop staat de plusknop voor een nieuw recept nu rechtsonder, net als op de iPhone.',
+  ] }] },
   { v: '1.23.0', date: '27 november 2026', sections: [{ items: [
     'Op laptop en iPad zie je naast je boodschappenlijst voor welke gerechten je boodschappen doet, per menu en per gang. Wijs een gerecht aan en de boodschappen ervan lichten op; met het kruisje haal je ze in één keer van de lijst.',
     'Op laptop en iPad staan je klantkaarten klein in een strook over de hele breedte en zijn ze bij openen ingeklapt.',
@@ -3111,6 +3115,69 @@ const SHARE_KEY = 'ricetta-share';   // laatst bekende eigen instellingen (voor 
 const shareCache = () => { try { return JSON.parse(localStorage.getItem(SHARE_KEY)) || {}; } catch { return {}; } };
 const setShareCache = v => { try { localStorage.setItem(SHARE_KEY, JSON.stringify({ ...shareCache(), ...v })); } catch { /* */ } };
 const loggedIn = () => Sync.status().state === 'on';
+
+// Accountknop in de menubalk: rondje met je eerste letter, met een kaartje (gegevens, instellingen, uitloggen)
+function accBtnHtml(onSettings) {
+  const s = Sync.status(), u = s.state === 'on' && s.user;
+  const face = u ? esc((u.name || '?').charAt(0).toUpperCase()) : ICONS.user;
+  return onSettings
+    ? `<button class="icon-btn settings-btn acc-btn on${u ? '' : ' anon'}" id="settingsClose" aria-label="Instellingen sluiten" title="Terug naar waar je was" aria-current="page">${face}</button>`
+    : `<button class="icon-btn settings-btn acc-btn${u ? '' : ' anon'}" data-acc aria-label="${u ? 'Account: ' + esc(u.name) : 'Account'}" aria-haspopup="true" aria-expanded="false">${face}</button>`;
+}
+const ACC_OUT = '<svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"/></svg>';
+function closeAccPop() {
+  const pop = $('#accPop'); if (!pop) return;
+  pop.remove(); document.querySelectorAll('[data-acc]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+function openAccPop(btn) {
+  closeAccPop();
+  const s = Sync.status(), u = s.state === 'on' && s.user, me = s.me;
+  const row = (href, icon, label, cls = '', id = '') => href
+    ? `<a class="acc-row ${cls}" href="${href}">${icon}<span>${label}</span><i>›</i></a>`
+    : `<button class="acc-row ${cls}" id="${id}">${icon}<span>${label}</span></button>`;
+  const pop = document.createElement('div');
+  pop.id = 'accPop'; pop.className = 'acc-pop'; pop.setAttribute('role', 'dialog'); pop.setAttribute('aria-label', 'Account');
+  pop.innerHTML = u ? `
+    <div class="acc-pop-who"><div class="acc-avatar">${esc((u.name || '?').charAt(0).toUpperCase())}</div>
+      <div><b>${esc(u.name)}${u.admin ? '<span class="acc-role">beheerder</span>' : ''}</b>
+      <small>${me ? `${me.recipes} ${me.recipes === 1 ? 'recept' : 'recepten'} · ` : ''}${s.busy ? 'bezig met back-up…' : 'back-up ' + Sync.when(s.last)}</small></div></div>
+    ${s.error ? `<p class="acc-pop-err">⚠️ ${esc(s.error)}</p>` : ''}
+    <dl><dt>Naam</dt><dd>${esc(u.name)}</dd><dt>E-mail</dt><dd>${me && me.email ? esc(me.email) : '<i>nog niet ingevuld</i>'}</dd></dl>
+    ${document.body.classList.contains('has-requests') ? row('#/gebruikers', ICONS.user, 'Accountaanvragen', 'new') : ''}
+    ${row('#/settings', ICONS.gear, 'Instellingen')}
+    ${row('', ACC_OUT, 'Uitloggen', 'out', 'accOut')}` : `
+    <div class="acc-pop-who"><div class="acc-avatar anon">${ICONS.user}</div>
+      <div><b>Niet ingelogd</b><small>Bewaar je recepten online en deel ze</small></div></div>
+    ${row('#/settings/account', ICONS.user, 'Inloggen')}
+    ${row('#/settings', ICONS.gear, 'Instellingen')}`;
+  document.body.append(pop);
+  const place = () => {
+    const r = btn.getBoundingClientRect(), wide = innerWidth >= 700;
+    pop.style.top = Math.round(r.bottom + 12) + 'px';
+    if (wide) { pop.style.right = Math.max(12, Math.round(innerWidth - r.right - 4)) + 'px'; pop.style.setProperty('--arrow', Math.round(r.width / 2 + 4 - 6) + 'px'); }
+    else pop.style.setProperty('--arrow', Math.round(innerWidth - 12 - r.right + r.width / 2 - 6) + 'px');
+  };
+  place();
+  btn.setAttribute('aria-expanded', 'true');
+  pop.addEventListener('click', e => { if (e.target.closest('a')) closeAccPop(); });
+  $('#accOut')?.addEventListener('click', async () => {
+    closeAccPop();
+    if (!confirm('Uitloggen? Je recepten worden van dit toestel gehaald. Online blijven ze bewaard.')) return;
+    let done = await Sync.signOut();
+    if (!done && confirm('De laatste back-up lukte niet, dus wijzigingen van dit toestel kunnen verloren gaan. Toch uitloggen?')) done = await Sync.signOut({ force: true });
+    if (done) afterSignOut();
+  });
+  pop.querySelector('a,button')?.focus({ preventScroll: true });
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-acc]');
+  if (b) { e.preventDefault(); $('#accPop') ? closeAccPop() : openAccPop(b); return; }
+  if ($('#accPop') && !e.target.closest('#accPop')) closeAccPop();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#accPop')) { const b = document.querySelector('[data-acc]'); closeAccPop(); b?.focus(); } });
+addEventListener('hashchange', closeAccPop);
+addEventListener('resize', closeAccPop);
+
 // Laden: pannetje met een roerende pollepel (zelfde lijnstijl als de iconen)
 function loaderHtml(text = 'Laden…') {
   return `<div class="loader" role="status" aria-live="polite">
@@ -3381,7 +3448,7 @@ async function cachedLoad(seq, key, fetcher, show, fail) {
 async function renderBooks() {
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
-  setHeader({ docTitle: 'Gedeeld', timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+  setHeader({ docTitle: 'Gedeeld', timer: false, actions: `${accBtnHtml()}` });
   if (!loggedIn()) { view.innerHTML = `<section class="settings"><div class="card-box"><p>Log in om de gedeelde recepten van anderen te bekijken.</p></div></section>`; return; }
   view.innerHTML = `<section class="settings">${loaderHtml('Gedeelde recepten ophalen…')}</section>`;
   await cachedLoad(seq, 'books', () => Sync.call('books'), books => showBooks(books),
@@ -3422,7 +3489,7 @@ async function renderBook(ownerId) {
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
   const head = title => setHeader({ title: 'Ricetta', docTitle: title, back: true, timer: false, actions: `
     <button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>
-    <button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+    ${accBtnHtml()}` });
   head('Gedeeld');
   view.innerHTML = `<section class="book-page">${loaderHtml('Recepten openen…')}</section>`;
   await cachedLoad(seq, `book-${ownerId}`, () => Sync.call('book', { owner: ownerId }), d => { bookCache.set(ownerId, d); showBook(ownerId, d, head, filtersOpen); },
@@ -3720,7 +3787,7 @@ async function route() {
   if (page === 'menu' && id && sub === 'bewerk') return Menus.renderEdit(view, decodeURIComponent(id));
   if (page === 'menu' && id) return Menus.renderMenu(view, decodeURIComponent(id));
   if (page === 'boodschappen') {
-    setHeader({ docTitle: 'Boodschappen', timer: false, actions: `<button class="icon-btn settings-btn" data-go="#/settings" aria-label="Instellingen">${ICONS.gear}</button>` });
+    setHeader({ docTitle: 'Boodschappen', timer: false, actions: `${accBtnHtml()}` });
     return Shopping.render(view);
   }
   return renderList();
