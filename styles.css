@@ -2309,3 +2309,6 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .acc-row.new span::after { content: ''; display: inline-block; width: 8px; height: 8px; margin-left: 8px; border-radius: 50%; background: var(--mustard); vertical-align: 2px; }
 @media (hover: hover) { .acc-row:hover { color: var(--accent); } }
 @media (max-width: 699px) { .acc-pop { left: 12px; right: 12px; width: auto; } }
+/* Boodschappen op iPad en laptop: de twee kolommen scrollen zonder zichtbare scrollbalken */
+.shop-split:has(.dishes) > .shop-left, .shop-split > .dishes { scrollbar-width: none; -ms-overflow-style: none; }
+.shop-split:has(.dishes) > .shop-left::-webkit-scrollbar, .shop-split > .dishes::-webkit-scrollbar { display: none; width: 0; height: 0; }
