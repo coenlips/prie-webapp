@@ -137,29 +137,40 @@ const Menus = (() => {
   const SPLIT = matchMedia('(min-width: 900px)');
   let stripScroll = 0;
   SPLIT.addEventListener('change', () => { if (/^#\/menus?(\/[^/]+)?$/.test(location.hash)) route(); });
-  async function renderSplit(view, id) {
-    const seq = routeSeq;
-    document.body.dataset.page = 'menus';
-    setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
-    const menus = sortMenus(await all());
-    if (isStale(seq)) return;
+  // De strook met alle menu's (links op iPad liggend en laptop)
+  function stripHtml(menus, selId) {
     const t = today();
-    const m = (id && menus.find(x => x.id === id)) || (!id && menus[0]) || null;
-    if (id && !m) { location.replace('#/menus'); return; }
     const upcoming = menus.filter(x => !(x.date && x.date < t)), past = menus.filter(x => x.date && x.date < t);
     const kindTag = x => [x.kind && x.kind !== 'anders' ? `${KINDS[x.kind]?.emoji || ''} ${KINDS[x.kind]?.label || ''}` : '', fmtDate(x.date, false)].filter(s => s.trim()).join(' · ');
-    const item = x => { const n = dishesOf(x).length;
-      return `<a class="mm-item${m && x.id === m.id ? ' on' : ''}${x.date && x.date < t ? ' past' : ''}" href="#/menu/${encodeURIComponent(x.id)}"${m && x.id === m.id ? ' aria-current="true"' : ''}>
+    const item = x => { const n = dishesOf(x).length, on = x.id === selId;
+      return `<a class="mm-item${on ? ' on' : ''}${x.date && x.date < t ? ' past' : ''}" href="#/menu/${encodeURIComponent(x.id)}"${on ? ' aria-current="true"' : ''} data-mid="${esc(x.id)}">
         <div class="covers">${coverImgs(x).map(src => `<img src="${src}" alt="" loading="lazy">`).join('')}</div>
         <div>${kindTag(x) ? `<span class="mm-tag">${esc(kindTag(x))}</span>` : ''}<b>${esc(x.title || 'Menu')}</b>
         <small>${x.persons} ${x.persons === 1 ? 'persoon' : 'personen'} · ${n} ${n === 1 ? 'gerecht' : 'gerechten'}</small></div></a>`; };
-    const side = `<aside class="mm-side" aria-label="Alle menu's">
+    return `<aside class="mm-side" aria-label="Alle menu's">
       <h2 class="page-title">Menu's</h2>
       <div class="mm-new">${['kerst', 'pasen', 'etentje'].map(k => `<button class="chip" data-new="${k}">${KINDS[k].emoji} ${KINDS[k].label}</button>`).join('')}</div>
       ${menus.length ? `${upcoming.length ? `<div class="mm-h">Binnenkort</div>${upcoming.map(item).join('')}` : ''}
         ${past.length ? `<div class="mm-h">Geweest</div>${past.map(item).join('')}` : ''}`
         : `<p class="mm-none">Nog geen menu's. Kies hierboven waarvoor je een menu wilt maken, of tik op de plusknop.</p>`}
     </aside>`;
+  }
+  function bindStrip(view, beforeLeave) {
+    const strip = view.querySelector('.mm-side');
+    strip.scrollTop = stripScroll;
+    strip.addEventListener('scroll', () => { stripScroll = strip.scrollTop; }, { passive: true });
+    view.querySelectorAll('.mm-side [data-new]').forEach(b => b.onclick = async () => { if (beforeLeave) await beforeLeave(); create(b.dataset.new); });
+    view.querySelectorAll('.mm-item').forEach(a => a.addEventListener('click', async e => { e.preventDefault(); if (beforeLeave) await beforeLeave(); location.replace(a.getAttribute('href')); }));
+  }
+  async function renderSplit(view, id) {
+    const seq = routeSeq;
+    document.body.dataset.page = 'menus';
+    setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
+    const menus = sortMenus(await all());
+    if (isStale(seq)) return;
+    const m = (id && menus.find(x => x.id === id)) || (!id && menus[0]) || null;
+    if (id && !m) { location.replace('#/menus'); return; }
+    const side = stripHtml(menus, m && m.id);
     let main = `<div class="mm-main"><p class="mm-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p></div>`;
     let dishes = [], courses = [];
     if (m) {
@@ -182,11 +193,7 @@ const Menus = (() => {
       </div>`;
     }
     view.innerHTML = `<div class="mm">${side}${main}</div>`;
-    const strip = view.querySelector('.mm-side');
-    strip.scrollTop = stripScroll;
-    strip.addEventListener('scroll', () => { stripScroll = strip.scrollTop; }, { passive: true });
-    view.querySelectorAll('[data-new]').forEach(b => b.onclick = () => create(b.dataset.new));
-    view.querySelectorAll('.mm-item').forEach(a => a.addEventListener('click', e => { e.preventDefault(); location.replace(a.getAttribute('href')); }));
+    bindStrip(view);
     if (m) {
       view.querySelectorAll('.mm-dish').forEach(el => el.addEventListener('click', () => {
         state.fromMenu = m.id; state.fromMenuTitle = m.title || 'Menu'; state.fromMenuCourse = el.dataset.course || '';
@@ -323,6 +330,16 @@ const Menus = (() => {
     const m = await DB.get(id);
     if (isStale(seq)) return;
     if (!m) { location.hash = '#/menus'; return; }
+    const wide = SPLIT.matches;
+    let menus = [];
+    if (wide) {
+      menus = sortMenus(await all());
+      if (isStale(seq)) return;
+      setHeader({ docTitle: 'Menu aanpassen', timer: false, actions: `${accBtnHtml()}` });
+      view.innerHTML = `<div class="mm">${stripHtml(menus, m.id)}<div class="mm-main mm-edit"><div class="mm-head mm-ehead"><div class="mm-ht"><div class="mm-kick">Menu aanpassen</div></div>
+        <div class="mm-eacts"><button class="btn ghost" id="mkCancel">Annuleer</button><button class="btn" id="mkDone">${ICONS.check} Bewaar</button></div></div><div id="mmEdit"></div></div></div>`;
+      bindStrip(view, async () => { clearTimeout(timer); await save(m); if (isNew) state.newMenu = null; });
+    } else
     setHeader({ title: 'Menu aanpassen', back: true, timer: false, actions: `<button class="text-btn cancel-btn" id="mkCancel">Annuleer</button><button class="text-btn" id="mkDone">Bewaar</button>` });
     // Wijzigingen worden tussendoor al bewaard; Annuleer zet de oude versie terug (of haalt een nieuw menu weg)
     const orig = JSON.parse(JSON.stringify(m)), isNew = state.newMenu === m.id;
@@ -337,6 +354,25 @@ const Menus = (() => {
     const draw = () => {
       const courses = coursesOfMenu(m), dishes = dishesOf(m);
       const extra = courseList().filter(c => !courses.includes(c));
+      const box = wide ? view.querySelector('#mmEdit') : view;
+      if (wide) {
+        box.innerHTML = `<section class="ms ms-wide">
+        <input id="msTitle" class="mm-etitle" value="${esc(m.title || '')}" placeholder="Naam van het menu" aria-label="Naam van het menu">
+        <div class="ms-wrow">
+          <div class="chips ms-kinds">${Object.entries(KINDS).map(([k, d]) => `<button type="button" class="chip${m.kind === k ? ' on' : ''}" data-kind="${k}">${d.emoji ? d.emoji + ' ' : ''}${d.label}</button>`).join('')}</div>
+          <div class="ms-stat">
+            <label><span>Datum</span><input type="date" id="msDate" value="${esc(m.date || '')}"></label>
+            <label><span>Personen</span><span class="stepper ms-pers"><button type="button" id="msMin" aria-label="Minder personen">−</button><b id="msPers">${m.persons}</b><button type="button" id="msPlus" aria-label="Meer personen">+</button></span></label>
+          </div>
+        </div>
+        ${courses.map(c => `<section class="mm-course"><h3>${esc(c)}</h3><div class="mm-grid">
+          ${dishes.filter(d => d.course === c).map(d => `<div class="mm-dish mm-edish"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><button type="button" class="mm-x" data-rm="${esc(d.r.id)}" data-course="${esc(c)}" aria-label="${esc(d.r.title)} weghalen" title="Weghalen">×</button></div><b>${esc(d.r.title)}</b></div>`).join('')}
+          <button type="button" class="mm-dish mm-addd" data-add="${esc(c)}"><div class="ph">${ICONS.plus}<span>Recept toevoegen</span></div></button>
+        </div></section>`).join('')}
+        ${extra.length ? `<div class="ms-more"><span>Gang toevoegen:</span>${extra.map(c => `<button type="button" class="chip" data-gang="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>` : ''}
+        <button type="button" class="ed-del" id="msDel">Menu verwijderen</button>
+      </section>`;
+      } else
       view.innerHTML = `<section class="ms">
         <div class="ms-top">
           <input id="msTitle" value="${esc(m.title || '')}" placeholder="Naam van het menu" aria-label="Naam van het menu">
@@ -352,7 +388,7 @@ const Menus = (() => {
         ${extra.length ? `<div class="ms-more"><span>Gang toevoegen:</span>${extra.map(c => `<button type="button" class="chip" data-gang="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>` : ''}
         <button type="button" class="ed-del" id="msDel">Menu verwijderen</button>
       </section>`;
-      $('#msTitle').oninput = e => { m.title = e.target.value; persist(); };
+      $('#msTitle').oninput = e => { m.title = e.target.value; persist(); const it = wide && view.querySelector(`.mm-item[data-mid="${CSS.escape(m.id)}"] b`); if (it) it.textContent = m.title || 'Menu'; };
       $('#msDate').onchange = e => { m.date = e.target.value; persist(); };
       $('#msMin').onclick = () => { if (m.persons > 1) { m.persons--; $('#msPers').textContent = m.persons; persist(); } };
       $('#msPlus').onclick = () => { m.persons++; $('#msPers').textContent = m.persons; persist(); };

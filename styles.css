@@ -2403,3 +2403,27 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .mm-item .covers { grid-template-columns: repeat(2, 26px); grid-template-rows: repeat(2, 26px); }
   .mm-item .covers img { width: 26px; height: 26px; min-width: 0; min-height: 0; aspect-ratio: 1; object-fit: cover; }
 }
+/* Menu aanpassen op iPad liggend en laptop: zelfde opzet als het menu (strook links, gerechten rechts) */
+@media (min-width: 900px) {
+  .mm-ehead { align-items: center; padding-bottom: 12px; }
+  .mm-eacts { display: flex; gap: 8px; }
+  .mm-eacts .btn { width: auto; display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 15px; }
+  .mm-eacts .btn svg { width: 18px; height: 18px; }
+  .ms-wide { padding-bottom: 40px; }
+  .ms-wide .mm-etitle { width: 100%; font: 400 56px/1 var(--font-title); letter-spacing: .03em; color: var(--accent); border: 0; border-bottom: 1.5px dashed var(--line); background: none; padding: 14px 0 8px; border-radius: 0; }
+  .ms-wide .mm-etitle:focus { outline: none; border-bottom-color: var(--accent); }
+  .ms-wrow { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 14px 24px; margin-top: 16px; }
+  .ms-wide .ms-stat { grid-template-columns: auto auto; }
+  .ms-wide .ms-stat label { min-width: 160px; }
+  .mm-edish .ph { position: relative; }
+  .mm-x { position: absolute; top: 8px; right: 8px; width: 34px; height: 34px; border-radius: 50%; background: var(--surface); color: var(--accent); font-size: 24px; line-height: 1; display: grid; place-items: center; box-shadow: 0 2px 8px rgb(0 0 0 / .2); }
+  .mm-addd { padding: 0; background: none; border: 0; text-align: left; cursor: pointer; }
+  .mm-addd .ph { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; background: none; border: 1.5px dashed var(--accent); color: var(--accent); font: 500 13px var(--font-label); letter-spacing: .1em; text-transform: uppercase; }
+  .mm-addd .ph svg { width: 30px; height: 30px; }
+  .ms-wide .ms-more { margin-top: 28px; }
+  @media (hover: hover) { .mm-addd:hover .ph { background: var(--accent-soft); } }
+}
+@media (min-width: 900px) {
+  .mm-grid > .mm-addd { display: block; width: 100%; margin: 0; align-self: start; font: inherit; }
+  .mm-grid > .mm-addd .ph { width: 100%; box-sizing: border-box; }
+}
