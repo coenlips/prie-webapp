@@ -110,6 +110,7 @@ const Menus = (() => {
 
   /* ---------- Overzicht ---------- */
   async function renderList(view) {
+    if (SPLIT.matches) return renderSplit(view, null);
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
     setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
@@ -132,6 +133,69 @@ const Menus = (() => {
     view.querySelectorAll('[data-new]').forEach(b => b.onclick = () => create(b.dataset.new));
   }
 
+  /* ---------- iPad liggend en laptop: strook met alle menu's links, gerechten van het gekozen menu rechts ---------- */
+  const SPLIT = matchMedia('(min-width: 900px)');
+  let stripScroll = 0;
+  SPLIT.addEventListener('change', () => { if (/^#\/menus?(\/[^/]+)?$/.test(location.hash)) route(); });
+  async function renderSplit(view, id) {
+    const seq = routeSeq;
+    document.body.dataset.page = 'menus';
+    setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
+    const menus = sortMenus(await all());
+    if (isStale(seq)) return;
+    const t = today();
+    const m = (id && menus.find(x => x.id === id)) || (!id && menus[0]) || null;
+    if (id && !m) { location.replace('#/menus'); return; }
+    const upcoming = menus.filter(x => !(x.date && x.date < t)), past = menus.filter(x => x.date && x.date < t);
+    const kindTag = x => [x.kind && x.kind !== 'anders' ? `${KINDS[x.kind]?.emoji || ''} ${KINDS[x.kind]?.label || ''}` : '', fmtDate(x.date, false)].filter(s => s.trim()).join(' · ');
+    const item = x => { const n = dishesOf(x).length;
+      return `<a class="mm-item${m && x.id === m.id ? ' on' : ''}${x.date && x.date < t ? ' past' : ''}" href="#/menu/${encodeURIComponent(x.id)}"${m && x.id === m.id ? ' aria-current="true"' : ''}>
+        <div class="covers">${coverImgs(x).map(src => `<img src="${src}" alt="" loading="lazy">`).join('')}</div>
+        <div>${kindTag(x) ? `<span class="mm-tag">${esc(kindTag(x))}</span>` : ''}<b>${esc(x.title || 'Menu')}</b>
+        <small>${x.persons} ${x.persons === 1 ? 'persoon' : 'personen'} · ${n} ${n === 1 ? 'gerecht' : 'gerechten'}</small></div></a>`; };
+    const side = `<aside class="mm-side" aria-label="Alle menu's">
+      <h2 class="page-title">Menu's</h2>
+      <div class="mm-new">${['kerst', 'pasen', 'etentje'].map(k => `<button class="chip" data-new="${k}">${KINDS[k].emoji} ${KINDS[k].label}</button>`).join('')}</div>
+      ${menus.length ? `${upcoming.length ? `<div class="mm-h">Binnenkort</div>${upcoming.map(item).join('')}` : ''}
+        ${past.length ? `<div class="mm-h">Geweest</div>${past.map(item).join('')}` : ''}`
+        : `<p class="mm-none">Nog geen menu's. Kies hierboven waarvoor je een menu wilt maken, of tik op de plusknop.</p>`}
+    </aside>`;
+    let main = `<div class="mm-main"><p class="mm-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p></div>`;
+    let dishes = [], courses = [];
+    if (m) {
+      dishes = dishesOf(m);
+      courses = coursesOfMenu(m).filter(c => dishes.some(d => d.course === c));
+      const timeOf = r => formatTime((+r.prepTime || 0) + (+r.cookTime || 0));
+      const kick = [m.kind && m.kind !== 'anders' ? `${KINDS[m.kind]?.emoji || ''} ${KINDS[m.kind]?.label || ''}` : '', fmtDate(m.date)].filter(s => s.trim()).join(' · ');
+      main = `<div class="mm-main">
+        <div class="mm-head"><div class="mm-ht">${kick ? `<div class="mm-kick">${esc(kick)}</div>` : ''}<h1>${esc(m.title || 'Menu')}</h1>
+          <p>${[`${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'}`, `${dishes.length} ${dishes.length === 1 ? 'gerecht' : 'gerechten'}`, courses.length ? `${courses.length} ${courses.length === 1 ? 'gang' : 'gangen'}` : ''].filter(Boolean).join(' · ')}</p></div>
+          <div class="mm-acts">
+            <button class="icon-btn" id="mkShop" aria-label="Boodschappen op de lijst zetten" title="Boodschappen op de lijst"${dishes.length ? '' : ' disabled'}>${ICONS.basketPlus}</button>
+            <button class="icon-btn" id="mkPdf" aria-label="Menukaart delen" title="Menukaart delen (pdf)"${dishes.length ? '' : ' disabled'}>${ICONS.share}</button>
+            <button class="icon-btn" data-go="#/menu/${encodeURIComponent(m.id)}/bewerk" aria-label="Menu aanpassen" title="Menu aanpassen">${ICONS.edit}</button>
+          </div></div>
+        ${courses.length ? courses.map(c => `<section class="mm-course"><h3>${esc(c)}</h3><div class="mm-grid">${dishes.filter(d => d.course === c).map(d => `
+          <a class="mm-dish" href="#/r/${encodeURIComponent(d.r.id)}" data-course="${esc(c)}"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt="" loading="lazy"></div>
+            <b>${esc(d.r.title)}</b>${timeOf(d.r) ? `<small>${timeOf(d.r)}</small>` : ''}</a>`).join('')}</div></section>`).join('')
+          : `<div class="mm-empty"><p>Nog geen gerechten in dit menu.</p><button class="btn" data-go="#/menu/${encodeURIComponent(m.id)}/bewerk">${ICONS.edit} Gerechten kiezen</button></div>`}
+      </div>`;
+    }
+    view.innerHTML = `<div class="mm">${side}${main}</div>`;
+    const strip = view.querySelector('.mm-side');
+    strip.scrollTop = stripScroll;
+    strip.addEventListener('scroll', () => { stripScroll = strip.scrollTop; }, { passive: true });
+    view.querySelectorAll('[data-new]').forEach(b => b.onclick = () => create(b.dataset.new));
+    view.querySelectorAll('.mm-item').forEach(a => a.addEventListener('click', e => { e.preventDefault(); location.replace(a.getAttribute('href')); }));
+    if (m) {
+      view.querySelectorAll('.mm-dish').forEach(el => el.addEventListener('click', () => {
+        state.fromMenu = m.id; state.fromMenuTitle = m.title || 'Menu'; state.fromMenuCourse = el.dataset.course || '';
+      }));
+      $('#mkShop').onclick = () => openShop(m, dishes);
+      $('#mkPdf').onclick = () => openPdf(m, dishes, courses);
+    }
+  }
+
   /* ---------- Menukaart ---------- */
   const LEAF = 'M0,0 Q4,-6 8,-5 L10,-10 L14,-6 Q18,-9 22,-7 L25,-12 L28,-7 Q33,-8 36,-5 L42,0 L36,5 Q33,8 28,7 L25,12 L22,7 Q18,9 14,6 L10,10 L8,5 Q4,6 0,0Z';
   const DECOR = {
@@ -139,6 +203,7 @@ const Menus = (() => {
     pasen: c => `<svg class="mk-deco ${c}" viewBox="0 0 90 60" aria-hidden="true"><ellipse cx="38" cy="34" rx="13" ry="17" fill="#f2c94c" transform="rotate(-16 38 34)"/><path d="M27 30q5-4 10 0t10 0" stroke="#fff" stroke-width="2.4" fill="none" transform="rotate(-16 38 34)"/><ellipse cx="58" cy="38" rx="11" ry="14" fill="#9fd3c7" transform="rotate(14 58 38)"/><circle cx="55" cy="34" r="2" fill="#fff"/><circle cx="61" cy="40" r="2" fill="#fff"/><circle cx="56" cy="44" r="1.6" fill="#fff"/><path d="M20 50q10-8 22-2" stroke="#6aa84f" stroke-width="3" fill="none" stroke-linecap="round"/></svg>`,
   };
   async function renderMenu(view, id) {
+    if (SPLIT.matches) return renderSplit(view, id);
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
     const m = await DB.get(id);

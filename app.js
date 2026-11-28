@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.24.6 · 28 november 2026';
+const APP_VERSION = '1.25.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -491,7 +491,7 @@ function updateTabs(page, sub) {
   document.body.classList.toggle('has-tabbar', show);
   // de plusknop alleen bij je recepten
   // de plusknop rechtsonder: pannetje bij je recepten, stolp bij Menu's
-  const fab = (page || '') === '' ? 'recipe' : page === 'menus' ? 'menu' : '';
+  const fab = (page || '') === '' ? 'recipe' : page === 'menus' || (page === 'menu' && !sub && matchMedia('(min-width: 900px)').matches) ? 'menu' : '';
   if (show && !fab) { $('#addBtn').hidden = true; document.body.classList.add('no-fab-btn'); } else document.body.classList.remove('no-fab-btn');
   const btn = $('#addBtn'), mode = fab || 'recipe';
   if (btn.dataset.mode !== mode) {
@@ -2565,6 +2565,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.25.0', date: '28 november 2026', sections: [{ items: [
+    'Menu\'s op iPad en laptop: links een strook met al je menu\'s, rechts alle gerechten van het gekozen menu per gang. Met het mandje zet je de boodschappen van het hele menu op je lijst.',
+  ] }] },
   { v: '1.24.0', date: '28 november 2026', sections: [{ items: [
     'Het tandwieltje is een rondje met je eerste letter geworden. Tik erop en je ziet je accountgegevens, met een link naar de instellingen en een knop om uit te loggen.',
     'De plusknop rechtsonder heeft een pannetje bij je recepten en een stolp bij Menu\'s, waarmee je een nieuw menu begint. Ook op iPad en laptop staat hij nu rechtsonder.',

@@ -2347,3 +2347,54 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   html { scrollbar-width: none; }
   html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
 }
+/* ================= Menu's op iPad liggend en laptop: strook met menu's links, gerechten rechts ================= */
+@media (min-width: 900px) {
+  body[data-page=menus]:has(.mm) { height: 100vh; height: 100dvh; min-height: 0; padding-bottom: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
+  body[data-page=menus]:has(.mm) > .topbar { flex: none; }
+  body[data-page=menus]:has(.mm) main { flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding-top: 0; padding-bottom: 0 !important; display: flex; flex-direction: column; }
+  .mm { flex: 1 1 auto; min-height: 0; display: grid; grid-template-columns: minmax(270px, 330px) minmax(0, 1fr); gap: 48px; }
+  .mm-side, .mm-main { min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; margin: 0 -12px; padding: 22px 12px 40px; }
+  .mm-side::-webkit-scrollbar, .mm-main::-webkit-scrollbar { display: none; }
+  .mm-side .page-title { margin: 0 0 12px; }
+  .mm-new { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; }
+  .mm-new .chip { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; padding: 5px 9px; cursor: pointer; }
+  .mm-h { font: 500 11px var(--font-label); letter-spacing: .16em; text-transform: uppercase; color: var(--mustard); margin: 18px 2px 6px; }
+  .mm-none { color: var(--muted); font-size: 14px; }
+  .mm-item { display: flex; gap: 12px; align-items: center; padding: 10px; border-radius: 4px; color: var(--text); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .mm-item + .mm-item { margin-top: 2px; }
+  .mm-item.on { background: var(--accent-soft); box-shadow: inset 3px 0 0 var(--accent); }
+  .mm-item.past:not(.on) { opacity: .6; }
+  .mm-item .covers { width: 54px; height: 54px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; flex: none; border-radius: 3px; overflow: hidden; }
+  .mm-item .covers img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .mm-item > div:last-child { min-width: 0; }
+  .mm-tag { display: block; font: 500 10px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); }
+  .mm-item b { display: block; font: 500 17px/1.15 var(--font-label); text-transform: uppercase; letter-spacing: .02em; }
+  .mm-item small { display: block; font-size: 13px; color: var(--muted); margin-top: 3px; }
+  .mm-intro { color: var(--muted); margin-top: 64px; text-align: center; }
+  .mm-head { display: flex; align-items: flex-end; gap: 20px; border-bottom: 1.5px solid var(--text); padding-bottom: 16px; }
+  .mm-ht { flex: 1; min-width: 0; }
+  .mm-kick { font: 500 12px var(--font-label); letter-spacing: .18em; text-transform: uppercase; color: var(--mustard); }
+  .mm-head h1 { font: 400 64px/.95 var(--font-title); letter-spacing: .03em; color: var(--accent); margin: 6px 0; overflow-wrap: anywhere; }
+  .mm-head p { margin: 0; color: var(--muted); font-size: 15px; }
+  .mm-acts { display: flex; gap: 2px; align-items: center; margin-bottom: -6px; }
+  .mm-acts .icon-btn { color: var(--accent); }
+  .mm-acts .icon-btn:disabled { opacity: .35; }
+  .mm-course { margin-top: 26px; }
+  .mm-course h3 { display: flex; align-items: center; gap: 14px; font: 500 13px var(--font-label); letter-spacing: .2em; text-transform: uppercase; color: var(--mustard); margin: 0 0 14px; }
+  .mm-course h3::after { content: ''; flex: 1; border-top: 1px dashed var(--line); }
+  .mm-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 22px; }
+  .mm-dish { display: block; color: var(--text); text-decoration: none; }
+  .mm-dish .ph { aspect-ratio: 4 / 3; background: #ecdfca; overflow: hidden; }
+  .mm-dish .ph img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .mm-dish b { display: block; font: 500 18px/1.2 var(--font-label); text-transform: uppercase; margin-top: 10px; }
+  .mm-dish small { display: block; font: 500 11px var(--font-label); letter-spacing: .14em; text-transform: uppercase; color: var(--mustard); margin-top: 4px; }
+  .mm-empty { margin-top: 40px; text-align: center; color: var(--muted); }
+  .mm-empty .btn { display: inline-flex; gap: 8px; align-items: center; width: auto; padding: 10px 18px; }
+  .mm-empty .btn svg { width: 18px; height: 18px; }
+  @media (hover: hover) { .mm-item:hover:not(.on) { background: rgb(0 0 0 / .035); } .mm-dish:hover .ph img { transform: scale(1.03); } .mm-dish:hover b { color: var(--accent); } }
+}
+@media (min-width: 900px) and (max-width: 1100px) {
+  .mm { grid-template-columns: 270px minmax(0, 1fr); gap: 32px; }
+  .mm-head h1 { font-size: 48px; }
+  .mm-grid { grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); }
+}
