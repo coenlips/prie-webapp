@@ -2533,4 +2533,3 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .bk-main .list-head + .bk-head { padding-top: 28px; }
   .bk-main .list-head:not(.closed) + .bk-head { padding-top: 14px; }
 }
-@media (min-width: 900px) { .bk-main .list-head.closed + .bk-head { padding-top: 19px; } }
