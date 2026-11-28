@@ -1027,6 +1027,41 @@ switch ($action) {
         out(['owner' => ['id' => (int) $o['id'], 'name' => $o['name']], 'recipes' => shared_recipes((int) $o['id'])]);
     }
 
+    // Startkookboek: recepten die de beheerder heeft uitgekozen voor nieuwe gebruikers (recept met starter = true)
+    case 'starter': {
+        require_user();
+        $admin = db()->query('SELECT * FROM recepten_users WHERE is_admin = 1 ORDER BY id LIMIT 1')->fetch();
+        if (!$admin) out(['owner' => null, 'recipes' => []]);
+        $st = db()->prepare("SELECT id, data, updated_at FROM recepten WHERE user_id = ? AND deleted = 0 AND id NOT LIKE '\\_\\_%'");
+        $st->execute([(int) $admin['id']]);
+        $out = [];
+        foreach ($st->fetchAll() as $row) {
+            $r = json_decode((string) $row['data'], true);
+            if (!is_array($r) || empty($r['starter'])) continue;
+            $thumb = (is_string($r['thumbS'] ?? null) && str_starts_with($r['thumbS'], 'data:image/')) ? $r['thumbS'] : '';
+            unset($r['photo'], $r['thumb'], $r['thumbS'], $r['thumbV'], $r['links'], $r['favorite'], $r['_inboxId'], $r['notes'], $r['shared'], $r['starter']);
+            $r['id'] = $row['id'];
+            $r['updatedAt'] = (int) $row['updated_at'];
+            if ($thumb) $r['thumbS'] = $thumb;
+            $out[] = $r;
+        }
+        usort($out, fn($a, $b) => strcasecmp((string) ($a['title'] ?? ''), (string) ($b['title'] ?? '')));
+        out(['owner' => ['id' => (int) $admin['id'], 'name' => $admin['name']], 'recipes' => $out]);
+    }
+
+    case 'starter_recipe': {
+        require_user();
+        $admin = db()->query('SELECT id FROM recepten_users WHERE is_admin = 1 ORDER BY id LIMIT 1')->fetch();
+        $st = db()->prepare('SELECT data, updated_at FROM recepten WHERE user_id = ? AND id = ? AND deleted = 0');
+        $st->execute([(int) ($admin['id'] ?? 0), (string) (body()['id'] ?? '')]);
+        $row = $st->fetch();
+        $r = $row ? json_decode((string) $row['data'], true) : null;
+        if (!is_array($r) || empty($r['starter'])) fail(404, 'Dit recept staat niet (meer) in het startkookboek.');
+        unset($r['links'], $r['favorite'], $r['_inboxId'], $r['thumb'], $r['thumbS'], $r['thumbV'], $r['notes'], $r['shared'], $r['starter']);
+        $r['id'] = (string) body()['id'];
+        out($r);
+    }
+
     case 'book_recipe': {
         $u = require_user();
         $b = body();

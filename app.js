@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.29.1 · 28 november 2026';
+const APP_VERSION = '1.30.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2573,6 +2573,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.30.0', date: '28 november 2026', sections: [{ items: [
+    'Startkookboek: de beheerder kiest in Beheer welke recepten nieuwe gebruikers in één keer kunnen overnemen. Alleen die recepten worden voorgesteld bij een leeg receptenboek.',
+  ] }] },
   { v: '1.29.0', date: '28 november 2026', sections: [{ items: [
     'Nog geen recepten? Dan zie je het kookboek van de beheerder, om te bekijken of in één keer helemaal over te nemen.',
   ] }] },
@@ -2868,6 +2871,7 @@ function showTempPassword(s, name, pw, title) {
   };
 }
 
+function starterSub() { const n = state.recipes.filter(r => r.starter).length; return n ? `${n} ${n === 1 ? 'recept' : 'recepten'} voor nieuwe gebruikers` : 'Nog leeg: kies recepten voor nieuwe gebruikers'; }
 function lastSeenText(u) {
   if (!u.lastSeen) return 'nog niet ingelogd';
   const d = new Date(u.lastSeen), now = new Date();
@@ -2913,6 +2917,8 @@ async function renderUsers(host) {
         </ul></div>`, `<span class="st-dot">${requests.length}</span>`) : ''}
       ${stFold('meldingen', ICONS.bug, 'Meldingen', (Sync.status().me?.feedback ? `${Sync.status().me.feedback} open` : 'Fouten en ideeën van gebruikers'), '<div id="fbAdmin"></div>', Sync.status().me?.feedback ? `<span class="st-dot">${Sync.status().me.feedback}</span>` : '')}
       ${stFold('gebruikers', ICONS.people, 'Gebruikers', 'Accounts en testaccounts', `<div id="userList">${loaderHtml('Gebruikers ophalen…')}</div>`)}
+      ${stFold('start', ICONS.book, 'Startkookboek', starterSub(), `<p>Nieuwe gebruikers zonder recepten zien dit kookboek en kunnen de recepten in één keer overnemen. Alleen de recepten die je hier kiest staan erin; de rest van je recepten blijft privé.</p>
+        <button class="btn ghost" id="starterPick">Recepten kiezen</button>`)}
       ${fails ? stFold('imports', ICONS.search, 'Mislukte imports', fails.length ? `${fails.length} ${fails.length === 1 ? 'website' : 'websites'} · ${nFails}× mislukt` : 'Nog geen', `<p>Websites waarvan het ophalen van een recept niet lukte, met de meeste mislukte pogingen bovenaan.</p>
         ${fails.length ? `<ul class="fails">${fails.map(f => `
           <li>
@@ -2929,6 +2935,7 @@ async function renderUsers(host) {
     </ul>`;
   bindFolds(host);
   drawFeedbackAdmin();
+  $('#starterPick')?.addEventListener('click', () => openStarterPicker(() => { const sub = host.querySelector('[data-f=start] .st-tx small, [data-f=start] small'); if (sub) sub.textContent = starterSub(); }));
   // Gebruikers pas ophalen als je het kopje openklapt
   const gf = host.querySelector('[data-f=gebruikers]');
   if (gf.open) drawUserList($('#userList'));
@@ -3271,7 +3278,7 @@ async function ensureThumbs() {
   if (thumbsBusy) return;
   thumbsBusy = true;
   try {
-    for (const r of state.recipes.filter(x => x.shared && x.photo && (!x.thumb || !x.thumbS || x.thumbV !== 3))) {
+    for (const r of state.recipes.filter(x => (x.shared || x.starter) && x.photo && (!x.thumb || !x.thumbS || x.thumbV !== 3))) {
       try { await DB.put({ ...r, thumb: await resizeImage(r.photo, 640), thumbS: await resizeImage(r.photo, 320), thumbV: 3 }); } catch { /* volgende keer */ }
     }
     await loadRecipes();
@@ -3279,52 +3286,94 @@ async function ensureThumbs() {
 }
 
 // Een recept van iemand anders als eigen kopie bewaren
-// Leeg receptenboek: het kookboek van de beheerder voorstellen, om te bekijken of in één keer helemaal over te nemen
+// Leeg receptenboek: het startkookboek van de beheerder (recepten die de beheerder in Beheer heeft uitgekozen)
+async function loadStarter() {
+  let d = shareStore.get('starter');
+  try { d = await Sync.call('starter'); shareStore.set('starter', d); } catch { /* oudere server of offline */ }
+  return d;
+}
 async function showStarterBook() {
-  let books = shareStore.get('books');
-  try { books = await Sync.call('books'); shareStore.set('books', books); } catch { /* offline: wat we nog weten */ }
+  const d = await loadStarter();
   const box = $('#starterBook');
-  if (!box || !books?.length || state.recipes.length) return;
-  const me = Sync.status().user?.id;
-  const b = books.find(x => x.admin && x.id !== me) || [...books].sort((x, y) => y.count - x.count)[0];
-  if (!b) return;
+  if (!box || !d?.owner || !d.recipes?.length || state.recipes.length) return;
+  if (d.owner.id === Sync.status().user?.id) return;   // de beheerder zelf niet
+  const n = d.recipes.length;
   box.innerHTML = `<div class="starter">
-    <div class="covers">${bookCovers(b)}</div>
-    <div class="starter-tx"><span class="mm-tag">Le Ricette di</span><b>${esc(b.name)}</b>
-      <small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'} om mee te beginnen</small></div>
+    <div class="covers">${bookCovers({ id: 'start', thumbs: d.recipes.map(r => r.thumbS).filter(Boolean).slice(0, 4) })}</div>
+    <div class="starter-tx"><span class="mm-tag">Startkookboek van ${esc(d.owner.name)}</span><b>${n} ${n === 1 ? 'recept' : 'recepten'}</b>
+      <small>om mee te beginnen</small></div>
     <div class="starter-acts">
-      <a class="btn ghost" href="#/kookboek/${b.id}">Bekijken</a>
+      <button type="button" class="btn ghost" id="starterView">Bekijken</button>
       <button type="button" class="btn" id="starterAll">Alles toevoegen</button>
     </div>
   </div>`;
-  $('#starterAll').onclick = () => copyWholeBook(b);
+  $('#starterAll').onclick = () => copyStarter(d, d.recipes);
+  $('#starterView').onclick = () => viewStarter(d);
 }
-async function copyWholeBook(b) {
-  if (!confirm(`Alle ${b.count} recepten van ${b.name} aan je eigen recepten toevoegen?`)) return;
+// Bekijken: lijst met de recepten; los aanvinken of alles in één keer toevoegen
+function viewStarter(d) {
+  const chosen = new Set(d.recipes.map(r => r.id));
+  const s = openAccSheet(`<div class="sheet-head"><h3>Startkookboek</h3><button class="text-btn" data-close>Sluit</button></div>
+    <p class="acc-sheet-text">Recepten van ${esc(d.owner.name)} om mee te beginnen. Vink uit wat je niet wilt.</p>
+    <ul class="pick mp-pick" id="stList"></ul>
+    <button class="btn" id="stAdd"></button>`, 'Startkookboek');
+  s.el.querySelector('.sheet').classList.add('tall');
+  const draw = () => {
+    s.$('#stList').innerHTML = d.recipes.map(r => { const on = chosen.has(r.id);
+      return `<li><button type="button" class="mp-row${on ? ' on' : ''}" data-st="${esc(r.id)}" aria-pressed="${on}"><img src="${r.thumbS || placeholder(r.id)}" alt="" loading="lazy"><b>${esc(r.title)}</b><span class="tick" aria-hidden="true">${on ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>'}</span></button></li>`; }).join('');
+    s.$('#stAdd').textContent = chosen.size ? `${chosen.size} ${chosen.size === 1 ? 'recept' : 'recepten'} toevoegen` : 'Niets gekozen';
+    s.$('#stAdd').disabled = !chosen.size;
+    s.el.querySelectorAll('[data-st]').forEach(bt => bt.onclick = () => { const id = bt.dataset.st; chosen.has(id) ? chosen.delete(id) : chosen.add(id); draw(); });
+  };
+  draw();
+  s.$('#stAdd').onclick = async () => { const list = d.recipes.filter(r => chosen.has(r.id)); s.close(); await copyStarter(d, list, true); };
+}
+async function copyStarter(d, list, asked = false) {
+  if (!asked && !confirm(`Alle ${list.length} recepten uit het startkookboek aan je eigen recepten toevoegen?`)) return;
   const btn = $('#starterAll');
   if (btn) btn.disabled = true;
-  let d;
-  try { d = await Sync.call('book', { owner: b.id }); } catch (err) { toast(shareErr(err)); if (btn) btn.disabled = false; return; }
-  const have = new Set(state.recipes.filter(x => x.fromUser === d.owner.name).map(x => x.title));
-  const todo = d.recipes.filter(r => !have.has(r.title));
+  const have = new Set(state.recipes.map(x => x.title));
+  const todo = list.filter(r => !have.has(r.title));
   let done = 0, failed = 0;
   for (const r of todo) {
     if (btn) btn.textContent = `Bezig… ${done + failed + 1} van ${todo.length}`;
     try {
-      const full = await Sync.call('book_recipe', { owner: d.owner.id, id: r.id });
-      const copy = { ...full, id: uid(), shared: false, links: [], favorite: false, fromUser: d.owner.name, createdAt: Date.now() };
+      const full = await Sync.call('starter_recipe', { id: r.id });
+      const copy = { ...full, id: uid(), shared: false, starter: false, links: [], favorite: false, fromUser: d.owner.name, createdAt: Date.now() };
       delete copy.updatedAt; delete copy._inboxId; delete copy.thumb; delete copy.thumbS; delete copy.thumbV;
       await DB.put(copy); done++;
     } catch { failed++; }
   }
   await loadRecipes();
-  toast(failed ? `${done} recepten toegevoegd, ${failed} lukten niet` : `${done} recepten van ${d.owner.name} toegevoegd`);
+  toast(failed ? `${done} recepten toegevoegd, ${failed} lukten niet` : `${done} ${done === 1 ? 'recept' : 'recepten'} toegevoegd`);
   if (typeof Sync.syncNow === 'function') Sync.syncNow();
   route();
 }
 
+// Beheer: kiezen welke van je eigen recepten in het startkookboek staan
+function openStarterPicker(onDone) {
+  const s = openAccSheet(`<div class="sheet-head"><h3>Startkookboek</h3><button class="text-btn" data-close>Klaar</button></div>
+    <p class="acc-sheet-text">Kies welke van je recepten nieuwe gebruikers in één keer kunnen overnemen.</p>
+    <div class="search mp-search">${ICONS.search}<input type="search" id="spQ" placeholder="Zoek een recept" autocomplete="off"></div>
+    <ul class="pick mp-pick" id="spList"></ul>`, 'Startkookboek');
+  s.el.querySelector('.sheet').classList.add('tall');
+  const draw = () => {
+    const q = s.$('#spQ').value.trim().toLowerCase();
+    const list = state.recipes.filter(r => !q || r.title.toLowerCase().includes(q)).sort((a, b) => (!!b.starter - !!a.starter) || a.title.localeCompare(b.title, 'nl'));
+    s.$('#spList').innerHTML = list.map(r => `<li><button type="button" class="mp-row${r.starter ? ' on' : ''}" data-sp="${esc(r.id)}" aria-pressed="${!!r.starter}"><img src="${r.photo || placeholder(r.id)}" alt="" loading="lazy"><b>${esc(r.title)}</b><span class="tick" aria-hidden="true">${r.starter ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>'}</span></button></li>`).join('') || '<li class="pick-none">Geen recepten gevonden.</li>';
+    s.el.querySelectorAll('[data-sp]').forEach(bt => bt.onclick = async () => {
+      const r = state.recipes.find(x => x.id === bt.dataset.sp); if (!r) return;
+      await DB.put({ ...r, starter: !r.starter, updatedAt: Date.now() });
+      await loadRecipes(); draw(); onDone?.();
+      if (!r.starter) ensureThumbs();
+    });
+  };
+  s.$('#spQ').oninput = draw;
+  draw();
+}
+
 async function saveCopy(src, fromName) {
-  const copy = { ...src, id: uid(), shared: false, links: [], favorite: false, fromUser: fromName, createdAt: Date.now() };
+  const copy = { ...src, id: uid(), shared: false, starter: false, links: [], favorite: false, fromUser: fromName, createdAt: Date.now() };
   delete copy.updatedAt; delete copy._inboxId; delete copy.thumb; delete copy.thumbS; delete copy.thumbV;
   await DB.put(copy);
   await loadRecipes();
