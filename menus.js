@@ -414,7 +414,7 @@ const Menus = (() => {
           .sort((a, b) => ((b.courses || []).includes(course) - (a.courses || []).includes(course)) || a.title.localeCompare(b.title, 'nl'));
         s.$('#mpList').innerHTML = list.length ? list.map(x => {
           const on = m.dishes.some(d => d.id === x.id && d.course === course);
-          return `<li><button type="button" class="mp-row${on ? ' on' : ''}" data-mp="${esc(x.id)}" aria-pressed="${on}"><img src="${x.photo || placeholder(x.id)}" alt="" loading="lazy"><b>${esc(x.title)}</b><span class="tick" aria-hidden="true">${on ? '✓' : '+'}</span></button></li>`;
+          return `<li><button type="button" class="mp-row${on ? ' on' : ''}" data-mp="${esc(x.id)}" aria-pressed="${on}"><img src="${x.photo || placeholder(x.id)}" alt="" loading="lazy"><b>${esc(x.title)}</b><span class="tick" aria-hidden="true">${on ? '<svg viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>' : '<svg viewBox="0 0 24 24"><path d="M12 6v12M6 12h12"/></svg>'}</span></button></li>`;
         }).join('') : '<li class="pick-none">Geen recepten gevonden.</li>';
         s.el.querySelectorAll('[data-mp]').forEach(b => b.onclick = () => {
           const id = b.dataset.mp, i = m.dishes.findIndex(d => d.id === id && d.course === course);

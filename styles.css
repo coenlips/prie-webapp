@@ -2443,3 +2443,8 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   body[data-page=edit].has-tabbar main { max-width: none; margin: 0; padding-left: calc(max(24px, (100% - var(--page-w, 1320px)) / 2 + 24px) + 4px); padding-right: max(24px, calc((100% - var(--page-w, 1320px)) / 2 + 32px)); }
 }
 @media (min-width: 700px) { .ed-head { margin-top: -12px; } }
+/* Receptenkiezer: plusje en vinkje getekend, precies in het midden van het rondje */
+.mp-row .tick svg { width: 16px; height: 16px; stroke-width: 2.6; display: block; }
+/* Geen scrollbalken in de keuzelijsten en vensters */
+.pick, .sheet, .sheet * { scrollbar-width: none; }
+.pick::-webkit-scrollbar, .sheet::-webkit-scrollbar, .sheet *::-webkit-scrollbar { display: none; width: 0; height: 0; }
