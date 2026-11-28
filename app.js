@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.32.0 · 28 november 2026';
+const APP_VERSION = '1.33.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2576,6 +2576,9 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.33.0', date: '28 november 2026', sections: [{ items: [
+    'Wachtwoord vergeten? Vraag op het inlogscherm een mail aan met een link om zelf een nieuw wachtwoord te kiezen.',
+  ] }] },
   { v: '1.32.0', date: '28 november 2026', sections: [{ items: [
     'Beheer → Gebruik: zie hoeveel toestellen Ricetta gebruiken, met en zonder account. Anoniem geteld, zonder namen of IP-adressen.',
   ] }] },
@@ -2871,6 +2874,67 @@ function openPrivacySheet() {
   s.el.querySelector('.sheet').classList.add('tall');
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-privacy]')) { e.preventDefault(); openPrivacySheet(); } });
+
+// Wachtwoord vergeten: naam of e-mailadres invullen, dan komt er een mail met een link
+function openForgotSheet(name = '') {
+  const s = openAccSheet(`
+    <div class="sheet-head"><h3>Wachtwoord vergeten</h3><button class="text-btn" data-close>Annuleer</button></div>
+    <form id="fgForm" class="req-form" autocomplete="on">
+      <p class="acc-sheet-text">Vul je naam of e-mailadres in. Je krijgt dan een mail met een link om een nieuw wachtwoord te kiezen.</p>
+      <label class="sheet-label">Naam of e-mailadres<input name="who" value="${esc(name)}" autocomplete="username" autocapitalize="off" autocorrect="off" spellcheck="false" required></label>
+      <p class="sync-msg" id="fgMsg" hidden></p>
+      <button class="btn" type="submit">Stuur mij een link</button>
+    </form>`, 'Wachtwoord vergeten');
+  const form = s.$('#fgForm'), msg = s.$('#fgMsg');
+  setTimeout(() => form.who.focus({ preventScroll: true }), 250);
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const btn = form.querySelector('button[type=submit]'); btn.disabled = true; msg.hidden = false; msg.textContent = 'Bezig…';
+    try {
+      await Sync.publicCall('forgot', { who: form.who.value.trim(), appUrl: location.origin + location.pathname });
+      s.el.querySelector('.sheet').innerHTML = `<div class="sheet-head"><h3>Kijk in je mail</h3><button class="text-btn" data-close>Klaar</button></div>
+        <p class="acc-sheet-text">Als we een account met die naam of dat e-mailadres kennen, krijg je binnen een paar minuten een mail met een link. De link is een uur geldig.</p>
+        <p class="acc-sheet-text small-note">Geen mail gekregen? Kijk ook in je spammap, of vraag de beheerder om je inloggegevens opnieuw te sturen.</p>
+        <button class="btn" data-close>Klaar</button>`;
+    } catch (err) { msg.textContent = /Onbekende actie/.test(err.message) ? 'Dit werkt nog niet: vraag de beheerder om je een nieuw wachtwoord te sturen.' : err.message; btn.disabled = false; }
+  };
+}
+Sync.onForgotButton = openForgotSheet;
+
+// Nieuw wachtwoord kiezen via de link uit de mail
+function renderResetPassword(token) {
+  document.body.dataset.page = 'welcome';
+  bareHeader();
+  view.innerHTML = `
+    <section class="acc-welcome">
+      ${flagHtml('Nieuw wachtwoord')}
+      <p class="acc-lead">Kies een nieuw wachtwoord voor Ricetta.</p>
+      <form class="acc-form" id="rsForm" autocomplete="on">
+        <input type="text" name="username" autocomplete="username" hidden>
+        <label>Nieuw wachtwoord<input type="password" name="pw" autocomplete="new-password" minlength="8" required></label>
+        <label>Nog een keer<input type="password" name="pw2" autocomplete="new-password" minlength="8" required></label>
+        <button class="btn" type="submit">Opslaan en inloggen</button>
+        <p class="sync-msg" id="rsMsg" hidden></p>
+      </form>
+      <p class="acc-note">Minstens 8 tekens.</p>
+    </section>`;
+  const form = $('#rsForm'), msg = $('#rsMsg');
+  form.onsubmit = async e => {
+    e.preventDefault();
+    const pw = form.pw.value, pw2 = form.pw2.value;
+    msg.hidden = false;
+    if (pw !== pw2) { msg.textContent = 'De twee wachtwoorden zijn niet hetzelfde.'; return; }
+    const btn = form.querySelector('button'); btn.disabled = true; msg.textContent = 'Bezig…';
+    try {
+      const r = await Sync.publicCall('reset_password', { token, password: pw });
+      if (Sync.status().state === 'on') await Sync.signOut({ force: true }).catch(() => {});
+      await Sync.signIn(r.name, pw);
+      toast('Je nieuwe wachtwoord is opgeslagen');
+      if (typeof Sync.onSignIn === 'function') Sync.onSignIn(Sync.status().user); else { location.replace('#/'); }
+      if (location.hash.startsWith('#/reset')) location.replace('#/');
+    } catch (err) { msg.textContent = err.message; btn.disabled = false; }
+  };
+}
 
 function openRequestSheet() {
   const s = openAccSheet(`
@@ -4069,6 +4133,8 @@ async function route() {
   // Gedeeld recept via QR-code of link: ook zonder account te bekijken
   if (page === 'deel' && id) return renderSharedLink(id);
 
+  // Link uit de mail 'wachtwoord vergeten': ook zonder in te loggen
+  if (page === 'reset' && id) return renderResetPassword(id);
   // Nog niet ingelogd (en niet aan het uitproberen), of eerst een eigen wachtwoord kiezen?
   const gate = accountGate();
   if (gate) return gate();

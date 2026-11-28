@@ -249,10 +249,12 @@ const Sync = (() => {
         <label>Wachtwoord<input type="password" name="password" autocomplete="current-password" required></label>
         <button class="btn" type="submit">Inloggen</button>
         <p class="sync-msg" id="syncMsg" hidden></p>
+        <p class="forgot-row"><button type="button" class="link" id="forgotBtn">Wachtwoord vergeten?</button></p>
       </form>`;
 
   function bindLoginForm(form, onDone) {
     const msg = form.querySelector('#syncMsg');
+    form.querySelector('#forgotBtn')?.addEventListener('click', () => Sync.onForgotButton && Sync.onForgotButton(form.username.value.trim()));
     form.addEventListener('submit', async e => {
       e.preventDefault();
       const name = form.username.value.trim();
@@ -350,5 +352,5 @@ const Sync = (() => {
   }
 
   return { when, syncNow, cardHtml, bindCard, status, onChange, call, publicCall, signIn, signOut, refreshMe, changePassword, requestAccount, loginFormHtml, bindLoginForm,
-    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onEmailButton: null, onRequestButton: null };
+    onRemoteChange: null, onSignIn: null, onSignOut: null, onPasswordButton: null, onForgotButton: null, onEmailButton: null, onRequestButton: null };
 })();

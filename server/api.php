@@ -164,6 +164,10 @@ function db(): PDO {
         $pdo->exec("ALTER TABLE recepten_users ADD COLUMN is_test TINYINT(1) NOT NULL DEFAULT 0");
     }
     // Foutmeldingen en ideeën van gebruikers (de beheerder ziet ze bij Instellingen → Wat is er nieuw)
+    // Wachtwoord vergeten: eenmalige link per mail (alleen de hash van de code wordt bewaard, een uur geldig)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_resets (
+        token_hash CHAR(64) NOT NULL PRIMARY KEY, user_id INT NOT NULL, created_at BIGINT NOT NULL, expires_at BIGINT NOT NULL, INDEX (user_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     // Anoniem gebruik tellen: per toestel een willekeurige code, één regel per dag (geen IP-adres, geen account)
     $pdo->exec("CREATE TABLE IF NOT EXISTS recepten_visits (
         day INT NOT NULL, device CHAR(32) NOT NULL, account TINYINT(1) NOT NULL DEFAULT 0, installed TINYINT(1) NOT NULL DEFAULT 0,
@@ -671,6 +675,51 @@ switch ($action) {
         }
         $pdo->prepare('UPDATE recepten_users SET last_seen = ? WHERE id = ?')->execute([now_ms(), $u['id']]);
         out(['token' => new_token((int) $u['id']), 'user' => user_out($u)]);
+    }
+
+    // Wachtwoord vergeten: naam of e-mailadres → mail met een link om een nieuw wachtwoord te kiezen.
+    // Het antwoord is altijd hetzelfde, zodat niemand kan uitzoeken welke namen of adressen bestaan.
+    case 'forgot': {
+        $b = body();
+        $who = trim((string) ($b['who'] ?? ''));
+        if ($who === '' || mb_strlen($who) > 190) fail(400, 'Vul je naam of e-mailadres in.');
+        throttle(name_key($who));
+        db()->prepare('INSERT INTO recepten_fails (name_key, ip, at) VALUES (?, ?, ?)')->execute(['forgot:' . client_ip(), client_ip(), now_ms()]);
+        $st = db()->prepare('SELECT * FROM recepten_users WHERE name_key = ? OR (email IS NOT NULL AND LOWER(email) = ?) LIMIT 1');
+        $st->execute([name_key($who), mb_strtolower($who)]);
+        $u = $st->fetch();
+        if ($u && !empty($u['email'])) {
+            db()->prepare('DELETE FROM recepten_resets WHERE expires_at < ?')->execute([now_ms()]);
+            $n = db()->prepare('SELECT COUNT(*) FROM recepten_resets WHERE user_id = ?');
+            $n->execute([$u['id']]);
+            if ((int) $n->fetchColumn() < 3) {
+                $token = bin2hex(random_bytes(24));
+                db()->prepare('INSERT INTO recepten_resets (token_hash, user_id, created_at, expires_at) VALUES (?, ?, ?, ?)')
+                    ->execute([hash('sha256', $token), $u['id'], now_ms(), now_ms() + 3600 * 1000]);
+                $url = rtrim(app_url((string) ($b['appUrl'] ?? '')), '/') . '/#/reset/' . $token;
+                send_mail((string) $u['email'], 'Nieuw wachtwoord voor Ricetta',
+                    "Hoi {$u['name']},\n\nJe hebt gevraagd om een nieuw wachtwoord voor Ricetta. Kies het via deze link (een uur geldig):\n\n$url\n\n"
+                    . "Je naam om in te loggen is: {$u['name']}\n\nHeb je dit niet zelf gevraagd? Dan kun je deze mail negeren; je wachtwoord blijft hetzelfde.\n");
+            }
+        }
+        out(['ok' => true]);
+    }
+
+    case 'reset_password': {
+        $b = body();
+        $hash = hash('sha256', (string) ($b['token'] ?? ''));
+        $pw = (string) ($b['password'] ?? '');
+        if (mb_strlen($pw) < 8) fail(400, 'Kies een wachtwoord van minstens 8 tekens.');
+        $st = db()->prepare('SELECT * FROM recepten_resets WHERE token_hash = ? AND expires_at > ?');
+        $st->execute([$hash, now_ms()]);
+        $r = $st->fetch();
+        if (!$r) fail(400, 'Deze link is verlopen of al gebruikt. Vraag een nieuwe aan via "Wachtwoord vergeten?".');
+        $u = find_user((int) $r['user_id']);
+        db()->prepare('UPDATE recepten_users SET pw_hash = ?, must_change = 0 WHERE id = ?')->execute([password_hash($pw, PASSWORD_DEFAULT), $u['id']]);
+        db()->prepare('DELETE FROM recepten_resets WHERE user_id = ?')->execute([$u['id']]);
+        db()->prepare('DELETE FROM recepten_tokens WHERE user_id = ?')->execute([$u['id']]);
+        db()->prepare('DELETE FROM recepten_fails WHERE name_key = ?')->execute([$u['name_key']]);
+        out(['ok' => true, 'name' => $u['name']]);
     }
 
     case 'logout': {

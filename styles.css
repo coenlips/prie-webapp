@@ -2652,3 +2652,6 @@ body.cook .topbar .acc-btn { display: none; }
 .us-tile span { font: 500 13px var(--font-label); letter-spacing: .1em; text-transform: uppercase; color: var(--text); }
 .us-tile small { font-size: 12.5px; color: var(--muted); }
 @media (min-width: 700px) { .us-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+/* Wachtwoord vergeten: rustig linkje onder Inloggen */
+.forgot-row { margin: 2px 0 0 !important; text-align: center; }
+.forgot-row .link { font-size: 14px; color: var(--muted); text-decoration: underline; text-underline-offset: 3px; }
