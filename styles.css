@@ -2318,3 +2318,26 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 @media (min-width: 900px) {
   body[data-page=shop]:has(.dishes) main { max-width: none; margin: 0; padding-left: calc(max(24px, (100% - var(--page-w, 1320px)) / 2 + 24px) + 4px); padding-right: max(24px, calc((100% - var(--page-w, 1320px)) / 2 + 32px)); }
 }
+/* iPad en laptop: alle tabbladen (Recepten, Menu's, Boodschappen, Gedeeld, Instellingen) even breed als de inhoud
+   van de menubalk, van het logo tot de accountknop */
+@media (min-width: 700px) {
+  body.has-tabbar:not([data-page=list]):not([data-page=detail]):not([data-page=book]):not([data-page=edit]) main {
+    max-width: none; margin: 0;
+    padding-left: calc(max(24px, (100% - var(--page-w, 1320px)) / 2 + 24px) + 4px);
+    padding-right: max(24px, calc((100% - var(--page-w, 1320px)) / 2 + 32px));
+  }
+  body.has-tabbar .st-wrap { max-width: none; margin: 0; padding-left: 0; padding-right: 0; }
+  body.has-tabbar .mx-list, body.has-tabbar .books { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
+  body.has-tabbar .mx-intro { max-width: 640px; margin-left: auto; margin-right: auto; }
+}
+@media (min-width: 700px) {
+  body[data-page=list] { --gutter-l: calc(max(24px, (100% - var(--page-w)) / 2 + 24px) + 4px); --gutter-r: max(24px, calc((100% - var(--page-w)) / 2 + 32px)); }
+  body[data-page=list] .list-head { padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+  body[data-page=list] .cards, body[data-page=list] .inbox-banner, body[data-page=list] .empty { margin-left: var(--gutter-l); margin-right: var(--gutter-r); }
+}
+@media (min-width: 700px) {
+  body[data-page=book] { --gutter-l: calc(max(24px, (100% - var(--page-w)) / 2 + 24px) + 4px); --gutter-r: max(24px, calc((100% - var(--page-w)) / 2 + 32px)); }
+  body[data-page=book] .book-top, body[data-page=book] .list-head { padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+  body[data-page=book] .book-top .book-flag, body[data-page=book] .book-top .book-head { padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
+  body[data-page=book] .book-page .book-cards.mag { margin-left: var(--gutter-l); margin-right: var(--gutter-r); }
+}
