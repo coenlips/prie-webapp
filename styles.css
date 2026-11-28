@@ -2341,3 +2341,9 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   body[data-page=book] .book-top .book-flag, body[data-page=book] .book-top .book-head { padding-left: var(--gutter-l); padding-right: var(--gutter-r); }
   body[data-page=book] .book-page .book-cards.mag { margin-left: var(--gutter-l); margin-right: var(--gutter-r); }
 }
+/* iPad en laptop: geen scrollbalk voor de hele pagina (die nam ruimte in en liet het logo per tabblad verspringen).
+   Scrollen met muis, touchpad en toetsen blijft gewoon werken. */
+@media (min-width: 700px) {
+  html { scrollbar-width: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; width: 0; height: 0; }
+}
