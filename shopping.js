@@ -103,19 +103,61 @@ const Shopping = (() => {
   const label = i => [amount(i), i.name].filter(Boolean).join(' ');
 
   // Voegt toe of telt op bij een bestaande, nog niet afgevinkte boodschap
+  // Een tussenkopje in de ingrediënten ("Voor de soep", "Saus:") is geen boodschap
+  const isHeading = line => {
+    const t = String(line).trim();
+    if (!t || t.startsWith('#')) return true;
+    const p = parse(t);
+    return p.qty == null && !p.unit && (/:\s*$/.test(t) || /^(voor|van) (de|het|een)\b/i.test(t));
+  };
+
+  // Meervoud maken van het naamwoord, als 1 stuk door omrekenen of optellen meer wordt (3 sjalot → 3 sjalotten)
+  const PLURAL_EXCEPT = { champignon: 'champignons', ei: 'eieren', croissant: 'croissants' };
+  function pluralWord(w) {
+    const lw = w.toLowerCase();
+    if (PLURAL_EXCEPT[lw]) return PLURAL_EXCEPT[lw];
+    if (/blad$/.test(lw)) return w + 'eren';                                 // laurierblad → laurierbladeren
+    if (/je$/.test(lw)) return w + 's';                                      // stukje → stukjes
+    if (/(ui|ei|ie)$/.test(lw)) return w + 'en';                              // ui → uien, prei → preien
+    if (/[aiouy]$/.test(lw)) return w + "'s";                                 // paprika → paprika's
+    if (/e$/.test(lw)) return w + 's';                                       // courgette → courgettes
+    let m;
+    if ((m = /^(.*[^aeiou])([aeou])\2([bcdfgklmnprstvz])$/.exec(w))) return m[1] + m[2] + m[3].replace('f', 'v').replace('s', 'z') + 'en';   // tomaat → tomaten, peer → peren
+    if (/(el|er|em|en|um)$/.test(lw) && !/(oen|ien|ein|een)$/.test(lw)) return w + 's';   // wortel, peper
+    if (/(oe|ou|ui|ij|ie|eu|ei|au)[bcdfgklmnprstvz]$/.test(lw)) return w.replace(/f$/, 'v').replace(/s$/, 'z') + 'en';   // citroen, druif → druiven
+    if ((m = /^(.*[^aeiou][aeiou])([bdfgklmnprst])$/.exec(w))) return m[1] + m[2] + m[2] + 'en';   // sjalot → sjalotten
+    return w + 'en';
+  }
+  function pluralName(name) {
+    if (/\s(of|en)\s|[,/]/.test(name)) return name;                          // "little gem of kropsla": laten staan
+    const words = name.split(' ');
+    // "stukje gember" → stukjes gember, "fles rode wijn" → flessen rode wijn
+    const CONTAINER = /^(fles|krop|stuk|plak|tak|kop|pak|zak|pot|bos|blik|doos|bak|rol|tros|net|schaal|beker|knol|teen|tube|bol)$/i;
+    const i = (/je$/i.test(words[0]) || CONTAINER.test(words[0])) && words.length > 1 ? 0 : words.length - 1;
+    if (!/^[a-zà-ÿ-]{2,}$/i.test(words[i])) return name;
+    words[i] = pluralWord(words[i]);
+    return words.join(' ');
+  }
+
   function addOne(line, factor = 1, from = '') {
+    if (isHeading(line)) return;
     const p = parse(line);
     if (!p.name) return;
+    // Staat het in het enkelvoud (1 sjalot, 1 stukje gember)? Dan meervoud zodra het er meer worden.
+    const sing = p.qty != null && p.qty <= 1 && !p.unit;
     if (p.qty != null) p.qty *= factor;
     const same = list.items.find(i => !i.checked && sameUnit(i.unit, p.unit) && sameName(i.name, p.name));
     if (same) {
       if (same.qty != null && p.qty != null) same.qty += p.qty;
       else if (same.qty == null && p.qty != null) same.qty = p.qty;
       // Bij meer dan één de meervoudsvorm laten zien (1 ui + 2 uien = 3 uien)
-      if ((same.qty == null || same.qty > 1) && pluralOf(p.name, same.name)) same.name = p.name;
+      if ((same.qty == null || same.qty > 1) && pluralOf(p.name, same.name)) { same.name = p.name; same.sing = false; }
+      else if (same.qty > 1 && same.sing && !same.unit) { same.name = pluralName(same.name); same.sing = false; }
       if (from && !same.from.includes(from)) same.from.push(from);
     } else {
-      list.items.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...p, checked: false, from: from ? [from] : [] });
+      const item = { id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), ...p, checked: false, from: from ? [from] : [] };
+      if (sing && p.qty > 1) item.name = pluralName(p.name); else if (sing) item.sing = true;
+      list.items.push(item);
     }
   }
 
@@ -424,6 +466,7 @@ const Shopping = (() => {
   /* ---------- Gerechten (rechterkolom op laptop en iPad) ---------- */
 
   const forDish = title => list.items.filter(i => i.from.includes(title));
+  let selDish = null;   // het aangetikte gerecht
   const shortDate = d => d ? new Date(d + 'T12:00').toLocaleDateString('nl-NL', { day: 'numeric', month: 'short' }).replace('.', '') : '';
 
   function dishesHtml() {
@@ -437,8 +480,8 @@ const Shopping = (() => {
       const img = r ? (r.photo || placeholder(r.id)) : placeholder(s.title);
       const info = [s.servings ? `${s.servings} ${s.servings === 1 ? 'portie' : 'porties'}` : '', s.sub || '',
         left ? `${left} ${left === 1 ? 'boodschap' : 'boodschappen'}` : '✓ alles in je mandje'].filter(Boolean).join(' · ');
-      return `<div class="dish${r ? ' link' : ''}" data-dish="${esc(s.title)}"${r ? ` data-go="#/r/${encodeURIComponent(r.id)}" role="link" tabindex="0"` : ''}>
-          <img src="${esc(img)}" alt="" loading="lazy"><span class="dt"><b>${esc(s.title)}</b><small>${esc(info)}</small></span>
+      return `<div class="dish${selDish === s.title ? ' on' : ''}" data-dish="${esc(s.title)}" role="button" tabindex="0" aria-pressed="${selDish === s.title}">
+          <img src="${esc(img)}" alt="" loading="lazy"><span class="dt"><b>${esc(s.title)}</b><small>${esc(info)}</small>${r ? `<a class="dish-open" href="#/r/${encodeURIComponent(r.id)}">Recept bekijken ›</a>` : ''}</span>
           <button type="button" class="dx" data-dx="${esc(s.title)}" aria-label="Boodschappen voor ${esc(s.title)} weghalen">×</button></div>`;
     };
     // Per menu een blok, daarin per gang; de rest onder Losse recepten
@@ -456,22 +499,38 @@ const Shopping = (() => {
     const extra = list.items.filter(i => !i.from.length && !i.checked).length;
     return `<aside class="dishes" aria-label="Gerechten">
         <h2 class="page-title">Gerechten</h2>
-        <p class="dishes-sub">Waar je boodschappen voor zijn. Wijs een gerecht aan om de boodschappen ervan te zien.</p>
+        <p class="dishes-sub">Waar je boodschappen voor zijn. Tik op een gerecht om de boodschappen ervan te zien.</p>
         ${menus.map(menuBlk).join('')}
         ${loose.length ? `<section class="dish-blk"><header><b>${menus.length ? 'Losse recepten' : 'Recepten'}</b></header>${loose.map(dish).join('')}</section>` : ''}
         ${extra ? `<div class="dish-extra"><span>Overige boodschappen</span><b>${extra}</b></div>` : ''}
       </aside>`;
   }
 
+  // Tik op een gerecht: het blijft opgelicht, met zijn boodschappen links (nog een tik zet het uit).
+  // Met de muis lichten ze ook al op bij aanwijzen. Het recept open je met 'Recept bekijken'.
   function bindDishes(view, redraw) {
-    const items = view.querySelectorAll('.shop-item');
+    const items = [...view.querySelectorAll('.shop-item')];
     const mark = title => items.forEach(li => { const it = list.items.find(i => i.id === li.dataset.id); li.classList.toggle('hl', !!title && !!it && it.from.includes(title)); });
-    view.querySelectorAll('[data-dish]').forEach(d => {
-      d.addEventListener('mouseenter', () => mark(d.dataset.dish));
-      d.addEventListener('mouseleave', () => mark(null));
-      d.addEventListener('focus', () => mark(d.dataset.dish));
-      d.addEventListener('blur', () => mark(null));
-      d.addEventListener('keydown', e => { if (e.key === 'Enter' && d.dataset.go) location.hash = d.dataset.go; });
+    const dishes = [...view.querySelectorAll('[data-dish]')];
+    const select = (d, scroll) => {
+      selDish = selDish === d.dataset.dish ? null : d.dataset.dish;
+      dishes.forEach(x => { x.classList.toggle('on', x.dataset.dish === selDish); x.setAttribute('aria-pressed', x.dataset.dish === selDish); });
+      mark(selDish);
+      // Staat de eerste boodschap buiten beeld? Dan erheen scrollen.
+      const first = items.find(li => li.classList.contains('hl'));
+      if (scroll && first) { const r = first.getBoundingClientRect(), top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 72) + 90;
+        if (r.top < top || r.bottom > innerHeight) window.scrollBy({ top: r.top - top - 10, behavior: 'smooth' }); }
+    };
+    if (selDish && !dishes.some(d => d.dataset.dish === selDish)) selDish = null;
+    mark(selDish);
+    const hover = matchMedia('(hover: hover)').matches;
+    dishes.forEach(d => {
+      if (hover) {
+        d.addEventListener('mouseenter', () => mark(d.dataset.dish));
+        d.addEventListener('mouseleave', () => mark(selDish));
+      }
+      d.addEventListener('click', e => { if (e.target.closest('.dx, .dish-open')) return; select(d, true); });
+      d.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === d) { e.preventDefault(); select(d, true); } });
     });
     view.querySelectorAll('[data-dx]').forEach(b => b.onclick = async e => {
       e.stopPropagation();
@@ -594,5 +653,5 @@ const Shopping = (() => {
     draw();
   }
 
-  return { load, render, addFromRecipe, updateBadge, parse, ID };
+  return { load, render, addFromRecipe, updateBadge, parse, isHeading, ID };
 })();

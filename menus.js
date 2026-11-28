@@ -189,7 +189,7 @@ const Menus = (() => {
     groups.forEach(gr => { gr.base = Math.max(1, +gr.src.servings || 1); gr.serv = m.persons; });
     const rows = [];
     groups.forEach(gr => lines(gr.src.ingredients).forEach((l, i) => {
-      if (l.startsWith('#') || gr.skip.has(i)) return;
+      if (l.startsWith('#') || gr.skip.has(i) || Shopping.isHeading(l)) return;
       const home = inPantry(l);
       rows.push({ key: gr.g + ':' + i, gr, line: l, buy: !home, home });
     }));

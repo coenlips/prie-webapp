@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.23.3 · 28 november 2026';
+const APP_VERSION = '1.23.4 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1472,6 +1472,7 @@ function openShopSheet(r, ingr, done, factor) {
   const rows = [];
   ingr.forEach((l, i) => {
     if (l.startsWith('#')) { rows.push({ g: 'main', sub: l.replace(/^#+\s*/, '') }); return; }
+    if (Shopping.isHeading(l)) { rows.push({ g: 'main', sub: l.replace(/:\s*$/, '') }); return; }
     const used = done.has('i' + i), home = !used && inPantry(l);
     rows.push({ g: 'main', key: 'm' + i, line: l, f: factor, text: show(l, factor), buy: !used && !home, used, home, part: partOfLine.get(i)?.recipe });
   });
@@ -1479,6 +1480,7 @@ function openShopSheet(r, ingr, done, factor) {
   for (const p of parts) {
     lines(p.ingredients).forEach((l, j) => {
       if (l.startsWith('#')) { rows.push({ g: p.id, sub: l.replace(/^#+\s*/, '') }); return; }
+      if (Shopping.isHeading(l)) { rows.push({ g: p.id, sub: l.replace(/:\s*$/, '') }); return; }
       const home = inPantry(l);
       rows.push({ g: p.id, key: p.id + ':' + j, line: l, f: 1, text: show(l, 1), buy: !home, home });
     });
