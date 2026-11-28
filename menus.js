@@ -45,7 +45,7 @@ const Menus = (() => {
     });
   }
   // Serveerstolp met plusje: recept toevoegen aan een menu
-  const MENU_PLUS = '<svg viewBox="0 0 24 24"><path d="M2.5 19a8 8 0 0 1 16 0"/><path d="M1.5 19h18"/><path d="M10.5 11V9M9 9h3"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>';
+  const MENU_PLUS = '<svg viewBox="0 0 24 24"><path d="M2.5 19a8 8 0 0 1 16 0"/><path d="M1.5 19h18"/><path d="M10.5 11V9M9 9h3"/><path d="M5.7 15.9a5 5 0 0 1 2.6-2.75"/><path d="M19.5 2.5v6M16.5 5.5h6"/></svg>';
   const NEXT = '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>';
 
   // Vanuit een recept: kies een menu, dan een gang
