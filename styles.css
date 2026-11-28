@@ -2467,3 +2467,18 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 @media (min-width: 700px) {
   .shop .loyal-wrap:has(#cardRail)::before { left: calc(-1 * (max(24px, (100vw - var(--page-w, 1320px)) / 2 + 24px) + 4px)); right: calc(-1 * max(24px, calc((100vw - var(--page-w, 1320px)) / 2 + 32px))); }
 }
+/* ================= Gedeeld op iPad liggend en laptop: strook met kookboeken links, magazine rechts ================= */
+@media (min-width: 900px) {
+  body[data-page=books]:has(.bk-split) { height: 100vh; height: 100dvh; min-height: 0; padding-bottom: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
+  body[data-page=books]:has(.bk-split) > .topbar { flex: none; background-color: var(--bg); }
+  body[data-page=books]:has(.bk-split) main { flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding-top: 0; padding-bottom: 0 !important; display: flex; flex-direction: column; }
+  .bk-intro { color: var(--muted); font-size: 14px; margin: -4px 0 10px; }
+  .bk-new { color: var(--accent); font-weight: 600; }
+  .bk-main { padding-top: 0 !important; }
+  .bk-main .book-page { max-width: none; }
+  .bk-main .list-head { position: sticky; top: 0; z-index: 5; background: var(--bg); margin: 0; padding: 22px 0 14px; box-shadow: 0 8px 10px -8px rgba(40, 20, 10, .28); }
+  .bk-main .list-head.closed { box-shadow: none; padding-top: 0 !important; }
+  .bk-main .book-flag { margin: 28px 0 18px; }
+  .bk-main .book-cards { margin: 0; }
+  .bk-main > .loader, .bk-side > .loader { margin-top: 40px; }
+}

@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.25.10 · 28 november 2026';
+const APP_VERSION = '1.26.0 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -2569,6 +2569,10 @@ function renderSetPassword() {
 // Eenvoudig venster van onderen (zelfde stijl als de andere vensters)
 /* Wijzigingsregister: één item per tiende versie (1.1, 1.2 …); kleine aanpassingen (honderdsten) krijgen geen eigen item. Nieuwste bovenaan. 'news' = melding bij het openen tot en met die datum (één keer per gebruiker). */
 const CHANGELOG = [
+  { v: '1.26.0', date: '28 november 2026', sections: [{ items: [
+    'Gedeeld op iPad en laptop: links een strook met alle kookboeken, rechts het gekozen kookboek als magazine.',
+    'Klantkaarten hebben een nieuw icoon: een portemonnee met pasje.',
+  ] }] },
   { v: '1.25.0', date: '28 november 2026', sections: [{ items: [
     'Menu\'s op iPad en laptop: links een strook met al je menu\'s, rechts alle gerechten van het gekozen menu per gang. Met het mandje zet je de boodschappen van het hele menu op je lijst.',
   ] }] },
@@ -3460,8 +3464,60 @@ async function cachedLoad(seq, key, fetcher, show, fail) {
   if (!old || JSON.stringify(old) !== JSON.stringify(fresh)) show(fresh);
 }
 
+/* Gedeeld op iPad liggend en laptop: links een strook met alle kookboeken, rechts het gekozen kookboek als magazine */
+const BOOK_SPLIT = matchMedia('(min-width: 900px)');
+BOOK_SPLIT.addEventListener('change', () => { if (/^#\/kookboek(en|\/\d+)$/.test(location.hash)) route(); });
+let bookStripScroll = 0;
+function bookCovers(b) {
+  const t = (b.thumbs || []).slice(0, 4);
+  const free = Array.from({ length: PLACEHOLDERS }, (_, i) => `images/placeholders/p${i + 1}.svg`);
+  let k = hashStr(String(b.id));
+  while (t.length < 4) t.push({ ph: free.splice(k++ % free.length, 1)[0] });
+  return t.map(s => s.ph ? `<img src="${s.ph}" alt="">` : `<img src="${s}" alt="" loading="lazy" onerror="this.src='${free[0]}'">`).join('');
+}
+async function renderBooksSplit(ownerId) {
+  const seq = routeSeq;
+  document.body.dataset.page = 'books';
+  const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
+  const head = title => setHeader({ docTitle: title || 'Gedeeld', timer: false, actions: `
+    ${ownerId != null ? `<button class="icon-btn filter-toggle${filtersOpen ? ' on' : ''}" id="filterToggle" aria-controls="bookHead" aria-expanded="${filtersOpen}" aria-label="Zoeken en filters" title="Zoeken en filters">${ICONS.filter}<span class="filter-dot" hidden></span></button>` : ''}
+    ${accBtnHtml()}` });
+  head('Gedeeld');
+  const shell = books => {
+    const sel = ownerId != null ? ownerId : books[0]?.id;
+    const strip = `<aside class="mm-side bk-side" aria-label="Alle kookboeken">
+      <h2 class="page-title">Gedeeld</h2>
+      <p class="bk-intro">Recepten die anderen met jou delen.</p>
+      ${books.length ? books.map(b => `<a class="mm-item${b.id === sel ? ' on' : ''}" href="#/kookboek/${b.id}"${b.id === sel ? ' aria-current="true"' : ''}>
+        <div class="covers">${bookCovers(b)}</div>
+        <div><span class="mm-tag">Le Ricette di</span><b>${esc(b.name)}</b>
+        <small>${b.count} ${b.count === 1 ? 'recept' : 'recepten'}${b.new ? ` · <span class="bk-new">${b.new} nieuw</span>` : ''}</small></div></a>`).join('')
+        : `<p class="mm-none">Er deelt nog niemand recepten met je. Deel je eigen recepten bij <a href="#/settings/delen" class="link">Instellingen → Delen</a>.</p>`}
+    </aside>`;
+    view.innerHTML = `<div class="mm bk-split">${strip}<div class="mm-main bk-main" id="bkMain">${sel != null ? loaderHtml('Recepten openen…') : ''}</div></div>`;
+    const side = view.querySelector('.bk-side');
+    side.scrollTop = bookStripScroll;
+    side.addEventListener('scroll', () => { bookStripScroll = side.scrollTop; }, { passive: true });
+    view.querySelectorAll('.bk-side .mm-item').forEach(a => a.addEventListener('click', e => { e.preventDefault(); location.replace(a.getAttribute('href')); }));
+    return sel;
+  };
+  view.innerHTML = `<div class="mm bk-split"><aside class="mm-side bk-side">${loaderHtml('Gedeelde recepten ophalen…')}</aside><div class="mm-main bk-main" id="bkMain"></div></div>`;
+  let shown = null;
+  await cachedLoad(seq, 'books', () => Sync.call('books'), async books => {
+    const sel = shell(books);
+    if (sel == null) return;
+    if (ownerId == null) { head('Gedeeld'); ownerId = sel; head('Gedeeld'); }
+    if (shown === sel && bookCache.get(sel)) { showBook(sel, bookCache.get(sel), head, filtersOpen); return; }
+    shown = sel;
+    const bseq = routeSeq;
+    await cachedLoad(bseq, `book-${sel}`, () => Sync.call('book', { owner: sel }), d => { if (!view.querySelector('#bkMain')) return; bookCache.set(sel, d); showBook(sel, d, head, filtersOpen); },
+      err => { const m = view.querySelector('#bkMain'); if (m) m.innerHTML = `<div class="card-box"><p>${esc(shareErr(err))}</p></div>`; });
+  }, err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
+}
+
 /* Ricette van anderen: '#/kookboeken' */
 async function renderBooks() {
+  if (BOOK_SPLIT.matches && loggedIn()) return renderBooksSplit(null);
   const seq = routeSeq;
   document.body.dataset.page = 'settings';
   setHeader({ docTitle: 'Gedeeld', timer: false, actions: `${accBtnHtml()}` });
@@ -3500,6 +3556,7 @@ async function loadBook(ownerId) {
 }
 const bookFilters = new Map();   // per persoon: zoekterm, gang en filter (blijft bij terugkomen)
 async function renderBook(ownerId) {
+  if (BOOK_SPLIT.matches && loggedIn()) return renderBooksSplit(ownerId);
   const seq = routeSeq;
   document.body.dataset.page = 'book';
   const filtersOpen = (() => { try { return localStorage.getItem('ricetta-filters-open2') === '1'; } catch { return false; } })();
@@ -3512,7 +3569,8 @@ async function renderBook(ownerId) {
     err => { view.innerHTML = `<section class="settings"><div class="card-box"><p>${esc(shareErr(err))}</p></div></section>`; });
 }
 function showBook(ownerId, d, head, filtersOpen) {
-  const y = scrollY;
+  const root = view.querySelector('#bkMain') || view;
+  const y = root === view ? scrollY : root.scrollTop;
   head(d.owner.name);
   const mine = r => state.recipes.some(x => x.fromUser === d.owner.name && x.title === r.title);
   const f = bookFilters.get(ownerId) || { q: '', course: null, filter: 'all' };
@@ -3533,7 +3591,7 @@ function showBook(ownerId, d, head, filtersOpen) {
   if (!chips.some(([k]) => k === f.filter)) f.filter = 'all';
   if (f.course && !courseNames.includes(f.course)) f.course = null;
 
-  view.innerHTML = `<section class="book-page">
+  root.innerHTML = `<section class="book-page">
     <div class="list-head book-head${filtersOpen ? '' : ' closed'}" id="bookHead"><div class="lh-inner">
       <div class="list-tools"><div class="search book-search">${ICONS.search}<input type="search" id="bookQ" placeholder="Zoek in deze recepten" value="${esc(f.q)}" autocomplete="off"></div>${shuffleBtnHtml('bookShuffle')}</div>
       ${courseNames.length ? `<div class="chips course-chips">${courseNames.map(c => `<button class="chip chip-course${f.course === c ? ' on' : ''}" data-bcourse="${esc(c)}">${esc(c)}</button>`).join('')}</div>` : ''}
@@ -3626,7 +3684,7 @@ function showBook(ownerId, d, head, filtersOpen) {
     foldFilters($('#bookHead'), open);   // net als in je eigen overzicht: onder de kopbalk door, vaandel en recepten schuiven mee
   };
   draw();
-  if (y > 0) scrollTo(0, y);   // ververst na het tonen van de bewaarde versie: op dezelfde plek blijven
+  if (y > 0) { if (root === view) scrollTo(0, y); else root.scrollTop = y; }   // ververst na het tonen van de bewaarde versie: op dezelfde plek blijven
 }
 const bookRecipeCache = new Map();   // volledige recepten die je net bekeek (met grote foto), alleen zolang de app open is
 async function renderBookRecipe(ownerId, recipeId) {
