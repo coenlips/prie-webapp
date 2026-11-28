@@ -2538,3 +2538,9 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .bk-crumb { margin: 4px 0 0; }
 .bk-crumb + .bk-head { padding-top: 6px; }
 @media (min-width: 700px) and (max-width: 899.98px) { body[data-page=book] .bk-crumb { margin-left: var(--gutter-l); margin-right: var(--gutter-r); padding-top: 14px; } body[data-page=book] .bk-crumb + .bk-head { padding-top: 6px; } }
+/* Gedeeld naast de strook: de foto van het uitgelichte recept vult de gouden lijst helemaal (ook als de tekst ernaast hoger is) */
+@media (min-width: 1000px) {
+.bk-main .mag-hero { container-type: inline-size; }
+.bk-main .mag-hero .mh-photo { aspect-ratio: auto; align-self: stretch; height: auto; min-height: calc(60cqw * .75); }
+.bk-main .mag-hero .mh-photo img, .bk-main .mag-hero .mh-photo img.cropped { position: static; width: 100% !important; height: 100% !important; left: auto !important; top: auto !important; object-fit: cover; }
+}
