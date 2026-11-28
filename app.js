@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.27.10 · 28 november 2026';
+const APP_VERSION = '1.27.11 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -486,8 +486,9 @@ function updateTabs(page, sub) {
   if (typeof Menus === 'undefined' || typeof Shopping === 'undefined') return;
   const tabs = [['recepten', '#/', ICONS.pot, 'Recepten'], ['menus', '#/menus', Menus.MENU_ICON, "Menu's"],
     ['boodschappen', '#/boodschappen', ICONS.basket, 'Boodschappen'], ...(loggedIn() ? [['ricette', '#/kookboeken', ICONS.shared, 'Gedeeld']] : [])];
-  const html = tabs.map(([k, href, icon, label]) => `<a href="${href}" class="${k === cur ? 'on' : ''}"${k === cur ? ' aria-current="page"' : ''}>${icon}<span>${label}</span>${k === 'boodschappen' ? '<span class="cart-badge tb-badge" hidden></span>' : ''}</a>`).join('');
-  for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
+  // In de menubalk op iPad en laptop heet het eerste tabblad 'Jouw recepten'; onderin op de iPhone blijft het 'Recepten'
+  const html = top => tabs.map(([k, href, icon, label]) => `<a href="${href}" class="${k === cur ? 'on' : ''}"${k === cur ? ' aria-current="page"' : ''}>${icon}<span>${top && k === 'recepten' ? 'Jouw recepten' : label}</span>${k === 'boodschappen' ? '<span class="cart-badge tb-badge" hidden></span>' : ''}</a>`).join('');
+  for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html(el.id === 'topTabs'); el.style.setProperty('--tabs', tabs.length); }
   document.body.classList.toggle('has-tabbar', show);
   // de plusknop alleen bij je recepten
   // de plusknop rechtsonder: pannetje bij je recepten, stolp bij Menu's
