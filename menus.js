@@ -328,6 +328,48 @@ const Menus = (() => {
   }
 
   /* ---------- Samenstellen ---------- */
+  // Eerste keer Menu aanpassen op iPad/laptop: een gerecht 'vliegt' van de lijst naar een gang, met uitleg
+  const HINT = 'ricetta-hint-menu-drag';
+  function dragHint(view) {
+    try { if (localStorage.getItem(HINT)) return; } catch { return; }
+    const src = view.querySelector('#meList .me-item'), dst = view.querySelector('#mmEdit .mm-course .mm-grid');
+    if (!src || !dst || !view.isConnected) return;
+    const a = src.getBoundingClientRect(), d = dst.getBoundingClientRect();
+    const ghost = src.cloneNode(true);
+    ghost.className = 'me-item me-ghost'; ghost.removeAttribute('draggable');
+    Object.assign(ghost.style, { left: a.left + 'px', top: a.top + 'px', width: a.width + 'px' });
+    const hand = document.createElement('div');
+    hand.className = 'me-hand';
+    hand.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 11V5.5a1.5 1.5 0 0 1 3 0V10m0-1.5a1.5 1.5 0 0 1 3 0V11m0-1a1.5 1.5 0 0 1 3 0v4.5a6 6 0 0 1-6 6h-1.2a5 5 0 0 1-4-2l-3-4.1a1.5 1.5 0 0 1 2.3-1.9L9 14"/></svg>';
+    ghost.appendChild(hand);
+    const tip = document.createElement('div');
+    tip.className = 'me-tip'; tip.setAttribute('role', 'status');
+    tip.innerHTML = `<b>Sleep je gerechten naar een gang</b><span>Pak een gerecht uit de lijst links en laat het los bij de juiste gang. Versleep een gerecht om het naar een andere gang te verplaatsen.</span><button type="button" class="btn">Begrepen</button>`;
+    // naast het eerste vak van de gang, zodat de animatie en de gangen eronder zichtbaar blijven
+    const cell = dst.firstElementChild?.getBoundingClientRect() || d;
+    Object.assign(tip.style, { left: Math.min(innerWidth - 380, cell.right + 28) + 'px', top: Math.max(cell.top, 90) + 'px' });
+    document.body.append(ghost, tip);
+    const dx = d.left + 20 - a.left, dy = d.top + 30 - a.top;
+    const anim = ghost.animate([
+      { transform: 'translate(0,0) scale(1)', opacity: 0, offset: 0 },
+      { transform: 'translate(0,0) scale(1.04)', opacity: 1, offset: .12 },
+      { transform: `translate(${dx * .5}px, ${dy * .5 - 40}px) rotate(-3deg) scale(1.04)`, opacity: 1, offset: .5 },
+      { transform: `translate(${dx}px, ${dy}px) rotate(0) scale(1)`, opacity: 1, offset: .82 },
+      { transform: `translate(${dx}px, ${dy}px) scale(.96)`, opacity: 0, offset: 1 },
+    ], { duration: 2200, iterations: Infinity, easing: 'ease-in-out', delay: 200 });
+    const zone = dst.closest('.mm-course');
+    const pulse = setInterval(() => { zone?.classList.add('drop-on'); setTimeout(() => zone?.classList.remove('drop-on'), 500); }, 2200);
+    setTimeout(() => { zone?.classList.add('drop-on'); setTimeout(() => zone?.classList.remove('drop-on'), 500); }, 1800);
+    const done = () => {
+      try { localStorage.setItem(HINT, '1'); } catch { /* geen opslag */ }
+      anim.cancel(); clearInterval(pulse); ghost.remove(); tip.remove(); zone?.classList.remove('drop-on');
+      removeEventListener('hashchange', done); view.removeEventListener('dragstart', done, true);
+    };
+    tip.querySelector('button').onclick = done;
+    addEventListener('hashchange', done);
+    view.addEventListener('dragstart', done, true);
+  }
+
   async function renderEdit(view, id) {
     const seq = routeSeq;
     document.body.dataset.page = 'menus';
@@ -371,7 +413,7 @@ const Menus = (() => {
         </div>
         ${courses.map(c => `<section class="mm-course" data-drop="${esc(c)}"><h3>${esc(c)}</h3><div class="mm-grid">
           ${dishes.filter(d => d.course === c).map(d => `<div class="mm-dish mm-edish" draggable="true" data-drag="${esc(d.r.id)}" data-from="${esc(c)}"><div class="ph"><img src="${d.r.photo || placeholder(d.r.id)}" alt=""><button type="button" class="mm-x" data-rm="${esc(d.r.id)}" data-course="${esc(c)}" aria-label="${esc(d.r.title)} weghalen" title="Weghalen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 7l10 10M17 7L7 17"/></svg></button></div><b>${esc(d.r.title)}</b></div>`).join('')}
-          <button type="button" class="mm-dish mm-addd" data-add="${esc(c)}"><div class="ph">${POT_PLUS}<span>Recept toevoegen</span></div></button>
+          ${dishes.some(d => d.course === c) ? '' : `<div class="mm-dish mm-dropzone" aria-hidden="true"><div class="ph">${POT_PLUS}<span>Sleep hier een gerecht naartoe</span></div></div>`}
         </div></section>`).join('')}
         ${extra.length ? `<div class="ms-more"><span>Gang toevoegen:</span>${extra.map(c => `<button type="button" class="chip" data-gang="${esc(c)}" data-drop="${esc(c)}">+ ${esc(c)}</button>`).join('')}</div>` : ''}
         <button type="button" class="ed-del" id="msDel">Menu verwijderen</button>
@@ -486,7 +528,7 @@ const Menus = (() => {
       s.$('#mpSearch').focus({ preventScroll: true });
     };
     draw();
-    if (wide) view.querySelector('#meQ').oninput = drawPanel;
+    if (wide) { view.querySelector('#meQ').oninput = drawPanel; setTimeout(() => dragHint(view), 500); }
   }
 
   return { create, renderList, renderMenu, renderEdit, openAddSheet, MENU_ICON, MENU_PLUS, KINDS, easter };
