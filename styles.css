@@ -2523,3 +2523,4 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .bk-strip span.more::after { content: attr(data-more); position: absolute; inset: 0; display: grid; place-items: center; background: rgb(30 15 8 / .55); color: #fff; font: 400 22px var(--font-title); letter-spacing: .04em; }
 .bk-row:active .bk-strip { opacity: .85; }
 .bk-row-head b { color: var(--accent); }
+.bk-side .mm-item b { color: var(--accent); }
