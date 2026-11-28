@@ -2263,3 +2263,9 @@ body.scanning { overflow: hidden; }
   }
   .shop-split > .dishes, .shop:has(#cardRail):not(:has(.loyal-wrap.closed)) .dishes { position: static; top: auto; max-height: none; }
 }
+/* iPad en laptop: de plusknop voor een nieuw recept rechtsonder, net als op de iPhone */
+@media (min-width: 700px) {
+  body[data-page=list] .add-top { display: none !important; }
+  body[data-page=list]:not(.no-fab-btn) .fab:not([hidden]) { display: grid; }
+  body.has-tabbar .fab { right: 28px; bottom: calc(28px + var(--safe-bottom, 0px)); }
+}
