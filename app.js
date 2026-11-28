@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.30.0 · 28 november 2026';
+const APP_VERSION = '1.30.1 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3300,7 +3300,7 @@ async function showStarterBook() {
   const n = d.recipes.length;
   box.innerHTML = `<div class="starter">
     <div class="covers">${bookCovers({ id: 'start', thumbs: d.recipes.map(r => r.thumbS).filter(Boolean).slice(0, 4) })}</div>
-    <div class="starter-tx"><span class="mm-tag">Startkookboek van ${esc(d.owner.name)}</span><b>${n} ${n === 1 ? 'recept' : 'recepten'}</b>
+    <div class="starter-tx"><span class="mm-tag">Startkookboek</span><b>${n} ${n === 1 ? 'recept' : 'recepten'}</b>
       <small>om mee te beginnen</small></div>
     <div class="starter-acts">
       <button type="button" class="btn ghost" id="starterView">Bekijken</button>
@@ -3314,7 +3314,7 @@ async function showStarterBook() {
 function viewStarter(d) {
   const chosen = new Set(d.recipes.map(r => r.id));
   const s = openAccSheet(`<div class="sheet-head"><h3>Startkookboek</h3><button class="text-btn" data-close>Sluit</button></div>
-    <p class="acc-sheet-text">Recepten van ${esc(d.owner.name)} om mee te beginnen. Vink uit wat je niet wilt.</p>
+    <p class="acc-sheet-text">Recepten om mee te beginnen. Vink uit wat je niet wilt.</p>
     <ul class="pick mp-pick" id="stList"></ul>
     <button class="btn" id="stAdd"></button>`, 'Startkookboek');
   s.el.querySelector('.sheet').classList.add('tall');
