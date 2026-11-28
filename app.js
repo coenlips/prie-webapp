@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.30.2 · 28 november 2026';
+const APP_VERSION = '1.30.3 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1271,7 +1271,7 @@ async function renderDetail(id, opts = {}) {
     timerLabel: r.title,
     actions: `
       <button class="icon-btn cook-btn${state.cookMode ? ' on' : ''}" data-cook aria-pressed="${!!state.cookMode}" aria-label="Kookmodus: scherm blijft aan, grotere tekst" title="Kookmodus">${ICONS.cook}</button>
-      `,
+      ${foreign ? '' : accBtnHtml()}`,
   });
   Shopping.updateBadge();
 

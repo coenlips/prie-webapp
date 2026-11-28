@@ -2630,3 +2630,4 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .starter { margin: 18px auto 18px; }
 .starter-acts .btn { white-space: nowrap; font-size: 14px; letter-spacing: .05em; }
 .starter-acts .btn:disabled { opacity: .75; }
+body.cook .topbar .acc-btn { display: none; }

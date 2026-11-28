@@ -171,7 +171,7 @@ const Menus = (() => {
     if (isStale(seq)) return;
     const m = (id && menus.find(x => x.id === id)) || (!id && !one && menus[0]) || null;
     if (id && !m) { location.replace('#/menus'); return; }
-    if (one && m) { setHeader({ title: m.title || 'Menu', back: true, timer: false }); Shopping.updateBadge(); }
+    if (one && m) { setHeader({ title: m.title || 'Menu', back: true, timer: false, actions: `${accBtnHtml()}` }); Shopping.updateBadge(); }
     else setHeader({ docTitle: "Menu's", timer: false, actions: `${accBtnHtml()}` });
     const side = stripHtml(menus, m && m.id);
     let main = `<div class="mm-main"><p class="mm-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p></div>`;
