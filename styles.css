@@ -2492,3 +2492,5 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 @media (min-width: 900px) { .mm { grid-template-columns: 280px minmax(0, 1fr); gap: 44px; } }
 @media (min-width: 900px) and (max-width: 1100px) { .mm { grid-template-columns: 236px minmax(0, 1fr); gap: 28px; } .mm-item { gap: 10px; padding: 9px 8px; } .mm-item .covers { grid-template-columns: repeat(2, 23px); grid-template-rows: repeat(2, 23px); width: 48px; height: 48px; } .mm-item .covers img { width: 23px; height: 23px; } .mm-item small { font-size: 12.5px; } }
 @media (min-width: 900px) and (max-width: 1100px) { .mm-new { gap: 4px; } .mm-new .chip { font-size: 11px; padding: 4px 6px; gap: 3px; letter-spacing: .04em; } }
+/* Gedeeld naast de strook: recepten in hoogstens 3 kolommen */
+@media (min-width: 1380px) { .bk-main .cards.mag { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

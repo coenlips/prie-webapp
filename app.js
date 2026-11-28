@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.26.3 · 28 november 2026';
+const APP_VERSION = '1.26.4 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1049,7 +1049,7 @@ const Mag = (() => {
     const rest = order(list).filter(r => !hero || r.id !== hero.id);
     const many = all.filter(r => r.photo).length > 1;
     const start = hero ? 2 : 1, row0 = hero ? 2 : 1;
-    const cells = plan(rest, magCols());
+    const cells = plan(rest, el.closest('.bk-main') ? Math.min(3, magCols()) : magCols());   // Gedeeld naast de strook: hoogstens 3 kolommen
     let nr = 0;
     el.innerHTML = (hero ? heroHtml(hero, many) : '') + cells.map(cell => {
       const pos = `grid-row:${row0 + cell.row}${cell.big ? ' / span 2' : ''};grid-column:${cell.col + 1}${cell.big ? ' / span 2' : ''}`;
