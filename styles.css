@@ -2571,8 +2571,8 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
 .me-item.dragging, .mm-edish.dragging { opacity: .4; }
 .mm-edish[draggable=true] { cursor: grab; }
 @media (hover: hover) { .me-item:hover { background: rgb(0 0 0 / .04); } }
-.me-dragging .mm-course { outline: 2px dashed var(--line); outline-offset: 6px; border-radius: 4px; transition: outline-color .15s, background .15s; }
-.mm-course.drop-on { outline-color: var(--accent) !important; background: var(--accent-soft); }
+.me-dragging .mm-course { outline: 2px dashed var(--line); outline-offset: 6px; border-radius: 2px; transition: outline-color .15s, background .15s, box-shadow .15s; }
+.mm-course.drop-on { outline-color: var(--accent) !important; background: var(--accent-soft); box-shadow: 0 0 0 6px var(--accent-soft); }   /* lichtrood tot aan de stippellijn */
 .ms-more .chip.drop-on { background: var(--accent); color: #fff; border-color: var(--accent); }
 .me-in svg { width: 13px; height: 13px; stroke: #fff; stroke-width: 3; fill: none; display: block; }
 /* Lege gang: vak om een gerecht naartoe te slepen */
