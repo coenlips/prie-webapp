@@ -2533,3 +2533,7 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .bk-main .list-head + .bk-head { padding-top: 28px; }
   .bk-main .list-head:not(.closed) + .bk-head { padding-top: 14px; }
 }
+/* iPhone en iPad staand: kruimelpad '‹ Gedeeld' boven Le Ricette di */
+.bk-crumb { margin: 4px 0 0; }
+.bk-crumb + .bk-head { padding-top: 6px; }
+@media (min-width: 700px) and (max-width: 899.98px) { body[data-page=book] .bk-crumb { margin-left: var(--gutter-l); margin-right: var(--gutter-r); padding-top: 14px; } body[data-page=book] .bk-crumb + .bk-head { padding-top: 6px; } }

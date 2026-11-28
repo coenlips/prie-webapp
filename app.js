@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.27.7 · 28 november 2026';
+const APP_VERSION = '1.27.8 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -3640,6 +3640,7 @@ function showBook(ownerId, d, head, filtersOpen) {
         ? `<button class="chip chip-diet${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${dietBadge(l, { tip: false })}</button>`
         : `<button class="chip${f.filter === k ? ' on' : ''}" data-bfilter="${esc(k)}">${esc(l)}</button>`).join('')}</div>` : ''}
     </div></div>
+    ${root === view ? `<div class="crumb-row crumb-top bk-crumb">${crumbHtml('Gedeeld')}</div>` : ''}
     ${split ? `<div class="mm-head bk-head"><div class="mm-ht"><div class="mm-kick">Le Ricette di</div><h1>${esc(d.owner.name)}</h1>
       <p>${nAll} ${nAll === 1 ? 'recept' : 'recepten'}${nNew ? ` · <span class="bk-new">${nNew} nieuw deze week</span>` : ''}</p></div></div>` : ''}
     ${split ? '' : `<div class="book-flag"><div class="acc-flag"><span><small>Le Ricette di</small>${esc(d.owner.name)}</span></div></div>`}
