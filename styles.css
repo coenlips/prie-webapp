@@ -2236,3 +2236,10 @@ body.scanning { overflow: hidden; }
   .dish-extra { display: flex; justify-content: space-between; color: var(--muted); font-size: 14px; padding: 10px 16px; border-top: 1px dashed var(--line); }
   .shop-item.hl { background: var(--accent-soft); box-shadow: -10px 0 0 var(--accent-soft), 10px 0 0 var(--accent-soft); }
 }
+
+/* Deelknopje rechts naast de kop Boodschappen */
+.shop-title-row .page-title { margin-right: auto; }
+.shop-share { flex: none; width: 44px; height: 44px; margin: 0 0 6px 0; display: grid; place-items: center; border: 0; border-radius: 50%; background: none; color: var(--accent); cursor: pointer; }
+@media (hover: hover) { .shop-share:hover { background: var(--accent-soft); } }
+.shop-share svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (min-width: 700px) { .shop-title-row .shop-share { margin-top: 16px; } }

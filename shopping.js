@@ -512,7 +512,7 @@ const Shopping = (() => {
         <section class="shop">
           <div class="loyal-wrap${cards().length && cardsHidden() ? ' closed' : ''}" id="loyalWrap"><div class="loyal-in">${railHtml()}</div></div>
           <div class="shop-split"><div class="shop-left">
-          <h2 class="page-title">Boodschappen</h2>
+          <div class="shop-title-row"><h2 class="page-title">Boodschappen</h2>${list.items.length ? `<button type="button" class="icon-btn shop-share" id="shareTop" aria-label="Lijst delen" title="Lijst delen">${ICONS.share}</button>` : ''}</div>
           <form class="shop-add" id="shopAdd" autocomplete="off">
             <span class="shop-field"><input name="item" placeholder="Voeg toe, bijv. 2 pakken melk" enterkeyhint="done" autocapitalize="sentences"><button type="button" class="search-clear" id="shopClear" aria-label="Veld leegmaken" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg></button></span>
             <button class="btn small" aria-label="Toevoegen">+</button>
@@ -583,11 +583,13 @@ const Shopping = (() => {
         if (!confirm('Hele boodschappenlijst leegmaken?')) return;
         list.items = []; await save(); draw();
       });
-      on('#shareList', async () => {
+      const shareList = async () => {
         const text = 'Boodschappen\n' + list.items.filter(i => !i.checked).map(i => '• ' + label(i)).join('\n');
         if (navigator.share) { try { await navigator.share({ title: 'Boodschappen', text }); } catch { /* geannuleerd */ } }
         else { await navigator.clipboard.writeText(text); toast('Lijst gekopieerd'); }
-      });
+      };
+      on('#shareList', shareList);
+      on('#shareTop', shareList);
     };
     draw();
   }
