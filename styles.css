@@ -2432,3 +2432,14 @@ body.has-requests:not(.sync-problem) .acc-btn::after { background: var(--mustard
   .mm-x svg { width: 18px; height: 18px; stroke-width: 2.4; }
   .mm-addd .ph svg { width: 40px; height: 40px; stroke-width: 1.8; }
 }
+/* Recept aanpassen op iPad en laptop: Annuleer en Bewaar boven het formulier, zoals bij Menu aanpassen */
+.ed-head { display: none; }
+@media (min-width: 700px) {
+  .ed-head { grid-column: 1 / -1; display: flex; align-items: center; gap: 20px; border-bottom: 1.5px solid var(--text); padding-bottom: 12px; margin-bottom: 22px; }
+  .ed-kick { flex: 1; font: 500 12px var(--font-label); letter-spacing: .18em; text-transform: uppercase; color: var(--mustard); }
+  .ed-acts, .mm-eacts { display: flex; gap: 8px; }
+  .ed-acts .btn, .mm-eacts .btn { width: auto; display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; font-size: 15px; margin: 0; }
+  .ed-acts .btn svg, .mm-eacts .btn svg { width: 18px; height: 18px; }
+  body[data-page=edit].has-tabbar main { max-width: none; margin: 0; padding-left: calc(max(24px, (100% - var(--page-w, 1320px)) / 2 + 24px) + 4px); padding-right: max(24px, calc((100% - var(--page-w, 1320px)) / 2 + 32px)); }
+}
+@media (min-width: 700px) { .ed-head { margin-top: -12px; } }

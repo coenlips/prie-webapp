@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.25.3 · 28 november 2026';
+const APP_VERSION = '1.25.4 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -1615,12 +1615,14 @@ async function renderEdit(id) {
   if (!r) { location.hash = '#/'; return; }
   let photo = r.photo || '';
 
-  setHeader({
-    title: id ? 'Bewerken' : 'Nieuw recept', back: true, timer: false,
-    actions: `<button class="text-btn cancel-btn" id="cancelBtn">Annuleer</button><button class="text-btn" id="saveBtn">Bewaar</button>`,
-  });
+  // iPad en laptop: Annuleer en Bewaar boven het formulier (net als bij Menu aanpassen), het accountrondje blijft in de menubalk
+  const edWide = WIDE_MQ.matches;
+  const edBtns = edWide ? `<button type="button" class="btn ghost" id="cancelBtn">Annuleer</button><button type="button" class="btn" id="saveBtn">${ICONS.check} Bewaar</button>`
+    : `<button class="text-btn cancel-btn" id="cancelBtn">Annuleer</button><button class="text-btn" id="saveBtn">Bewaar</button>`;
+  if (edWide) setHeader({ docTitle: id ? 'Recept aanpassen' : 'Nieuw recept', timer: false, actions: `${accBtnHtml()}` });
+  else setHeader({ title: id ? 'Bewerken' : 'Nieuw recept', back: true, timer: false, actions: edBtns });
   // Annuleer: terug zonder bewaren (naar het recept, of bij een nieuw recept naar het overzicht)
-  $('#cancelBtn').onclick = () => { location.hash = id ? '#/r/' + encodeURIComponent(id) : '#/'; };
+  const bindCancel = () => $('#cancelBtn').onclick = () => { location.hash = id ? '#/r/' + encodeURIComponent(id) : '#/'; };
 
   // Je eigen categorieën; zolang je er nog geen hebt, een paar standaardsuggesties.
   const used = catsByUse();
@@ -1628,6 +1630,7 @@ async function renderEdit(id) {
 
   view.innerHTML = `
     <form class="ed" id="form" autocomplete="off">
+      ${edWide ? `<div class="ed-head"><div class="ed-kick">${id ? 'Recept aanpassen' : 'Nieuw recept'}</div><div class="ed-acts">${edBtns}</div></div>` : ''}
       <div class="ed-side" id="edSide">
         <label class="ed-photo" id="photoPick">
           <input type="file" accept="image/*" id="photoInput" hidden>
@@ -1697,6 +1700,7 @@ async function renderEdit(id) {
         ${id ? `<button type="button" class="ed-del" id="deleteBtn">Recept verwijderen</button>` : ''}
       </div>
     </form>`;
+  bindCancel();
 
   // Porties aanpassen rekent de ingrediënten mee om, tenzij ze vastgezet zijn
   {
