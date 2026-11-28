@@ -121,14 +121,13 @@ const Menus = (() => {
       <p class="mx-intro">Stel een menu samen voor een feest of een etentje. Ricetta zet de boodschappen voor je klaar.</p>
       <div class="mx-new">
         ${['kerst', 'pasen', 'etentje'].map(k => `<button class="chip" data-new="${k}">${KINDS[k].emoji} ${KINDS[k].label}</button>`).join('')}
-        <button class="chip mx-new-btn" data-new="anders">${MENU_ICON} Nieuw menu</button>
       </div>
       ${menus.length ? `<ul class="mx-list">${menus.map(m => {
         const n = dishesOf(m).length;
         return `<li><a class="mx-card${m.date && m.date < t ? ' past' : ''}" href="#/menu/${encodeURIComponent(m.id)}"><div class="covers">${coverImgs(m).map(s => `<img src="${s}" alt="" loading="lazy">`).join('')}</div>
           <div><span class="mx-tag">${esc([KINDS[m.kind]?.label, fmtDate(m.date, false)].filter(Boolean).join(' · '))}</span><b>${esc(m.title || 'Menu')}</b>
           <small>${m.persons} ${m.persons === 1 ? 'persoon' : 'personen'} · ${n} ${n === 1 ? 'gerecht' : 'gerechten'}</small></div></a></li>`;
-      }).join('')}</ul>` : `<div class="card-box mx-empty"><p>Nog geen menu's. Kies hierboven waarvoor je een menu wilt maken.</p></div>`}
+      }).join('')}</ul>` : `<div class="card-box mx-empty"><p>Nog geen menu's. Kies hierboven waarvoor je een menu wilt maken, of tik op de plusknop.</p></div>`}
     </section>`;
     view.querySelectorAll('[data-new]').forEach(b => b.onclick = () => create(b.dataset.new));
   }
@@ -330,5 +329,5 @@ const Menus = (() => {
     draw();
   }
 
-  return { renderList, renderMenu, renderEdit, openAddSheet, MENU_ICON, MENU_PLUS, KINDS, easter };
+  return { create, renderList, renderMenu, renderEdit, openAddSheet, MENU_ICON, MENU_PLUS, KINDS, easter };
 })();

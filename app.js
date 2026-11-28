@@ -1,7 +1,7 @@
 'use strict';
 
 // Verhoog dit bij elke nieuwe versie, samen met VERSION in sw.js.
-const APP_VERSION = '1.24.1 · 28 november 2026';
+const APP_VERSION = '1.24.2 · 28 november 2026';
 
 /* ---------- Hulpfuncties ---------- */
 
@@ -469,6 +469,7 @@ function setHeader({ title = 'Ricetta', back = false, close = false, lead = '', 
 
 /* ---------- Tabbladen: onderin op de iPhone, in de menubalk op iPad en laptop ---------- */
 const WIDE_MQ = matchMedia('(min-width: 700px)');
+const POT_PLUS = '<svg viewBox="0 0 24 24"><g transform="translate(-1.6 2.2) scale(.88)"><path d="M5 11h14v6a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z"/><path d="M3 11h18"/><path d="M6 8.5h12"/><path d="M10.5 8.5V7a1.5 1.5 0 0 1 3 0v1.5"/><path d="M3 13.5h2M19 13.5h2"/></g><path d="M19.5 1.5v6M16.5 4.5h6"/></svg>';
 function updateTabs(page, sub) {
   // Welk tabblad aan staat; een recept uit een menu hoort bij Menu's
   const cur = ({ '': 'recepten', r: state.fromMenu ? 'menus' : 'recepten', edit: 'recepten', new: 'recepten', ontvangen: 'recepten',
@@ -489,7 +490,15 @@ function updateTabs(page, sub) {
   for (const el of [$('#tabbar'), $('#topTabs')]) { el.hidden = !show; if (show) el.innerHTML = html; el.style.setProperty('--tabs', tabs.length); }
   document.body.classList.toggle('has-tabbar', show);
   // de plusknop alleen bij je recepten
-  if (show && (page || '') !== '') { $('#addBtn').hidden = true; document.body.classList.add('no-fab-btn'); } else document.body.classList.remove('no-fab-btn');
+  // de plusknop rechtsonder: pannetje bij je recepten, stolp bij Menu's
+  const fab = (page || '') === '' ? 'recipe' : page === 'menus' ? 'menu' : '';
+  if (show && !fab) { $('#addBtn').hidden = true; document.body.classList.add('no-fab-btn'); } else document.body.classList.remove('no-fab-btn');
+  const btn = $('#addBtn'), mode = fab || 'recipe';
+  if (btn.dataset.mode !== mode) {
+    btn.dataset.mode = mode;
+    btn.innerHTML = mode === 'menu' ? Menus.MENU_PLUS : POT_PLUS;
+    btn.setAttribute('aria-label', mode === 'menu' ? 'Nieuw menu' : 'Nieuw recept');
+  }
   if (show) Shopping.updateBadge();
 }
 
@@ -532,7 +541,7 @@ $('#backBtn').addEventListener('click', () => {
   if (page === 'r' || page === 'settings' || !state.navigated) location.hash = '#/';
   else history.back();
 });
-$('#addBtn').addEventListener('click', () => Importer.openSheet());
+$('#addBtn').addEventListener('click', e => e.currentTarget.dataset.mode === 'menu' ? Menus.create('anders') : Importer.openSheet());
 
 /* ---------- Lijst ---------- */
 
@@ -2558,7 +2567,7 @@ function renderSetPassword() {
 const CHANGELOG = [
   { v: '1.24.0', date: '28 november 2026', sections: [{ items: [
     'Het tandwieltje is een rondje met je eerste letter geworden. Tik erop en je ziet je accountgegevens, met een link naar de instellingen en een knop om uit te loggen.',
-    'Op iPad en laptop staat de plusknop voor een nieuw recept nu rechtsonder, net als op de iPhone.',
+    'De plusknop rechtsonder heeft een pannetje bij je recepten en een stolp bij Menu\'s, waarmee je een nieuw menu begint. Ook op iPad en laptop staat hij nu rechtsonder.',
   ] }] },
   { v: '1.23.0', date: '27 november 2026', sections: [{ items: [
     'Op laptop en iPad zie je naast je boodschappenlijst voor welke gerechten je boodschappen doet, per menu en per gang. Wijs een gerecht aan en de boodschappen ervan lichten op; met het kruisje haal je ze in één keer van de lijst.',
