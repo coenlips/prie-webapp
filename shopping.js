@@ -518,8 +518,12 @@ const Shopping = (() => {
       mark(selDish);
       // Staat de eerste boodschap buiten beeld? Dan erheen scrollen.
       const first = items.find(li => li.classList.contains('hl'));
-      if (scroll && first) { const r = first.getBoundingClientRect(), top = (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 72) + 90;
-        if (r.top < top || r.bottom > innerHeight) window.scrollBy({ top: r.top - top - 10, behavior: 'smooth' }); }
+      if (scroll && first) {
+        const box = view.querySelector('.shop-left'), own = box && getComputedStyle(box).overflowY === 'auto';
+        const r = first.getBoundingClientRect(), top = own ? box.getBoundingClientRect().top : (parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--topbar-h')) || 72) + 90;
+        const bottom = own ? box.getBoundingClientRect().bottom : innerHeight;
+        if (r.top < top || r.bottom > bottom) (own ? box : window).scrollBy({ top: r.top - top - 10, behavior: 'smooth' });
+      }
     };
     if (selDish && !dishes.some(d => d.dataset.dish === selDish)) selDish = null;
     mark(selDish);

@@ -2247,3 +2247,19 @@ body.scanning { overflow: hidden; }
 @media (hover: hover) { .shop-share:hover { background: var(--accent-soft); } }
 .shop-share svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 @media (min-width: 700px) { .shop-title-row .shop-share { margin-top: 16px; } }
+
+/* Laptop en iPad liggend: Boodschappen en Gerechten scrollen elk los van elkaar.
+   De pagina zelf scrolt niet; de menubalk en de klantkaarten blijven bovenaan staan. */
+@media (min-width: 900px) {
+  body[data-page=shop]:has(.dishes) { height: 100vh; height: 100dvh; min-height: 0; padding-bottom: 0 !important; overflow: hidden; display: flex; flex-direction: column; }
+  body[data-page=shop]:has(.dishes) > .topbar { flex: none; }
+  body[data-page=shop]:has(.dishes) main { flex: 1 1 auto; min-height: 0; width: 100%; box-sizing: border-box; padding-bottom: 0 !important; display: flex; flex-direction: column; }
+  body[data-page=shop] .shop:has(.dishes) { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+  body[data-page=shop] .shop:has(.dishes) > .loyal-wrap { flex: none; }
+  body[data-page=shop] .shop-split:has(.dishes) { flex: 1 1 auto; min-height: 0; align-items: stretch; }
+  .shop-split:has(.dishes) > .shop-left, .shop-split > .dishes {
+    min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin;
+    margin: 0 -12px; padding: 0 12px 32px;   /* ruimte voor het oplichten en de focusrand */
+  }
+  .shop-split > .dishes, .shop:has(#cardRail):not(:has(.loyal-wrap.closed)) .dishes { position: static; top: auto; max-height: none; }
+}
